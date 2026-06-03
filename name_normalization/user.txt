@@ -2,8 +2,6 @@
 Normalize entity and person names in the Wave 1 ownership graphs below.
 </task>
 
-<target_entity>{{clientEntityName}}</target_entity>
-
 <wave1_outputs>
 {{wave1OutputsJson}}
 </wave1_outputs>

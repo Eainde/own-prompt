@@ -34,6 +34,13 @@ Entity type must be classified before any extraction begins.
   <rule id="W1.R5" priority="CRITICAL" name="EVIDENCE_ONLY_EXTRACTION">
   Only extract relationships that are explicitly evidenced in this document.
   </rule>
+
+  <rule id="W1.R6" priority="CRITICAL" name="TARGET_ENTITY_NOT_FOUND">
+  If the target entity is not mentioned in this document:
+  - Do NOT invent any ownership relationships.
+  - Output a single layer-0 node with name = the target entity name, all ownership and control fields set to null, and data_gaps set to: "Target entity not found in this document. No ownership relationships extracted."
+  - Output an empty conflicts array.
+  </rule>
 </rules>
 
 <section name="ENTITY_TYPE_RULES">

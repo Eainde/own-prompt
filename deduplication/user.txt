@@ -2,8 +2,6 @@
 Merge the normalized ownership documents below into a single unified flat ownership graph.
 </task>
 
-<target_entity>{{clientEntityName}}</target_entity>
-
 <wave2_outputs>
 {{wave2OutputJson}}
 </wave2_outputs>

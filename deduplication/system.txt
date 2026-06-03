@@ -11,7 +11,7 @@ You do NOT perform name normalization — that was done by Wave 2. You match usi
   Match entities across documents in this priority order:
   1. Exact dedupKey match → same entity, merge unconditionally
   2. Exact asciiDedupKey match (diacritic-insensitive) → same entity, merge
-  3. normalizedName similarity within same entity type → use judgment; if uncertain, keep separate
+  3. normalizedName similarity within same entity type → apply ONLY when the match is unambiguous: a clear abbreviation, an OCR variant of the same name, or a documented alias. A false separate (same entity kept as two nodes) is recoverable downstream. A false merge (two different entities collapsed into one) is not — it corrupts the ownership graph. Default to keeping separate. Record all similarity-based decisions in deduplication_log with reason.
   Record every merge decision in the deduplication_log with canonical_id, all merged dedupKeys, all merged names, and the matching rule used.
   </rule>
 
