@@ -9,13 +9,14 @@ Convert the flat ownership graph below into a nested ownership tree.
 </wave3_output>
 
 <instructions>
-1. Identify the root node: the node where layer = 0 and parent_id = null. This represents the client entity.
-2. For each node, find its children: all nodes in the flat graph where parent_id equals this node's id.
-3. Build the tree recursively. Before recursing into a child, check whether that node's id has already appeared in the current branch. If yes, stop, record the circular reference in exceptions, and set children to [].
-4. If any node has a parent_id that matches no other node's id, attach it to the root and record the issue in data_gaps as: "Orphaned node: parent_id '[id]' not found in graph. Attached to root."
-5. Carry all node fields forward unchanged. Set children to [] for terminal nodes.
-6. Carry the conflicts array from Wave 3 to the output conflicts array unchanged.
-7. Set metadata.schema_version to "v0" and metadata.note to "Schema subject to change pending internal Wave 5 system spec."
-8. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
-9. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+1. Set client_entity to the {{clientEntityName}} template variable. Set entity_type_category from the entity_type_category field in the Wave 3 input.
+2. Identify the root node: the node in the Wave 3 nodes array where layer = 0. This is the client entity. Set its ownership_percentage_direct, control, and source to null.
+3. For each node X, find its children: all nodes Y in the Wave 3 nodes array where an edge { owner: Y, owned: X } exists. Each child instance carries ownership_percentage_direct, control, and source from that specific edge.
+4. Build the tree recursively. Before recursing into a child node Y, check if Y's id already appears in the current branch's ancestry path. If yes: stop, set children to [], set exceptions to "Cycle detected: [full path from root to Y]". Do not loop.
+5. A node owned by multiple parents appears as a child in each parent's subtree. Each instance carries data from its respective edge.
+6. If any node has no incoming edges and is not the root, attach it to the root and set data_gaps to: "Orphaned node: no incoming edges. Attached to root."
+7. Carry the conflicts and cycles arrays from Wave 3 to the output unchanged.
+8. Set metadata.schema_version to "v0" and metadata.note to "Schema subject to change pending internal Wave 5 system spec."
+9. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
+10. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
 </instructions>

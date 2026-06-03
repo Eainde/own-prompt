@@ -28,7 +28,8 @@ Entity type must be classified before any extraction begins.
 
   <rule id="W1.R4" priority="CRITICAL" name="EXACT_PERCENTAGES_ONLY">
   Extract ACTUAL percentages exactly as stated in the document. No rounding. No approximation.
-  If a percentage is missing from the document, set ownership_percentage_direct to "Not Available". Never assume or infer a value.
+  Record the percentage on the edge, not the node.
+  If a percentage is missing from the document, set the edge's ownership_percentage_direct to "Not Available". Never assume or infer a value.
   </rule>
 
   <rule id="W1.R5" priority="CRITICAL" name="EVIDENCE_ONLY_EXTRACTION">
@@ -38,8 +39,18 @@ Entity type must be classified before any extraction begins.
   <rule id="W1.R6" priority="CRITICAL" name="TARGET_ENTITY_NOT_FOUND">
   If the target entity is not mentioned in this document:
   - Do NOT invent any ownership relationships.
-  - Output a single layer-0 node with name = the target entity name, all ownership and control fields set to null, and data_gaps set to: "Target entity not found in this document. No ownership relationships extracted."
-  - Output an empty conflicts array.
+  - Output a single layer-0 node with name = the target entity name, data_gaps set to: "Target entity not found in this document. No ownership relationships extracted.", exceptions = null, listing_proof = null.
+  - Output empty edges, cycles, and conflicts arrays.
+  </rule>
+
+  <rule id="W1.R7" priority="CRITICAL" name="CYCLE_DETECTION">
+  During layer-by-layer extraction, maintain an ancestry path: the chain of entity ids from layer 0 up to the entity currently being processed.
+  Before extracting the owners of entity X at layer N, check whether X's id already appears anywhere in the current ancestry path.
+  If yes:
+    - Record a cycle entry in the cycles array: set cycle_path to the full path from the first occurrence of X back to X, and detected_at to "W1".
+    - Set exceptions on X's node to: "Cycle detected: see cycles array."
+    - Stop extraction from X. Do NOT continue to X's owners.
+  If no: continue extraction normally.
   </rule>
 </rules>
 
@@ -64,14 +75,19 @@ Category 3 (SPV / Trust / Charity / Foundation):
 </section>
 
 <section name="CONFLICT_HANDLING">
-If the same ownership relationship appears with different % values within this document, do NOT pick one.
-Record both values in the conflicts array with their source references.
+If the same ownership relationship (same owner, same owned entity) appears with different % values within this document:
+- Do NOT pick one value for the edge's ownership_percentage_direct.
+- Record a conflict entry: set owner and owned to the entity ids, record both values and their source references.
+- Set resolution_strategy to "use_higher". Set resolved_value to the higher of the two percentage values.
+- Set the edge's ownership_percentage_direct to "CONFLICT — see conflicts array".
 </section>
 
 <directive priority="CRITICAL" name="PROHIBITIONS">
 DO NOT invent ownership relationships not evidenced in the document
 DO NOT infer or assume percentages
+DO NOT place ownership_percentage_direct, control, or source on nodes — these belong on edges
 DO NOT merge entities incorrectly
 DO NOT approximate or round percentages
 DO NOT stop early at any arbitrary layer
+DO NOT loop infinitely on circular ownership — detect and break at W1.R7
 </directive>

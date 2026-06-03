@@ -1,13 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "description": "Wave 4 org chart tree output. Schema version v0 — subject to change pending internal Wave 5 system spec.",
+  "description": "Wave 4 org chart tree output. Schema version v0.",
   "type": "object",
-  "required": ["client_entity", "entity_type_category", "ownership_tree", "conflicts", "metadata"],
+  "required": ["client_entity", "entity_type_category", "ownership_tree", "cycles", "conflicts", "metadata"],
   "properties": {
-    "client_entity": {
-      "type": "string",
-      "description": "Legal name of the target entity (Layer 0)"
-    },
+    "client_entity": { "type": "string" },
     "entity_type_category": {
       "type": "string",
       "enum": [
@@ -19,21 +16,40 @@
     },
     "ownership_tree": {
       "$ref": "#/definitions/tree_node",
-      "description": "Root node of the ownership tree (the client entity). All owners are nested as children recursively."
+      "description": "Root node (client entity). All owners nested recursively as children."
+    },
+    "cycles": {
+      "type": "array",
+      "description": "All cycles carried forward from Wave 3. Not modified.",
+      "items": {
+        "type": "object",
+        "required": ["cycle_path", "detected_at", "source"],
+        "properties": {
+          "cycle_path": { "type": "array", "items": { "type": "string" } },
+          "detected_at": { "type": "string", "enum": ["W1", "W3"] },
+          "source": { "type": "string" }
+        }
+      }
     },
     "conflicts": {
       "type": "array",
       "description": "All conflicts carried forward from Wave 3. Not resolved.",
       "items": {
         "type": "object",
-        "required": ["entity_id", "conflict_description", "value_a", "source_a", "value_b", "source_b"],
+        "required": ["owner", "owned", "conflict_description", "value_a", "source_a", "value_b", "source_b", "resolution_strategy", "resolved_value"],
         "properties": {
-          "entity_id": { "type": "string" },
+          "owner": { "type": "string" },
+          "owned": { "type": "string" },
           "conflict_description": { "type": "string" },
           "value_a": { "type": "string" },
           "source_a": { "type": "string" },
           "value_b": { "type": "string" },
-          "source_b": { "type": "string" }
+          "source_b": { "type": "string" },
+          "resolution_strategy": {
+            "type": "string",
+            "enum": ["use_higher", "use_lower", "use_most_recent", "manual"]
+          },
+          "resolved_value": { "type": "string" }
         }
       }
     },
@@ -41,35 +57,18 @@
       "type": "object",
       "required": ["schema_version", "note"],
       "properties": {
-        "schema_version": {
-          "type": "string",
-          "description": "Schema version identifier.",
-          "enum": ["v0"]
-        },
-        "note": {
-          "type": "string",
-          "description": "Human-readable note about schema status."
-        }
+        "schema_version": { "type": "string", "enum": ["v0"] },
+        "note": { "type": "string" }
       }
     }
   },
   "definitions": {
     "tree_node": {
       "type": "object",
-      "required": [
-        "id", "name", "type", "layer",
-        "ownership_percentage_direct", "control", "source",
-        "listing_proof", "data_gaps", "exceptions", "children"
-      ],
+      "required": ["id", "name", "type", "layer", "ownership_percentage_direct", "control", "source", "listing_proof", "data_gaps", "exceptions", "children"],
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Canonical dedupKey from Wave 3."
-        },
-        "name": {
-          "type": "string",
-          "description": "Most complete legal name from Wave 3."
-        },
+        "id": { "type": "string" },
+        "name": { "type": "string" },
         "type": {
           "type": "string",
           "enum": [
@@ -78,14 +77,10 @@
             "Partnership", "Government Entity", "Branch", "Unknown"
           ]
         },
-        "layer": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Layer value from Wave 3. Not renumbered."
-        },
+        "layer": { "type": "integer", "minimum": 0 },
         "ownership_percentage_direct": {
           "type": "string",
-          "description": "Exact % as carried from Wave 3. 'Not Available', 'CONFLICT — see conflicts array', or null for root."
+          "description": "From the edge linking this node to its parent in this subtree. null for the root node."
         },
         "control": { "type": "string" },
         "source": { "type": "string" },
@@ -108,7 +103,7 @@
         "exceptions": { "type": "string" },
         "children": {
           "type": "array",
-          "description": "Direct owners of this node. Empty array if this is a terminal node (no further owners).",
+          "description": "Direct owners of this node. Each child carries ownership_percentage_direct from the edge linking it to this node.",
           "items": { "$ref": "#/definitions/tree_node" }
         }
       }

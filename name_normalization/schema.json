@@ -5,15 +5,12 @@
   "properties": {
     "normalized_documents": {
       "type": "array",
-      "description": "One entry per Wave 1 input document. Nodes enriched with normalization fields.",
+      "description": "One entry per Wave 1 input document. Nodes enriched with normalization fields. Edges carried forward unchanged.",
       "items": {
         "type": "object",
-        "required": ["client_entity", "entity_type_category", "source_document", "nodes", "conflicts"],
+        "required": ["client_entity", "entity_type_category", "source_document", "nodes", "edges", "cycles", "conflicts"],
         "properties": {
-          "client_entity": {
-            "type": "string",
-            "description": "Legal name of the target entity (Layer 0)"
-          },
+          "client_entity": { "type": "string" },
           "entity_type_category": {
             "type": "string",
             "enum": [
@@ -23,28 +20,58 @@
               "Entity Type not confirmed"
             ]
           },
-          "source_document": {
-            "type": "string",
-            "description": "GCS path or document name this graph was extracted from"
-          },
+          "source_document": { "type": "string" },
           "nodes": {
             "type": "array",
-            "description": "All ownership nodes from Wave 1, each enriched with normalization fields",
             "items": { "$ref": "#/definitions/normalized_node" }
+          },
+          "edges": {
+            "type": "array",
+            "description": "Ownership edges carried forward unchanged from Wave 1.",
+            "items": {
+              "type": "object",
+              "required": ["owner", "owned", "ownership_percentage_direct", "control", "source"],
+              "properties": {
+                "owner": { "type": "string" },
+                "owned": { "type": "string" },
+                "ownership_percentage_direct": { "type": "string" },
+                "control": { "type": "string" },
+                "source": { "type": "string" }
+              }
+            }
+          },
+          "cycles": {
+            "type": "array",
+            "description": "Cycles carried forward from Wave 1.",
+            "items": {
+              "type": "object",
+              "required": ["cycle_path", "detected_at", "source"],
+              "properties": {
+                "cycle_path": { "type": "array", "items": { "type": "string" } },
+                "detected_at": { "type": "string", "enum": ["W1", "W3"] },
+                "source": { "type": "string" }
+              }
+            }
           },
           "conflicts": {
             "type": "array",
-            "description": "Conflicts carried forward unchanged from Wave 1",
+            "description": "Conflicts carried forward unchanged from Wave 1.",
             "items": {
               "type": "object",
-              "required": ["entity_id", "conflict_description", "value_a", "source_a", "value_b", "source_b"],
+              "required": ["owner", "owned", "conflict_description", "value_a", "source_a", "value_b", "source_b", "resolution_strategy", "resolved_value"],
               "properties": {
-                "entity_id": { "type": "string" },
+                "owner": { "type": "string" },
+                "owned": { "type": "string" },
                 "conflict_description": { "type": "string" },
                 "value_a": { "type": "string" },
                 "source_a": { "type": "string" },
                 "value_b": { "type": "string" },
-                "source_b": { "type": "string" }
+                "source_b": { "type": "string" },
+                "resolution_strategy": {
+                  "type": "string",
+                  "enum": ["use_higher", "use_lower", "use_most_recent", "manual"]
+                },
+                "resolved_value": { "type": "string" }
               }
             }
           }
@@ -56,24 +83,13 @@
     "normalized_node": {
       "type": "object",
       "required": [
-        "id", "parent_id", "name", "type", "layer",
-        "ownership_percentage_direct", "control", "source",
+        "id", "name", "type", "layer",
         "listing_proof", "data_gaps", "exceptions",
         "normalizedName", "dedupKey", "asciiDedupKey", "normalizationNote"
       ],
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Original Wave 1 slug id. Unchanged."
-        },
-        "parent_id": {
-          "type": "string",
-          "description": "Original Wave 1 parent slug id. Unchanged."
-        },
-        "name": {
-          "type": "string",
-          "description": "Legal name exactly as extracted in Wave 1. Never modified."
-        },
+        "id": { "type": "string", "description": "Original Wave 1 slug id. Unchanged." },
+        "name": { "type": "string", "description": "Legal name exactly as extracted in Wave 1. Never modified." },
         "type": {
           "type": "string",
           "enum": [
@@ -83,9 +99,6 @@
           ]
         },
         "layer": { "type": "integer", "minimum": 0 },
-        "ownership_percentage_direct": { "type": "string" },
-        "control": { "type": "string" },
-        "source": { "type": "string" },
         "listing_proof": {
           "oneOf": [
             { "type": "null" },
@@ -103,38 +116,14 @@
         },
         "data_gaps": { "type": "string" },
         "exceptions": { "type": "string" },
-        "normalizedName": {
-          "type": "string",
-          "description": "Canonical name after normalization. For entities: most complete legal form with standardized suffix. For Natural Persons: full name in Title Case (without honorific)."
-        },
-        "dedupKey": {
-          "type": "string",
-          "description": "For entities: lowercase slug of normalized name with legal suffix stripped, spaces replaced by underscores. E.g. 'Deutsche Bank AG' → 'deutsche_bank'. For Natural Persons: lowercase(firstName)|lowercase(lastName). Mononyms: |lowercase(lastName)."
-        },
-        "asciiDedupKey": {
-          "type": "string",
-          "description": "ASCII-only version of dedupKey. German umlauts use digraphs: ü→ue, ö→oe, ä→ae. ß→ss. All other diacritics strip to base character. Must contain only ASCII characters."
-        },
-        "normalizationNote": {
-          "type": "string",
-          "description": "Audit notes: suffix standardizations, script conversions, OCR healing, alias detections. null if no notable transformations."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "Natural Person only. Given name in Title Case. null for mononyms. null for all non-person node types."
-        },
-        "middleName": {
-          "type": "string",
-          "description": "Natural Person only. Middle name in Title Case. null if absent or non-person."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Natural Person only. Family name in Title Case, including compound surnames and particles. For mononyms, the single name. null for non-person node types."
-        },
-        "personalTitle": {
-          "type": "string",
-          "description": "Natural Person only. Honorific stripped from name (Dr., Prof., Herr, etc.). null if none or non-person."
-        }
+        "normalizedName": { "type": "string" },
+        "dedupKey": { "type": "string" },
+        "asciiDedupKey": { "type": "string" },
+        "normalizationNote": { "type": "string" },
+        "firstName": { "type": "string" },
+        "middleName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "personalTitle": { "type": "string" }
       }
     }
   }

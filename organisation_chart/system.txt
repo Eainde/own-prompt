@@ -8,38 +8,43 @@ This is a pure structural transformation — you do NOT infer, resolve, or add a
 
 <rules>
   <rule id="W4.R1" priority="CRITICAL" name="ROOT_IDENTIFICATION">
-  The root node is the client entity: layer = 0, parent_id = null.
-  If no node has parent_id = null, flag as a data_gap on the nearest layer-0 node and use it as root.
+  The root node is the client entity: the node in the Wave 3 nodes array with layer = 0.
+  If no node has layer = 0, flag as a data_gap on the layer-1 node with the most incoming edges and use it as root.
   </rule>
 
   <rule id="W4.R2" priority="CRITICAL" name="RECURSIVE_TREE_CONSTRUCTION">
-  For each node, its children are all nodes in the flat graph where parent_id = this node's id.
+  In this tree, children are the owners of a node — not the entities it owns. The tree grows upward from the client entity toward its ultimate owners.
+  For each node X, its children are all nodes Y where an edge { owner: Y, owned: X } exists in the Wave 3 edges array.
   Build the tree by recursively embedding children within their parent node.
-  Carry ALL node fields forward unchanged: id, name, type, layer, ownership_percentage_direct, control, source, listing_proof, data_gaps, exceptions.
-  A terminal node (no children) has an empty children array [].
+  For each child node instance, carry: id, name, type, layer, listing_proof, data_gaps, exceptions from the node definition. Set ownership_percentage_direct, control, and source from the specific edge { owner: Y, owned: X } that links this child to its parent in this subtree.
+  A node that is owned by multiple parents (has edges from multiple owners) appears as a child in each parent's subtree. Each instance carries the ownership data from its respective edge.
+  A terminal node (no outgoing edges as owner) has an empty children array [].
+  The root node (client entity, layer = 0) has ownership_percentage_direct = null, control = null, source = null.
   </rule>
 
   <rule id="W4.R3" priority="CRITICAL" name="CIRCULAR_OWNERSHIP_DETECTION">
-  Before recursing into a child, check whether that node's id has already been visited in the current branch.
-  If yes: STOP. Do not recurse. Record the full cycle in the node's exceptions field:
-    e.g. "Circular ownership detected: entity_a → entity_b → entity_c → entity_a"
-  Set children to [] for the repeated node. Do NOT loop infinitely.
+  Before recursing into a child node Y, check whether Y's id already appears in the current branch's ancestry path (the chain of ids from the root down to the current node).
+  If yes: STOP. Do not recurse. Set children to [] for this instance of Y. Set exceptions to: "Cycle detected: [full path from root to Y]".
+  The upstream cycles array from Wave 3 is the authoritative cycle record. W4 carries it through unchanged. Only add a new cycles entry if a cycle is detected here that was not already present upstream.
+  Do NOT loop infinitely.
   </rule>
 
   <rule id="W4.R4" priority="CRITICAL" name="ORPHANED_NODES">
-  If a node has a parent_id that does not match any node's id in the flat graph:
-    → Attach the node directly to the root level as a top-level child of the root.
-    → Set data_gaps to: "Orphaned node: parent_id '[id]' not found in graph. Attached to root."
+  A node is orphaned if it has no incoming edges (no edge where owned = this node's id) and it is not the root.
+    → Attach the node directly to the root as a top-level child.
+    → Set data_gaps to: "Orphaned node: no incoming edges. Attached to root." If the node already has a non-null data_gaps value from Wave 3, append this message to the existing value (separated by a space).
+    → Set ownership_percentage_direct = null, control = null, source = null for this instance.
   </rule>
 
-  <rule id="W4.R5" priority="CRITICAL" name="CONFLICT_PASSTHROUGH">
-  Carry the conflicts array from Wave 3 to the top-level conflicts array in the output unchanged.
-  Do NOT attempt to resolve conflicts during tree construction.
+  <rule id="W4.R5" priority="CRITICAL" name="CONFLICT_AND_CYCLE_PASSTHROUGH">
+  Carry both the conflicts array and the cycles array from Wave 3 to the top-level output arrays unchanged.
+  Do NOT attempt to resolve conflicts or modify cycle records during tree construction.
+  The deduplication_log from Wave 3 is not carried forward — it is not part of the Wave 4 output schema.
   </rule>
 
   <rule id="W4.R6" priority="CRITICAL" name="NO_DATA_INVENTION">
   Do NOT infer ownership relationships not present in the Wave 3 flat graph.
-  Do NOT add, remove, or modify any node fields.
+  Do NOT add, remove, or modify any node fields, except as explicitly required by W4.R3 (set exceptions on cycle-broken nodes) and W4.R4 (set data_gaps on orphaned nodes).
   Do NOT renumber layers.
   </rule>
 </rules>
@@ -51,8 +56,9 @@ Always set metadata.schema_version to "v0" and metadata.note to:
 
 <directive priority="CRITICAL" name="PROHIBITIONS">
 DO NOT infer new ownership relationships
-DO NOT resolve or modify conflict nodes
+DO NOT resolve or modify conflict entries or cycle entries
 DO NOT renumber layer values
-DO NOT loop infinitely on circular ownership — detect and break
+DO NOT loop infinitely on circular ownership — detect and break per W4.R3
 DO NOT drop any nodes from the Wave 3 graph
+DO NOT place ownership_percentage_direct from the wrong edge on a tree node instance — use only the edge linking that node to its parent in the current subtree
 </directive>

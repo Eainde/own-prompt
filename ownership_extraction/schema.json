@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["client_entity", "entity_type_category", "source_document", "nodes", "conflicts"],
+  "required": ["client_entity", "entity_type_category", "source_document", "nodes", "edges", "cycles", "conflicts"],
   "properties": {
     "client_entity": {
       "type": "string",
@@ -18,54 +18,29 @@
     },
     "source_document": {
       "type": "string",
-      "description": "GCS path or document name this chart was extracted from"
+      "description": "GCS path or document name this graph was extracted from"
     },
     "nodes": {
       "type": "array",
-      "description": "All ownership nodes extracted from this document",
+      "description": "All ownership entities extracted from this document. Ownership relationship data lives on edges.",
       "items": {
         "type": "object",
-        "required": [
-          "id",
-          "parent_id",
-          "name",
-          "type",
-          "layer",
-          "ownership_percentage_direct",
-          "control",
-          "source",
-          "listing_proof",
-          "data_gaps",
-          "exceptions"
-        ],
+        "required": ["id", "name", "type", "layer", "listing_proof", "data_gaps", "exceptions"],
         "properties": {
           "id": {
             "type": "string",
-            "description": "Slug: lowercase entity name with spaces replaced by underscores. E.g. deutsche_bank_ag"
-          },
-          "parent_id": {
-            "type": "string",
-            "description": "id of the parent node. null if this is the root (top parent with no further owner)"
+            "description": "Slug: lowercase entity name with spaces replaced by underscores."
           },
           "name": {
             "type": "string",
-            "description": "Legal name exactly as stated in the document"
+            "description": "Legal name exactly as stated in the document."
           },
           "type": {
             "type": "string",
             "enum": [
-              "Listed Company",
-              "Private Company",
-              "Regulated Entity",
-              "Natural Person",
-              "SPV",
-              "Trust",
-              "Charity",
-              "Foundation",
-              "Partnership",
-              "Government Entity",
-              "Branch",
-              "Unknown"
+              "Listed Company", "Private Company", "Regulated Entity",
+              "Natural Person", "SPV", "Trust", "Charity", "Foundation",
+              "Partnership", "Government Entity", "Branch", "Unknown"
             ]
           },
           "layer": {
@@ -73,20 +48,7 @@
             "minimum": 0,
             "description": "0 = Client, 1 = direct owners, 2 = owners of layer 1, etc."
           },
-          "ownership_percentage_direct": {
-            "type": "string",
-            "description": "Exact % as stated in the document, or 'Not Available' if missing. Never infer."
-          },
-          "control": {
-            "type": "string",
-            "description": "Evidence of control (voting rights, board rights, etc.) or null if not evidenced"
-          },
-          "source": {
-            "type": "string",
-            "description": "Exact document name and page/section reference where this relationship is evidenced"
-          },
           "listing_proof": {
-            "description": "Populated only for Listed Company type. null for all other entity types.",
             "oneOf": [
               { "type": "null" },
               {
@@ -96,38 +58,91 @@
                   "exchange": { "type": "string" },
                   "ticker": { "type": "string" },
                   "isin": { "type": "string" },
-                  "proof_source": {
-                    "type": "string",
-                    "description": "Document and page where listing is evidenced"
-                  }
+                  "proof_source": { "type": "string" }
                 }
               }
             ]
           },
-          "data_gaps": {
+          "data_gaps": { "type": "string" },
+          "exceptions": { "type": "string" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "All ownership relationships extracted from this document.",
+      "items": {
+        "type": "object",
+        "required": ["owner", "owned", "ownership_percentage_direct", "control", "source"],
+        "properties": {
+          "owner": {
             "type": "string",
-            "description": "Description of missing or incomplete data for this node, or null"
+            "description": "id of the entity that holds the ownership stake."
           },
-          "exceptions": {
+          "owned": {
             "type": "string",
-            "description": "Any anomalies, conflicts within this node, or null"
+            "description": "id of the entity being owned."
+          },
+          "ownership_percentage_direct": {
+            "type": "string",
+            "description": "Exact % as stated in the document, or 'Not Available' if missing."
+          },
+          "control": {
+            "type": "string",
+            "description": "Evidence of control (voting rights, board rights, etc.) or null."
+          },
+          "source": {
+            "type": "string",
+            "description": "Exact document name and page/section where this relationship is evidenced."
+          }
+        }
+      }
+    },
+    "cycles": {
+      "type": "array",
+      "description": "Ownership cycles detected during extraction.",
+      "items": {
+        "type": "object",
+        "required": ["cycle_path", "detected_at", "source"],
+        "properties": {
+          "cycle_path": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Entity ids forming the cycle, starting and ending at the repeated node."
+          },
+          "detected_at": {
+            "type": "string",
+            "enum": ["W1", "W3"]
+          },
+          "source": {
+            "type": "string",
+            "description": "Source document where the cycle was detected."
           }
         }
       }
     },
     "conflicts": {
       "type": "array",
-      "description": "Ownership % conflicts found within this document",
+      "description": "Ownership % conflicts found within this document.",
       "items": {
         "type": "object",
-        "required": ["entity_id", "conflict_description", "value_a", "source_a", "value_b", "source_b"],
+        "required": ["owner", "owned", "conflict_description", "value_a", "source_a", "value_b", "source_b", "resolution_strategy", "resolved_value"],
         "properties": {
-          "entity_id": { "type": "string" },
+          "owner": { "type": "string" },
+          "owned": { "type": "string" },
           "conflict_description": { "type": "string" },
           "value_a": { "type": "string" },
           "source_a": { "type": "string" },
           "value_b": { "type": "string" },
-          "source_b": { "type": "string" }
+          "source_b": { "type": "string" },
+          "resolution_strategy": {
+            "type": "string",
+            "enum": ["use_higher", "use_lower", "use_most_recent", "manual"]
+          },
+          "resolved_value": {
+            "type": "string",
+            "description": "The value Wave 5 should use. Derived by applying resolution_strategy to value_a and value_b."
+          }
         }
       }
     }
