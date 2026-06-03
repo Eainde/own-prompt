@@ -1,0 +1,21 @@
+<task>
+Convert the flat ownership graph below into a nested ownership tree.
+</task>
+
+<target_entity>{{clientEntityName}}</target_entity>
+
+<wave3_output>
+{{wave3OutputJson}}
+</wave3_output>
+
+<instructions>
+1. Identify the root node: the node where layer = 0 and parent_id = null. This represents the client entity.
+2. For each node, find its children: all nodes in the flat graph where parent_id equals this node's id.
+3. Build the tree recursively. Before recursing into a child, check whether that node's id has already appeared in the current branch. If yes, stop, record the circular reference in exceptions, and set children to [].
+4. If any node has a parent_id that matches no other node's id, attach it to the root and record the issue in data_gaps as: "Orphaned node: parent_id '[id]' not found in graph. Attached to root."
+5. Carry all node fields forward unchanged. Set children to [] for terminal nodes.
+6. Carry the conflicts array from Wave 3 to the output conflicts array unchanged.
+7. Set metadata.schema_version to "v0" and metadata.note to "Schema subject to change pending internal Wave 5 system spec."
+8. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
+9. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+</instructions>

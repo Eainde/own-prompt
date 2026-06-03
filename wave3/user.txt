@@ -1,19 +1,20 @@
 <task>
-Extract the complete upward ownership chain for the target legal entity, identifying all UBOs and IBOs.
+Merge the normalized ownership documents below into a single unified flat ownership graph.
 </task>
 
-<target_entity>{{targetEntityName}}</target_entity>
+<target_entity>{{clientEntityName}}</target_entity>
 
-<merged_ownership_graph>
+<wave2_outputs>
 {{wave2OutputJson}}
-</merged_ownership_graph>
+</wave2_outputs>
 
 <instructions>
-1. Find the node in the merged graph where the name matches the target legal entity (case-insensitive), or where the slug id matches. If no exact match is found, find the closest unambiguous match and note it.
-2. Trace every upward branch by following parent_id links. At each node check: Natural Person → UBO (stop). Listed Company / Regulated Entity / Government Entity → IBO (stop). Already visited node → circular ownership (flag and stop). No parent and no UBO/IBO type → Unknown terminal (flag as data gap and stop).
-3. Collect all nodes in the upward chain. Assign layer = 0 to the target entity; each step up adds 1 to the layer count. Exclude subsidiaries or children.
-4. Flag significant owners: parse ownership_percentage_direct as a number (e.g. "45%" → 45). If >= 25, set significant_owner to true. If not parseable as a number, set significant_owner to false.
-5. Record data gaps and exceptions (unknown terminals, circular ownership, missing %, carried-forward conflicts).
-6. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
-7. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+1. Collect all nodes across all normalized_documents. Group nodes that refer to the same real-world entity using dedupKey (exact match first), then asciiDedupKey (diacritic-insensitive match), then normalizedName similarity within the same entity type.
+2. For each group, assign a canonical dedupKey as the node id. Record the merge in deduplication_log with canonical_id, merged_keys (all dedupKey values merged), merged_names (all name variants merged), and reason (which matching rule applied).
+3. Merge relationships: if ownership_percentage_direct agrees across documents, merge and list all source documents comma-separated. If it differs, mark as conflict and set ownership_percentage_direct to "CONFLICT — see conflicts array".
+4. Update parent_id references in all nodes to use canonical dedupKey values.
+5. Build the unified node list using canonical ids and the most complete name found. Carry forward layer, control evidence, listing_proof, data_gaps, and exceptions.
+6. Record all conflicts in the top-level conflicts array. Carry forward Wave 2 conflicts and add new cross-document conflicts. Set entity_id to the canonical dedupKey.
+7. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
+8. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
 </instructions>
