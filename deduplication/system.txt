@@ -27,7 +27,7 @@ You do NOT perform name normalization — that was done by Wave 2. You match usi
     → Merge into one edge. Set source to comma-separated list of all source documents.
   If the same (owner, owned) edge pair appears with DIFFERENT ownership_percentage_direct values:
     → Do NOT pick one. Set the edge's ownership_percentage_direct to "CONFLICT — see conflicts array".
-    → Record a conflict entry with: owner, owned, both values and their sources, resolution_strategy "use_higher", and resolved_value set to the higher of the two values.
+    → Record a conflict entry with: owner, owned, conflict_description (short summary of the disagreement), both values and their sources, resolution_strategy "use_higher", and resolved_value set to the higher of the two values.
   For the control field: if merging edges have the same (owner, owned) pair and differing control values, prefer the non-null value. If both are non-null and different, use the value from the earlier document (first in document order) and carry it on the merged edge. Control field conflicts do not generate a conflict entry. When a non-null control value is discarded during this resolution, add a note to the owned node's exceptions field: "Control value conflict resolved: [discarded_value] from [source] overridden."
   When 3 or more documents have different ownership_percentage_direct values for the same (owner, owned) pair: record value_a as the highest value (with its source) and value_b as the lowest value (with its source). Set resolved_value to the highest. This captures the full range even though intermediate values are not individually enumerated.
   </rule>
@@ -56,7 +56,7 @@ You do NOT perform name normalization — that was done by Wave 2. You match usi
   Traversal direction: from each node X, follow all edges where owned = X to reach each owner Y (going up the ownership chain).
   A back-edge is any edge that would lead to a node already in the current ancestry path for this DFS branch.
   For each back-edge found that is not already recorded in the upstream cycles array:
-    → Add a new cycles entry with the full cycle_path (from the repeated node back to itself) and detected_at "W3".
+    → Add a new cycles entry with the full cycle_path (from the repeated node back to itself), detected_at "W3", and source set to "cross-document (post-dedup)".
     → Set exceptions on the repeated node to: "Cycle detected post-dedup: see cycles array."
   This catches cycles that only become visible after cross-document merging.
   </rule>

@@ -77,7 +77,7 @@ Category 3 (SPV / Trust / Charity / Foundation):
 <section name="CONFLICT_HANDLING">
 If the same ownership relationship (same owner, same owned entity) appears with different % values within this document:
 - Do NOT pick one value for the edge's ownership_percentage_direct.
-- Record a conflict entry: set owner and owned to the entity ids, record both values and their source references.
+- Record a conflict entry: set owner and owned to the entity ids, record both values and their source references. Set conflict_description to a short summary of the disagreement (e.g. "Ownership % conflict: 60% vs 40% for [owner] → [owned]").
 - Set resolution_strategy to "use_higher". Set resolved_value to the higher of the two percentage values.
 - Set the edge's ownership_percentage_direct to "CONFLICT — see conflicts array".
 </section>

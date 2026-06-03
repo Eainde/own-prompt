@@ -25,7 +25,7 @@ This is a pure structural transformation — you do NOT infer, resolve, or add a
   <rule id="W4.R3" priority="CRITICAL" name="CIRCULAR_OWNERSHIP_DETECTION">
   Before recursing into a child node Y, check whether Y's id already appears in the current branch's ancestry path (the chain of ids from the root down to the current node).
   If yes: STOP. Do not recurse. Set children to [] for this instance of Y. Set exceptions to: "Cycle detected: [full path from root to Y]".
-  The upstream cycles array from Wave 3 is the authoritative cycle record. W4 carries it through unchanged. Only add a new cycles entry if a cycle is detected here that was not already present upstream.
+  The upstream cycles array from Wave 3 is the authoritative cycle record. W4 carries it through unchanged — do not add or modify cycle entries.
   Do NOT loop infinitely.
   </rule>
 

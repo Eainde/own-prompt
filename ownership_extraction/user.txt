@@ -17,7 +17,7 @@ If non-empty, use this as the document content; if empty, read from the GCS path
 3. For each edge, record: exact owner id, exact owned id, exact % as stated (or "Not Available"), evidence of control, exact source reference.
 4. For each node, record: id slug, legal name exactly as stated, entity type, layer. For listed companies only, populate listing_proof on the node.
 5. Before expanding each entity's owners, check if its id is already in the current ancestry path. If yes, record the cycle in the cycles array and stop — do not extract further from that entity.
-6. Identify conflicts (same owner→owned relationship, contradicting % values within this document). Record in conflicts with resolution_strategy "use_higher" and resolved_value set to the higher %.
+6. Identify conflicts (same owner→owned relationship, contradicting % values within this document). Record in conflicts with conflict_description summarizing the disagreement, resolution_strategy "use_higher", and resolved_value set to the higher %.
 7. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
 8. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
 </instructions>
