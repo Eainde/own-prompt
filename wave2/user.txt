@@ -1,0 +1,18 @@
+<task>
+Merge the ownership charts below into a single unified ownership graph.
+</task>
+
+<target_entity>{{clientEntityName}}</target_entity>
+
+<wave1_outputs>
+{{wave1OutputsJson}}
+</wave1_outputs>
+
+<instructions>
+1. Identify duplicate entities across all input charts. Group nodes that refer to the same real-world entity. Note the canonical name and id for each group.
+2. Merge relationships: if % agrees across documents, merge and list all sources. If % differs, mark as conflict.
+3. Build the unified graph using canonical ids and names. Carry forward all layer values, control evidence, listing_proof, data_gaps, and exceptions from Wave 1.
+4. Record conflicts (% disagreements) and deduplication decisions.
+5. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
+6. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+</instructions>

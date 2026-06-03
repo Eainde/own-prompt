@@ -1,0 +1,19 @@
+<task>
+Extract the complete upward ownership chain for the target legal entity, identifying all UBOs and IBOs.
+</task>
+
+<target_entity>{{targetEntityName}}</target_entity>
+
+<merged_ownership_graph>
+{{wave2OutputJson}}
+</merged_ownership_graph>
+
+<instructions>
+1. Find the node in the merged graph where the name matches the target legal entity (case-insensitive), or where the slug id matches. If no exact match is found, find the closest unambiguous match and note it.
+2. Trace every upward branch by following parent_id links. At each node check: Natural Person → UBO (stop). Listed Company / Regulated Entity / Government Entity → IBO (stop). Already visited node → circular ownership (flag and stop). No parent and no UBO/IBO type → Unknown terminal (flag as data gap and stop).
+3. Collect all nodes in the upward chain. Assign layer = 0 to the target entity; each step up adds 1 to the layer count. Exclude subsidiaries or children.
+4. Flag significant owners: parse ownership_percentage_direct as a number (e.g. "45%" → 45). If >= 25, set significant_owner to true. If not parseable as a number, set significant_owner to false.
+5. Record data gaps and exceptions (unknown terminals, circular ownership, missing %, carried-forward conflicts).
+6. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
+7. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+</instructions>

@@ -1,0 +1,172 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["target_entity", "chain_nodes", "terminal_nodes", "conflicts", "data_gaps", "exceptions"],
+  "properties": {
+    "target_entity": {
+      "type": "string",
+      "description": "Legal name of the entity whose upward chain is being extracted (Layer 0)"
+    },
+    "chain_nodes": {
+      "type": "array",
+      "description": "All nodes in the upward ownership chain, from Layer 0 up to each UBO/IBO terminal. Does NOT include subsidiaries.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "parent_id",
+          "name",
+          "type",
+          "layer",
+          "ownership_percentage_direct",
+          "control",
+          "source",
+          "listing_proof",
+          "significant_owner",
+          "beneficial_owner_classification",
+          "data_gaps",
+          "exceptions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Canonical slug id from the merged graph"
+          },
+          "parent_id": {
+            "type": "string",
+            "description": "Canonical id of parent node in the upward chain. null for terminal nodes."
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "Listed Company",
+              "Private Company",
+              "Regulated Entity",
+              "Natural Person",
+              "SPV",
+              "Trust",
+              "Charity",
+              "Foundation",
+              "Partnership",
+              "Government Entity",
+              "Branch",
+              "Unknown"
+            ]
+          },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Layer relative to target entity. 0 = target entity, 1 = direct parent, 2 = grandparent, etc."
+          },
+          "ownership_percentage_direct": {
+            "type": "string",
+            "description": "Exact % as carried from the merged graph, 'Not Available', or 'CONFLICT — see conflicts array'"
+          },
+          "control": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "listing_proof": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "required": ["exchange", "ticker", "isin", "proof_source"],
+                "properties": {
+                  "exchange": { "type": "string" },
+                  "ticker": { "type": "string" },
+                  "isin": { "type": "string" },
+                  "proof_source": { "type": "string" }
+                }
+              }
+            ]
+          },
+          "significant_owner": {
+            "type": "boolean",
+            "description": "true if ownership_percentage_direct >= 25%, false otherwise. false if % is Not Available or CONFLICT."
+          },
+          "beneficial_owner_classification": {
+            "type": "string",
+            "enum": ["UBO", "IBO", "Unknown Terminal", null],
+            "description": "UBO for natural persons, IBO for listed/regulated/government entities, Unknown Terminal if chain ends without classification, null for intermediate nodes"
+          },
+          "data_gaps": {
+            "type": "string"
+          },
+          "exceptions": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "terminal_nodes": {
+      "type": "array",
+      "description": "Summary list of all terminal nodes (UBOs, IBOs, and Unknown Terminals) for quick reference",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type", "beneficial_owner_classification", "significant_owner"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "beneficial_owner_classification": {
+            "type": "string",
+            "enum": ["UBO", "IBO", "Unknown Terminal"]
+          },
+          "significant_owner": { "type": "boolean" }
+        }
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "description": "Ownership % conflicts carried forward from Wave 2. Not resolved.",
+      "items": {
+        "type": "object",
+        "required": ["entity_id", "conflict_description", "value_a", "source_a", "value_b", "source_b"],
+        "properties": {
+          "entity_id": { "type": "string" },
+          "conflict_description": { "type": "string" },
+          "value_a": { "type": "string" },
+          "source_a": { "type": "string" },
+          "value_b": { "type": "string" },
+          "source_b": { "type": "string" }
+        }
+      }
+    },
+    "data_gaps": {
+      "type": "array",
+      "description": "Branches where the chain could not be completed",
+      "items": {
+        "type": "object",
+        "required": ["entity_id", "description"],
+        "properties": {
+          "entity_id": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "description": "Circular ownership or other structural anomalies detected during traversal",
+      "items": {
+        "type": "object",
+        "required": ["type", "description"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["Circular Ownership", "Other"]
+          },
+          "description": {
+            "type": "string",
+            "description": "For circular ownership: include the full cycle e.g. 'entity_a → entity_b → entity_c → entity_a'"
+          }
+        }
+      }
+    }
+  }
+}

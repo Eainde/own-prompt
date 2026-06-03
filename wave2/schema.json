@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["client_entity", "entity_type_category", "nodes", "conflicts", "deduplication_log"],
+  "properties": {
+    "client_entity": {
+      "type": "string",
+      "description": "Legal name of the target entity (Layer 0)"
+    },
+    "entity_type_category": {
+      "type": "string",
+      "description": "Carried forward from Wave 1. Use the most specific category found across all input charts.",
+      "enum": [
+        "Category 1 - Private/Regulated/Listed",
+        "Category 2 - Adverse Media",
+        "Category 3 - SPV/Trust/Charity/Foundation",
+        "Entity Type not confirmed"
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Unified list of all ownership nodes across all documents",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "parent_id",
+          "name",
+          "type",
+          "layer",
+          "ownership_percentage_direct",
+          "control",
+          "source",
+          "listing_proof",
+          "data_gaps",
+          "exceptions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Canonical slug id"
+          },
+          "parent_id": {
+            "type": "string",
+            "description": "Canonical id of parent node. null if root."
+          },
+          "name": {
+            "type": "string",
+            "description": "Most complete legal name found across all documents"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "Listed Company",
+              "Private Company",
+              "Regulated Entity",
+              "Natural Person",
+              "SPV",
+              "Trust",
+              "Charity",
+              "Foundation",
+              "Partnership",
+              "Government Entity",
+              "Branch",
+              "Unknown"
+            ]
+          },
+          "layer": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ownership_percentage_direct": {
+            "type": "string",
+            "description": "Exact % if consistent across documents, 'Not Available' if missing, or 'CONFLICT — see conflicts array' if disputed"
+          },
+          "control": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "Comma-separated list of all source documents where this node appears"
+          },
+          "listing_proof": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "required": ["exchange", "ticker", "isin", "proof_source"],
+                "properties": {
+                  "exchange": { "type": "string" },
+                  "ticker": { "type": "string" },
+                  "isin": { "type": "string" },
+                  "proof_source": { "type": "string" }
+                }
+              }
+            ]
+          },
+          "data_gaps": {
+            "type": "string"
+          },
+          "exceptions": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "description": "All ownership % conflicts found across documents. Never resolved — preserved for human review.",
+      "items": {
+        "type": "object",
+        "required": ["entity_id", "conflict_description", "value_a", "source_a", "value_b", "source_b"],
+        "properties": {
+          "entity_id": { "type": "string" },
+          "conflict_description": { "type": "string" },
+          "value_a": { "type": "string" },
+          "source_a": { "type": "string" },
+          "value_b": { "type": "string" },
+          "source_b": { "type": "string" }
+        }
+      }
+    },
+    "deduplication_log": {
+      "type": "array",
+      "description": "Record of all entity merges performed during this wave",
+      "items": {
+        "type": "object",
+        "required": ["canonical_id", "merged_names", "reason"],
+        "properties": {
+          "canonical_id": {
+            "type": "string",
+            "description": "The slug id chosen as canonical"
+          },
+          "merged_names": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "All name variants that were unified under this canonical id"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why these were determined to be the same entity"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+<task>
+Extract the complete ownership structure from the document below.
+</task>
+
+<gcs_document_path>{{gcsDocumentPath}}</gcs_document_path>
+
+<document_text>
+If non-empty, use this as the document content; if empty, read from the GCS path above.
+{{documentText}}
+</document_text>
+
+<target_entity>{{clientEntityName}}</target_entity>
+
+<instructions>
+1. Classify entity type from documentary evidence (Category 1, 2, or 3; or "Entity Type not confirmed").
+2. Trace ownership layer by layer from the target entity upward. Think through each branch fully before moving to the output.
+3. For each owner node, gather: legal name exactly as stated, entity type, exact %, evidence of control, exact source reference, listing proof only if listed company.
+4. Identify data gaps (missing %) and conflicts (contradicting % values within this document).
+5. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
+6. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+</instructions>

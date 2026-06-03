@@ -1,2 +1,7 @@
 .claude
 .idea
+.venv
+docs
+runner
+tests
+venv
