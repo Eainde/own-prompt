@@ -2,9 +2,9 @@
 Merge the normalized ownership documents below into a single unified flat ownership graph.
 </task>
 
-<wave2_outputs>
-{{wave2OutputJson}}
-</wave2_outputs>
+<normalised_entities>
+{{normalisedEntities}}
+</normalised_entities>
 
 <instructions>
 1. Set client_entity to the client_entity value from the input documents. Set entity_type_category from the input documents (all documents share the same value).

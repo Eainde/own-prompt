@@ -4,11 +4,6 @@ Extract the complete ownership structure from the document below.
 
 <gcs_document_path>{{gcsDocumentPath}}</gcs_document_path>
 
-<document_text>
-If non-empty, use this as the document content; if empty, read from the GCS path above.
-{{documentText}}
-</document_text>
-
 <target_entity>{{clientEntityName}}</target_entity>
 
 <instructions>

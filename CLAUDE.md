@@ -30,7 +30,7 @@ Every wave outputs four top-level arrays: `nodes` (entity identity), `edges` (ow
 - **Nodes**: `id`, `name`, `type`, `layer`, `listing_proof`, `data_gaps`, `exceptions` — no `parent_id`, no `ownership_percentage_direct`
 - **Edges**: `owner`, `owned`, `ownership_percentage_direct`, `control`, `source`
 - **Cycles**: `cycle_path` (array of ids), `detected_at` (`"W1"` or `"W3"`), `source`
-- **Conflicts**: `owner`, `owned`, `value_a`, `source_a`, `value_b`, `source_b`, `resolution_strategy` (`use_higher`/`use_lower`/`use_most_recent`/`manual`), `resolved_value`
+- **Conflicts**: `owner`, `owned`, `conflict_description`, `value_a`, `source_a`, `value_b`, `source_b`, `resolution_strategy` (`use_higher`/`use_lower`/`use_most_recent`/`manual`), `resolved_value`
 
 ## Template variable usage
 
@@ -45,5 +45,5 @@ Every wave outputs four top-level arrays: `nodes` (entity identity), `edges` (ow
 - **W1.R6**: If the target entity is not mentioned in a document, output a single layer-0 node with null fields and empty `edges`, `cycles`, `conflicts` arrays — never invent relationships.
 - **W1.R7**: Cycle detection during extraction — maintain an ancestry path; before expanding entity X's owners, check if X's id is already in the path. If yes, record in `cycles` with `detected_at: "W1"` and stop.
 - **W3.R1 step 3**: Similarity-based entity matching is conservative by default. False separate (same entity as two nodes) is recoverable; false merge (two entities collapsed) is not. Default to keeping separate.
-- **W3.R7**: Post-dedup DFS cycle detection — after all merges, traverse edges in `owned → owner` direction; any back-edge not already in upstream `cycles` gets a new entry with `detected_at: "W3"`.
+- **W3.R7**: Post-dedup DFS cycle detection — after all merges, traverse edges in `owned → owner` direction; any back-edge not already in upstream `cycles` gets a new entry with `detected_at: "W3"` and `source: "cross-document (post-dedup)"`. W4 carries cycles through unchanged — it does not add new cycle entries (the `detected_at` enum only allows `"W1"` and `"W3"`).
 - **Conflict resolution**: conflicts always have `resolution_strategy` and `resolved_value` set. Default is `use_higher`. Wave 5 consumes `resolved_value`; raw `value_a`/`value_b` are preserved for audit.

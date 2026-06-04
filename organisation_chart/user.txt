@@ -4,9 +4,9 @@ Convert the flat ownership graph below into a nested ownership tree.
 
 <target_entity>{{clientEntityName}}</target_entity>
 
-<wave3_output>
-{{wave3OutputJson}}
-</wave3_output>
+<deduplicated_entities>
+{{deduplicatedEntities}}
+</deduplicated_entities>
 
 <instructions>
 1. Set client_entity to the {{clientEntityName}} template variable. Set entity_type_category from the entity_type_category field in the Wave 3 input.

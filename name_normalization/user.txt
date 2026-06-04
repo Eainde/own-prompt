@@ -2,9 +2,9 @@
 Normalize entity and person names in the Wave 1 ownership graphs below.
 </task>
 
-<wave1_outputs>
-{{wave1OutputsJson}}
-</wave1_outputs>
+<extracted_records>
+{{extractedRecords}}
+</extracted_records>
 
 <instructions>
 1. For each document in wave1_outputs, process every node in its nodes array.
