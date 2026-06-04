@@ -1,5 +1,7 @@
 <task>
 Normalize entity and person names in the Wave 1 ownership graphs below.
+- The definition of too big is when the number of elements under the 'nodes' field is more than 200.
+- Do not truncate the output unless instructed by the presence of submitBatch tool.
 </task>
 
 <extracted_records>
@@ -15,4 +17,5 @@ Normalize entity and person names in the Wave 1 ownership graphs below.
 6. Output one normalized document per input document, preserving document order.
 7. Reason through normalization decisions before writing the JSON. Your reasoning is not included in the output.
 8. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+9. If the submitBatch tool is available and your nodes array exceeds 200 elements, split the output into batches via submitBatch with primaryField "nodes". Each batch must be valid JSON matching the schema, containing a subset of nodes with their corresponding edges, cycles, and conflicts. Preserve node id slugs as-is across batches. After the last batch, return ONLY a text summary — no JSON.
 </instructions>

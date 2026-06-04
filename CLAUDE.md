@@ -8,7 +8,7 @@ This repo stores the KYC ownership extraction prompts for the 5-wave pipeline (W
 
 ## Wave pipeline
 
-- **Wave 1** (`ownership_extraction/`): takes a GCS document path + client entity name → extracts per-document ownership graph
+- **Wave 1** (`ownership_extraction/`): takes GCS document path + client entity name → extracts per-document ownership graph (no document text — agent reads from GCS)
 - **Wave 2** (`name_normalization/`): takes all Wave 1 JSON outputs → normalizes entity and person names; adds `normalizedName`, `dedupKey`, `asciiDedupKey` to every node; one-in-one-out, no merging
 - **Wave 3** (`deduplication/`): takes all Wave 2 normalized outputs → deduplicates entities using `dedupKey`/`asciiDedupKey`, merges relationships, flags cross-document conflicts; produces unified flat graph
 - **Wave 4** (`organisation_chart/`): takes Wave 3 flat graph → converts to nested ownership tree; schema v0 pending internal system spec
@@ -34,7 +34,14 @@ Every wave outputs four top-level arrays: `nodes` (entity identity), `edges` (ow
 
 ## Template variable usage
 
-`{{clientEntityName}}` appears in Wave 1 and Wave 4 user.txt only. Waves 2 and 3 are intentionally blind to client identity — they process the graph structure uniformly. The client node is always identifiable as `layer=0`.
+Variables match the Java agent spec (`OwnershipAgentsSpecification`):
+
+- **Wave 1**: `{{gcsDocumentPath}}`, `{{clientEntityName}}` → output: `extractedRecords`
+- **Wave 2**: `{{extractedRecords}}` → output: `normalisedEntities`
+- **Wave 3**: `{{normalisedEntities}}` → output: `deduplicatedEntities`
+- **Wave 4**: `{{deduplicatedEntities}}`, `{{clientEntityName}}` → output: `organisationChart`
+
+XML tags in user.txt use snake_case of the agent output variable (e.g. `<extracted_records>`, `<normalised_entities>`, `<deduplicated_entities>`). Waves 2 and 3 are intentionally blind to client identity — they process the graph structure uniformly. The client node is always identifiable as `layer=0`.
 
 ## Test harness
 
