@@ -11,7 +11,7 @@ This repo stores the KYC ownership extraction prompts for the 5-wave pipeline (W
 - **Wave 1** (`ownership_extraction/`): takes GCS document path + client entity name → extracts per-document ownership graph (no document text — agent reads from GCS)
 - **Wave 2** (`name_normalization/`): takes all Wave 1 JSON outputs → normalizes entity and person names; adds `normalizedName`, `dedupKey`, `asciiDedupKey` to every node; one-in-one-out, no merging
 - **Wave 3** (`deduplication/`): takes all Wave 2 normalized outputs → deduplicates entities using `dedupKey`/`asciiDedupKey`, merges relationships, flags cross-document conflicts; produces unified flat graph
-- **Wave 4** (`organisation_chart/`): takes Wave 3 flat graph → converts to nested ownership tree; schema v0 pending internal system spec
+- **Wave 4** (`organisation_chart/`): takes Wave 3 flat graph → converts to nested ownership tree; schema v0 pending internal system spec. Dual-run architecture: deterministic Java code (`OrganisationChartBuilder`) runs alongside the LLM agent, controlled by `w4.primary-strategy` flag (`llm`/`code`). `W4DualRunService` orchestrates both, `W4OutputComparator` diffs results asynchronously.
 - **Wave 5** (internal system, not in this repo): takes Wave 4 tree → identifies IBOs and UBOs
 
 ## Prompt standard
@@ -46,6 +46,26 @@ XML tags in user.txt use snake_case of the agent output variable (e.g. `<extract
 ## Test harness
 
 `tests/` contains a pytest suite (`test_schemas.py`) and JSON fixtures (`fixtures/w1_valid.json` through `w4_valid.json`). `conftest.py` provides a custom `Draft7Validator` that accepts `null` for `"type": "string"` fields (project convention). Run with `.venv/bin/pytest tests/ -v`.
+
+## Batch accumulator (large outputs)
+
+Waves 1–3 use `BatchAccumulatorTool` (shared Spring bean) when `nodes` > 200. The LLM calls `submitBatch(json, "nodes")` per batch; each batch is valid schema JSON with corresponding edges/cycles/conflicts. After the last batch the LLM returns a text summary; the `BatchMergerOutputGuardrail` replaces it with the merged JSON.
+
+- `BatchAccumulatorTool.java` at repo root is a standalone reference copy.
+- Renumbering is auto-detected: numeric/`id-N` IDs get renumbered; slug-based IDs (ownership agents) are preserved.
+- W4 (nested tree) does not use batching — it uses a code-only builder instead.
+
+## W4 code-only tree builder (reference stubs)
+
+W4's transformation is purely mechanical (W4.R6: no data invention), so a deterministic Java implementation replaces LLM output generation. Four reference Java files at repo root (alongside `BatchAccumulatorTool.java`):
+
+- `OrganisationChartBuilder.java` — core algorithm: pre-indexes W3 graph, recursively builds nested tree using `LinkedHashSet` ancestry for O(1) cycle detection
+- `W4DualRunService.java` — orchestrator: runs LLM + code concurrently via `CompletableFuture`, picks primary by `w4.primary-strategy` flag, falls back to shadow on failure
+- `W4OutputComparator.java` — recursive tree diff with normalization (% formatting, children ordering, null/empty equivalence)
+- `W4ComparisonResult.java` — result record: `MATCH`, `MISMATCH`, `LLM_FAILED`, `CODE_FAILED`
+
+Design spec: `docs/superpowers/specs/2026-06-04-w4-code-only-tree-builder-design.md`
+Implementation plan: `docs/superpowers/plans/2026-06-04-w4-code-only-tree-builder.md`
 
 ## Key accuracy rules (non-obvious)
 
