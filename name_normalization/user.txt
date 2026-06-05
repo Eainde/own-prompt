@@ -12,7 +12,7 @@ Normalize entity and person names in the Wave 1 ownership graphs below.
 1. For each document in wave1_outputs, process every node in its nodes array.
 2. Determine node type: if type is "Natural Person", apply the person normalization pipeline. For all other types, apply the entity normalization pipeline.
 3. Add the four normalization fields to each node: normalizedName, dedupKey, asciiDedupKey, normalizationNote. For Natural Person nodes, also add firstName, middleName, lastName, personalTitle. For all other nodes, set those four person fields to null.
-4. Carry all existing Wave 1 node fields (id, name, type, layer, listing_proof, data_gaps, exceptions) forward unchanged on each node. Do not remove or modify them.
+4. Carry all existing Wave 1 node fields (id, name, type, layer, ownership_chain, listing_proof, data_gaps, exceptions) forward unchanged on each node. Do not remove or modify them.
 5. Carry the edges, cycles, and conflicts arrays for each document forward completely unchanged.
 6. Output one normalized document per input document, preserving document order.
 7. Reason through normalization decisions before writing the JSON. Your reasoning is not included in the output.

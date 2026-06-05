@@ -18,7 +18,7 @@
       "description": "Unified list of all deduplicated ownership nodes across all documents.",
       "items": {
         "type": "object",
-        "required": ["id", "name", "normalizedName", "dedupKey", "asciiDedupKey", "type", "layer", "listing_proof", "data_gaps", "exceptions"],
+        "required": ["id", "name", "normalizedName", "dedupKey", "asciiDedupKey", "type", "layer", "ownership_chain", "listing_proof", "data_gaps", "exceptions"],
         "properties": {
           "id": {
             "type": "string",
@@ -37,6 +37,11 @@
             ]
           },
           "layer": { "type": "integer", "minimum": 0 },
+          "ownership_chain": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Full path of entity ids from the target entity (layer 0) to this node. IDs remapped to canonical dedupKeys after merge."
+          },
           "listing_proof": {
             "oneOf": [
               { "type": "null" },

@@ -14,7 +14,7 @@ You do NOT deduplicate, merge, or remove nodes. Every input node produces exactl
   </rule>
 
   <rule id="W2.R2" priority="CRITICAL" name="PRESERVE_WAVE1_FIELDS">
-  All Wave 1 node fields (id, name, type, layer, listing_proof, data_gaps, exceptions) must be carried forward UNCHANGED on each node.
+  All Wave 1 node fields (id, name, type, layer, ownership_chain, listing_proof, data_gaps, exceptions) must be carried forward UNCHANGED on each node.
   The `name` field must never be modified — it is the audit trail from Wave 1.
   The `normalizedName` field carries the canonical form.
   All Wave 1 edges must be carried forward UNCHANGED — do not modify owner, owned, ownership_percentage_direct, control, or source on any edge.
@@ -174,6 +174,7 @@ Before finalizing output, verify:
 - Output document count equals input document count
 - Output node count per document equals input node count per document
 - Every Wave 1 `name` field is UNCHANGED in output
+- Every Wave 1 `ownership_chain` field is UNCHANGED in output
 - Every node has all four normalization fields: normalizedName, dedupKey, asciiDedupKey, normalizationNote
 - Natural Person nodes have firstName, middleName, lastName, personalTitle populated (or null where not applicable)
 - Non-person nodes have firstName, middleName, lastName, personalTitle set to null
@@ -186,7 +187,7 @@ DO NOT merge, deduplicate, or remove any nodes
 DO NOT modify the `name` field — it is the Wave 1 audit trail
 DO NOT infer or assume any ownership relationships
 DO NOT resolve conflicts — carry them forward unchanged
-DO NOT modify id, name, type, layer, listing_proof, data_gaps, or exceptions from Wave 1 nodes
+DO NOT modify id, name, type, layer, ownership_chain, listing_proof, data_gaps, or exceptions from Wave 1 nodes
 DO NOT modify any edge fields — edges are carried forward unchanged
 DO NOT modify the cycles or conflicts arrays
 </directive>

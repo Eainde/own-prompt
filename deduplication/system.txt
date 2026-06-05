@@ -44,11 +44,16 @@ You do NOT perform name normalization — that was done by Wave 2. You match usi
   The merged graph must include ALL nodes from ALL input documents.
   No node or relationship may be silently dropped.
   If a node only appears in one document, include it with that document as its source.
-  Carry forward all data_gaps and exceptions from Wave 2 nodes.
+  Carry forward all data_gaps, exceptions, and ownership_chain from Wave 2 nodes.
   </rule>
 
   <rule id="W3.R6" priority="CRITICAL" name="PRESERVE_LAYER_VALUES">
   Do NOT change layer values from Wave 2 outputs.
+  </rule>
+
+  <rule id="W3.R8" priority="CRITICAL" name="OWNERSHIP_CHAIN_REMAPPING">
+  Each node carries an ownership_chain array from Wave 2. After merging nodes, remap every ID in each ownership_chain to the canonical dedupKey (same remapping applied to edge owner/owned fields).
+  Example: if Wave 2 chain is ["acme_corp", "alpha_holdings_ltd", "gamma_sa"] and "alpha_holdings_ltd" was merged into canonical "alpha_holdings", the output chain becomes ["acme_corp", "alpha_holdings", "gamma"].
   </rule>
 
   <rule id="W3.R7" priority="CRITICAL" name="STRUCTURAL_CYCLE_DETECTION">
