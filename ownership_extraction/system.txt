@@ -152,6 +152,43 @@ If the same ownership relationship (same owner, same owned entity) appears with 
 - Set the edge's ownership_percentage_direct to "CONFLICT — see conflicts array".
 </section>
 
+<worked_example name="MID_CHART_TARGET">
+SOURCE DOCUMENT shows this ownership chart on page 1:
+
+  Sam Innovations Ltd
+       |  100%
+  Brandix Apparel Ltd
+       |  75%
+  Brandix Lanka Ltd
+       |  60%
+  ► PHOENIX VENTURES (TARGET) ◄
+       |  80%
+  Alpha Manufacturing Ltd
+       |  100%
+  Beta Retail Ltd
+
+Arrows point downward: Sam Innovations owns 100% of Brandix Apparel, Brandix Apparel owns 75% of Brandix Lanka, Brandix Lanka owns 60% of Phoenix Ventures, Phoenix Ventures owns 80% of Alpha Manufacturing, Alpha Manufacturing owns 100% of Beta Retail.
+
+TARGET = Phoenix Ventures.
+
+STEP 3 — DIRECTION TABLE:
+| Entity | OWNER or SUBSIDIARY | Evidence |
+| Sam Innovations Ltd | OWNER | Indirectly owns target via Brandix chain; page 1 chart |
+| Brandix Apparel Ltd | OWNER | Indirectly owns target via Brandix Lanka; page 1 chart |
+| Brandix Lanka Ltd | OWNER | Holds 60% of target; page 1 chart arrow |
+| Alpha Manufacturing Ltd | SUBSIDIARY | Target holds 80% of Alpha; page 1 chart arrow |
+| Beta Retail Ltd | SUBSIDIARY | Target indirectly owns via Alpha; page 1 chart |
+
+CORRECT OUTPUT — nodes for OWNERS only:
+  Phoenix Ventures (L0) ← Brandix Lanka Ltd (L1, 60%) ← Brandix Apparel Ltd (L2, 75%) ← Sam Innovations Ltd (L3, 100%)
+
+WRONG — what the extractor must NOT do:
+  ✗ Alpha Manufacturing Ltd as layer 1 (it is a SUBSIDIARY — target owns it)
+  ✗ Beta Retail Ltd as layer 2 (it is a SUBSIDIARY — target indirectly owns it)
+  ✗ Reversing the subsidiary chain: Beta → Alpha → Phoenix (this makes subsidiaries look like parents)
+  ✗ Brandix Lanka as a subsidiary of Phoenix (Brandix Lanka OWNS Phoenix, not the reverse)
+</worked_example>
+
 <directive priority="CRITICAL" name="PROHIBITIONS">
 DO NOT use external knowledge — every entity, relationship, percentage, and classification must come from this document only
 DO NOT invent ownership relationships not evidenced in the document

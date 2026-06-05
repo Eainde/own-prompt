@@ -81,7 +81,7 @@ For the overall graph:
 f) ORPHAN CHECK: Every node id (except layer 0) must appear as "owner" in at least one edge AND as "owned" in at least one edge (except ultimate owners who only appear as "owner"). If a node exists with no connecting edges, it is an orphan — flag as CRITICAL.
 g) Every id referenced in edges (owner or owned) must have a corresponding node. Flag dangling edge references.
 
-STEP 4b — BRANCH ISOLATION CHECK (W1.R10)
+STEP 5 — BRANCH ISOLATION CHECK (W1.R10)
 When the target has multiple direct owners (layer-1 entities), verify that each owner's shareholder branch is correctly isolated:
 a) For each layer-1 entity, identify its shareholders from the source document (persons/entities shown as owning shares in THAT specific holding company).
 b) Compare against the Extractor's output: for each layer-2+ node whose ownership_chain passes through a given layer-1 entity, verify that the source document confirms that person/entity owns shares in that specific holding company.
@@ -89,7 +89,7 @@ c) CROSS-BRANCH CHECK: If a shareholder is connected via edges to a layer-1 enti
 d) SHARED ENTITY CHECK: If the same person/entity legitimately owns shares in multiple layer-1 entities, verify: (i) separate edges exist from that person to each holding, (ii) only ONE node exists for that person (not duplicated), (iii) the ownership_chain records one valid path.
 e) Verify that no shareholder from one branch has been incorrectly assigned to a different branch. This is common error #15.
 
-STEP 5 — EDGE ACCURACY AND HALLUCINATION CHECK
+STEP 6 — EDGE ACCURACY AND HALLUCINATION CHECK
 For each edge:
 a) Does this ownership relationship exist in the source document? If not, flag as hallucination.
 b) Is ownership_percentage_direct exactly as stated in the document (no rounding, no approximation)? If the document does not state a percentage, it should be "Not Available" — not guessed.
@@ -100,7 +100,7 @@ For each node:
 f) Does this entity actually appear in the source document in an ownership context (chart, table, shareholder list)? An entity mentioned only in emails, notes, or unrelated sections is NOT an owner — flag its inclusion as CRITICAL.
 g) Is the entity type correct based on documentary evidence?
 
-STEP 6 — STRUCTURAL AND CLASSIFICATION VALIDATION
+STEP 7 — STRUCTURAL AND CLASSIFICATION VALIDATION
 a) Is entity_type_category correctly classified per documentary evidence? Valid values: "Category 1 - Private/Regulated/Listed", "Category 2 - Adverse Media", "Category 3 - SPV/Trust/Charity/Foundation", "Entity Type not confirmed". If classification is unclear from the document, the extractor should use "Entity Type not confirmed" — verify this fallback is used appropriately (not as laziness when evidence exists).
 b) CATEGORY 2 CHECK: If entity_type_category is "Category 2 - Adverse Media", verify that EVERY node has its exceptions field populated with the adverse media condition and document reference (e.g. "Entity flagged with adverse media condition per [document, page]"). Missing exceptions on any node is a gap.
 c) CATEGORY 3 CHECK: If entity_type_category is "Category 3 - SPV/Trust/Charity/Foundation", verify that Settlor, Trustee(s), Beneficiaries, and Protector (if present) are extracted. For Active Related Parties (ARP), verify all three conditions are met: (i) contractually appointed in transaction documents, (ii) performs an ongoing role, (iii) confirmed in RBO template and/or ACO. ARPs that fail any condition should NOT be in the output.
@@ -234,11 +234,14 @@ evaluation_results:
   9. "Hallucination Check" → FAIL
      observations: "Edge person_b → person_a with 50% ownership is fabricated. Document shows PERSON B owns 40% of HOLDING CO, not 50% of PERSON A. No document evidence for person-to-person ownership."
 
-  10. "Structural Validation" → PASS
+  10. "Branch Isolation" → PASS
+      observations: "Only one layer-1 entity (HOLDING CO). Branch isolation not applicable for single-branch structures."
+
+  11. "Structural Validation" → PASS
       observations: "Valid JSON, schema-compliant for entities present. No cycles or conflicts to evaluate."
 
 summary_of_critic_agent_feedback:
-  overall_assessment: "5 of 10 criteria FAIL. Critical issues: 1 missing intermediate entity (INVESTMENT VEHICLE LTD), person-owns-person edge (PERSON B → PERSON A), fabricated 50% percentage, broken chains and layers. Extraction needs another iteration."
+  overall_assessment: "5 of 11 criteria FAIL. Critical issues: 1 missing intermediate entity (INVESTMENT VEHICLE LTD), person-owns-person edge (PERSON B → PERSON A), fabricated 50% percentage, broken chains and layers. Extraction needs another iteration."
   areas_for_improvement:
     1. CRITICAL: "Missing entity — INVESTMENT VEHICLE LTD appears on page 1 between HOLDING CO and TARGET CO at 100% ownership — must be added as a node with edges to both."
     2. CRITICAL: "Person-owns-person edge — person_b → person_a is invalid. PERSON A (60%) and PERSON B (40%) are both shareholders of HOLDING CO PTE LTD per page 1. Remove edge person_b → person_a; add edge person_b → holding_co at 40%."
