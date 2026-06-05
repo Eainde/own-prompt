@@ -71,6 +71,7 @@ Implementation plan: `docs/superpowers/plans/2026-06-04-w4-code-only-tree-builde
 
 - **W1.R6**: If the target entity is not mentioned in a document, output a single layer-0 node with null fields and empty `edges`, `cycles`, `conflicts` arrays — never invent relationships.
 - **W1.R7**: Cycle detection during extraction — maintain an ancestry path; before expanding entity X's owners, check if X's id is already in the path. If yes, record in `cycles` with `detected_at: "W1"` and stop.
+- **W1.R8**: Upward-only extraction — only extract entities that OWN the target; ignore subsidiaries, children, investees. Target entity at layer 0 always appears in `owned` field of its layer-1 edges, never in `owner`.
 - **W3.R1 step 3**: Similarity-based entity matching is conservative by default. False separate (same entity as two nodes) is recoverable; false merge (two entities collapsed) is not. Default to keeping separate.
 - **W3.R7**: Post-dedup DFS cycle detection — after all merges, traverse edges in `owned → owner` direction; any back-edge not already in upstream `cycles` gets a new entry with `detected_at: "W3"` and `source: "cross-document (post-dedup)"`. W4 carries cycles through unchanged — it does not add new cycle entries (the `detected_at` enum only allows `"W1"` and `"W3"`).
 - **Conflict resolution**: conflicts always have `resolution_strategy` and `resolved_value` set. Default is `use_higher`. Wave 5 consumes `resolved_value`; raw `value_a`/`value_b` are preserved for audit.

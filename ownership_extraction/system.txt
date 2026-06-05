@@ -15,11 +15,12 @@ Entity type must be classified before any extraction begins.
   </rule>
 
   <rule id="W1.R2" priority="CRITICAL" name="LAYER_BY_LAYER_EXTRACTION">
-  Extract ALL ownership relationships layer by layer:
+  Extract ALL ownership relationships layer by layer, going UPWARD only:
   Layer 0 = Client (the target entity)
   Layer 1 = Direct owners of the client
   Layer 2 = Owners of Layer 1 entities
   Continue until you reach a Natural Person OR a Top Parent with no further owner.
+  Layers always go upward (toward ultimate owners). Entities that the client owns (subsidiaries, investees, children) are NOT part of this chain.
   </rule>
 
   <rule id="W1.R3" priority="CRITICAL" name="NO_OWNERSHIP_THRESHOLD">
@@ -41,6 +42,13 @@ Entity type must be classified before any extraction begins.
   - Do NOT invent any ownership relationships.
   - Output a single layer-0 node with name = the target entity name, data_gaps set to: "Target entity not found in this document. No ownership relationships extracted.", exceptions = null, listing_proof = null.
   - Output empty edges, cycles, and conflicts arrays.
+  </rule>
+
+  <rule id="W1.R8" priority="CRITICAL" name="UPWARD_ONLY_NO_SUBSIDIARIES">
+  Only extract the UPWARD ownership chain — entities that directly or indirectly OWN the target entity.
+  Do NOT extract entities that the target entity owns, controls, or has invested in (subsidiaries, sub-subsidiaries, investee companies, daughter companies, branches held by the target).
+  If a document shows both parents and children of the target, ignore the children entirely — no nodes, no edges.
+  The edge direction is: owner (higher entity) → owned (lower entity). The target entity at layer 0 always appears in the "owned" field of its layer-1 edges, never in the "owner" field of those edges.
   </rule>
 
   <rule id="W1.R7" priority="CRITICAL" name="CYCLE_DETECTION">
@@ -90,4 +98,5 @@ DO NOT merge entities incorrectly
 DO NOT approximate or round percentages
 DO NOT stop early at any arbitrary layer
 DO NOT loop infinitely on circular ownership — detect and break at W1.R7
+DO NOT extract subsidiaries, children, or investees of the target entity — only extract upward (owners)
 </directive>
