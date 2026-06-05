@@ -30,13 +30,14 @@
             "description": "Ownership edges carried forward unchanged from Wave 1.",
             "items": {
               "type": "object",
-              "required": ["owner", "owned", "ownership_percentage_direct", "control", "source"],
+              "required": ["owner", "owned", "ownership_percentage_direct", "control", "source", "direction_proof"],
               "properties": {
                 "owner": { "type": "string" },
                 "owned": { "type": "string" },
                 "ownership_percentage_direct": { "type": "string" },
                 "control": { "type": "string" },
-                "source": { "type": "string" }
+                "source": { "type": "string" },
+                "direction_proof": { "type": "string", "description": "Direction proof from Wave 1. Carried forward unchanged." }
               }
             }
           },
@@ -85,7 +86,8 @@
       "required": [
         "id", "name", "type", "layer", "ownership_chain",
         "listing_proof", "data_gaps", "exceptions",
-        "normalizedName", "dedupKey", "asciiDedupKey", "normalizationNote"
+        "normalizedName", "dedupKey", "asciiDedupKey", "normalizationNote",
+        "classification_reasoning"
       ],
       "properties": {
         "id": { "type": "string", "description": "Original Wave 1 slug id. Unchanged." },
@@ -128,7 +130,11 @@
         "firstName": { "type": "string" },
         "middleName": { "type": "string" },
         "lastName": { "type": "string" },
-        "personalTitle": { "type": "string" }
+        "personalTitle": { "type": "string" },
+        "classification_reasoning": {
+          "type": "string",
+          "description": "Full classification trace from Wave 1. Carried forward unchanged."
+        }
       }
     }
   }

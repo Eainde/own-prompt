@@ -24,7 +24,7 @@ You do NOT perform name normalization — that was done by Wave 2. You match usi
   <rule id="W3.R3" priority="CRITICAL" name="EDGE_MERGING">
   After merging nodes, update all edge owner and owned fields to use canonical dedupKey values (replacing any Wave 1/2 slug ids that were merged).
   If the same (owner, owned) edge pair appears across documents with the SAME ownership_percentage_direct:
-    → Merge into one edge. Set source to comma-separated list of all source documents.
+    → Merge into one edge. Set source to comma-separated list of all source documents. Keep the direction_proof from the first source document.
   If the same (owner, owned) edge pair appears with DIFFERENT ownership_percentage_direct values:
     → Do NOT pick one. Set the edge's ownership_percentage_direct to "CONFLICT — see conflicts array".
     → Record a conflict entry with: owner, owned, conflict_description (short summary of the disagreement), both values and their sources, resolution_strategy "use_higher", and resolved_value set to the higher of the two values.
@@ -44,7 +44,7 @@ You do NOT perform name normalization — that was done by Wave 2. You match usi
   The merged graph must include ALL nodes from ALL input documents.
   No node or relationship may be silently dropped.
   If a node only appears in one document, include it with that document as its source.
-  Carry forward all data_gaps, exceptions, and ownership_chain from Wave 2 nodes.
+  Carry forward all data_gaps, exceptions, ownership_chain, and classification_reasoning from Wave 2 nodes. When merging nodes, keep the most detailed classification_reasoning among the merged nodes.
   </rule>
 
   <rule id="W3.R6" priority="CRITICAL" name="PRESERVE_LAYER_VALUES">

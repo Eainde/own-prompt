@@ -18,7 +18,7 @@
       "description": "Unified list of all deduplicated ownership nodes across all documents.",
       "items": {
         "type": "object",
-        "required": ["id", "name", "normalizedName", "dedupKey", "asciiDedupKey", "type", "layer", "ownership_chain", "listing_proof", "data_gaps", "exceptions"],
+        "required": ["id", "name", "normalizedName", "dedupKey", "asciiDedupKey", "type", "layer", "ownership_chain", "listing_proof", "data_gaps", "exceptions", "classification_reasoning"],
         "properties": {
           "id": {
             "type": "string",
@@ -58,7 +58,11 @@
             ]
           },
           "data_gaps": { "type": "string" },
-          "exceptions": { "type": "string" }
+          "exceptions": { "type": "string" },
+          "classification_reasoning": {
+            "type": "string",
+            "description": "Full classification trace from Wave 1. Carried forward through dedup; when merging nodes, keep the most detailed reasoning."
+          }
         }
       }
     },
@@ -67,7 +71,7 @@
       "description": "Deduplicated ownership edges. owner and owned reference canonical dedupKey values.",
       "items": {
         "type": "object",
-        "required": ["owner", "owned", "ownership_percentage_direct", "control", "source"],
+        "required": ["owner", "owned", "ownership_percentage_direct", "control", "source", "direction_proof"],
         "properties": {
           "owner": { "type": "string", "description": "Canonical dedupKey of the owning entity." },
           "owned": { "type": "string", "description": "Canonical dedupKey of the owned entity." },
@@ -76,7 +80,8 @@
             "description": "Exact % if consistent, 'Not Available' if missing, or 'CONFLICT — see conflicts array' if disputed."
           },
           "control": { "type": "string" },
-          "source": { "type": "string", "description": "Comma-separated list of all source documents." }
+          "source": { "type": "string", "description": "Comma-separated list of all source documents." },
+          "direction_proof": { "type": "string", "description": "Direction proof from Wave 1. When merging edges, keep the most detailed proof." }
         }
       }
     },
