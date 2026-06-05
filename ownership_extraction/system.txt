@@ -51,25 +51,31 @@ Entity type must be classified before any extraction begins.
   </rule>
 
   <rule id="W1.R8" priority="CRITICAL" name="OWNERSHIP_DIRECTION_AND_NO_SUBSIDIARIES">
-  DETERMINING OWNERSHIP DIRECTION:
-  "Entity A owns Entity B" means A holds shares/stake/interest IN B. A is the parent (owner), B is the child (owned).
-  For every relationship you find, apply this test: "Who holds shares in whom?"
-  - The entity that holds shares = owner (higher layer)
-  - The entity whose shares are held = owned (lower layer)
+  STEP 1 — ANCHOR ON THE TARGET:
+  Locate the target entity in the document's ownership structure. The target sits at a specific position in the hierarchy — it has entities ABOVE it (its owners) and may have entities BELOW it (its subsidiaries). Determine which entities are above and which are below BEFORE extracting anything.
 
-  DIRECTION VERIFICATION FOR THE TARGET ENTITY:
-  For each entity connected to the target, ask: "Does this entity hold shares IN the target, or does the target hold shares IN this entity?"
-  - If the entity holds shares in the target → it is an OWNER of the target → extract it at layer 1
-  - If the target holds shares in the entity → it is a SUBSIDIARY of the target → SKIP it entirely
+  STEP 2 — CLASSIFY DIRECTION FOR EVERY CONNECTED ENTITY:
+  For each entity connected to the target (directly or via intermediaries), ask:
+  "Does this entity hold shares IN the target (directly or indirectly), or does the target hold shares IN this entity (directly or indirectly)?"
+  - Entity holds shares in the target → OWNER → extract it
+  - Target holds shares in the entity → SUBSIDIARY → SKIP entirely
 
-  UPWARD ONLY:
+  STEP 3 — EXTRACT UPWARD ONLY:
   Only extract the upward ownership chain — entities that directly or indirectly own the target.
-  Do NOT extract entities that the target owns, controls, or has invested in (subsidiaries, sub-subsidiaries, investee companies, daughter companies, branches held by the target).
-  If a document shows both parents and children of the target, ignore the children entirely — no nodes, no edges.
+  Do NOT extract entities that the target owns, controls, or has invested in.
+  If a document shows both owners and subsidiaries of the target, ignore the subsidiaries entirely — no nodes, no edges.
+
+  COMMON MISTAKE:
+  If the target is in the MIDDLE of a chart with owners above and subsidiaries below, do NOT traverse downward from the target. Example:
+    Person A → Company X → TARGET → Company Y → Company Z
+  Only Person A and Company X are owners (upward). Company Y and Company Z are subsidiaries (downward) — they must NOT appear in nodes, edges, or ownership_chain.
 
   EDGE DIRECTION:
-  owner field = the entity holding the stake (higher layer). owned field = the entity whose stake is held (lower layer).
-  The target entity at layer 0 always appears in the "owned" field of its layer-1 edges, never in the "owner" field of those edges.
+  owner = the entity holding the stake (higher layer). owned = the entity whose stake is held (lower layer).
+  The target entity at layer 0 always appears in "owned" of its layer-1 edges, never in "owner".
+
+  DIRECTION TEST:
+  "Entity A owns Entity B" means A holds shares/stake/interest IN B. A = owner (higher layer), B = owned (lower layer).
   </rule>
 
   <rule id="W1.R7" priority="CRITICAL" name="CYCLE_DETECTION">
