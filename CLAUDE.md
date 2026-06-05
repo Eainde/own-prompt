@@ -27,7 +27,7 @@ Prompts follow the csm-prompts XML standard:
 
 Every wave outputs four top-level arrays: `nodes` (entity identity), `edges` (ownership relationships), `cycles` (detected back-edges), `conflicts` (% disagreements). W4 converts edges to a nested `ownership_tree` but carries `cycles` and `conflicts` through unchanged.
 
-- **Nodes**: `id`, `name`, `type`, `layer`, `listing_proof`, `data_gaps`, `exceptions` — no `parent_id`, no `ownership_percentage_direct`
+- **Nodes**: `id`, `name`, `type`, `layer`, `ownership_chain`, `listing_proof`, `data_gaps`, `exceptions` — no `parent_id`, no `ownership_percentage_direct`
 - **Edges**: `owner`, `owned`, `ownership_percentage_direct`, `control`, `source`
 - **Cycles**: `cycle_path` (array of ids), `detected_at` (`"W1"` or `"W3"`), `source`
 - **Conflicts**: `owner`, `owned`, `conflict_description`, `value_a`, `source_a`, `value_b`, `source_b`, `resolution_strategy` (`use_higher`/`use_lower`/`use_most_recent`/`manual`), `resolved_value`
