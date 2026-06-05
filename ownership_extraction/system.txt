@@ -48,8 +48,18 @@ Entity type must be classified before any extraction begins.
   <rule id="W1.R6" priority="CRITICAL" name="TARGET_ENTITY_NOT_FOUND">
   If the target entity is not mentioned in this document:
   - Do NOT invent any ownership relationships.
-  - Output a single layer-0 node with name = the target entity name, data_gaps set to: "Target entity not found in this document. No ownership relationships extracted.", exceptions = null, listing_proof = null.
+  - Output a single layer-0 node with: id = slug of the target entity name, name = the target entity name, type = "Unknown", layer = 0, ownership_chain = ["target_entity_id"], listing_proof = null, data_gaps = "Target entity not found in this document. No ownership relationships extracted.", exceptions = null, classification_reasoning = "Target entity not found in document. No ownership structure to classify."
   - Output empty edges, cycles, and conflicts arrays.
+  </rule>
+
+  <rule id="W1.R7" priority="CRITICAL" name="CYCLE_DETECTION">
+  During layer-by-layer extraction, maintain an ancestry path: the chain of entity ids from layer 0 up to the entity currently being processed.
+  Before extracting the owners of entity X at layer N, check whether X's id already appears anywhere in the current ancestry path.
+  If yes:
+    - Record a cycle entry in the cycles array: set cycle_path to the full path from the first occurrence of X back to X, and detected_at to "W1".
+    - Set exceptions on X's node to: "Cycle detected: see cycles array."
+    - Stop extraction from X. Do NOT continue to X's owners.
+  If no: continue extraction normally.
   </rule>
 
   <rule id="W1.R8" priority="CRITICAL" name="OWNERSHIP_DIRECTION_AND_NO_SUBSIDIARIES">
@@ -80,16 +90,6 @@ Entity type must be classified before any extraction begins.
   DIRECTION TEST:
   "Entity A owns Entity B" means A holds shares/stake/interest IN B. A = owner (higher layer), B = owned (lower layer).
   </rule>
-
-  <rule id="W1.R7" priority="CRITICAL" name="CYCLE_DETECTION">
-  During layer-by-layer extraction, maintain an ancestry path: the chain of entity ids from layer 0 up to the entity currently being processed.
-  Before extracting the owners of entity X at layer N, check whether X's id already appears anywhere in the current ancestry path.
-  If yes:
-    - Record a cycle entry in the cycles array: set cycle_path to the full path from the first occurrence of X back to X, and detected_at to "W1".
-    - Set exceptions on X's node to: "Cycle detected: see cycles array."
-    - Stop extraction from X. Do NOT continue to X's owners.
-  If no: continue extraction normally.
-  </rule>
 </rules>
 
 <section name="ENTITY_TYPE_RULES">
@@ -116,7 +116,7 @@ Category 3 (SPV / Trust / Charity / Foundation):
 If the same ownership relationship (same owner, same owned entity) appears with different % values within this document:
 - Do NOT pick one value for the edge's ownership_percentage_direct.
 - Record a conflict entry: set owner and owned to the entity ids, record both values and their source references. Set conflict_description to a short summary of the disagreement (e.g. "Ownership % conflict: 60% vs 40% for [owner] → [owned]").
-- Set resolution_strategy to "use_higher". Set resolved_value to the higher of the two percentage values.
+- Set resolution_strategy to "use_higher". Set resolved_value to the higher of the two percentage values. (Wave 1 always uses "use_higher"; downstream waves may apply other strategies such as "use_lower", "use_most_recent", or "manual".)
 - Set the edge's ownership_percentage_direct to "CONFLICT — see conflicts array".
 </section>
 

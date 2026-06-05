@@ -98,7 +98,7 @@
           },
           "control": {
             "type": "string",
-            "description": "Evidence of control (voting rights, board rights, etc.) or null."
+            "description": "Evidence of control (voting rights, board rights, etc.). Null if no control evidence found."
           },
           "source": {
             "type": "string",
