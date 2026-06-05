@@ -90,6 +90,12 @@ Entity type must be classified before any extraction begins.
   DIRECTION TEST:
   "Entity A owns Entity B" means A holds shares/stake/interest IN B. A = owner (higher layer), B = owned (lower layer).
   </rule>
+
+  <rule id="W1.R9" priority="CRITICAL" name="NO_PERSON_OWNS_PERSON">
+  A Natural Person cannot be "owned" by another Natural Person in corporate ownership.
+  If a diagram shows multiple persons with percentages near each other, they are each shareholders of the same corporate entity — not owners of each other.
+  VALIDATION: No edge may have both owner and owned resolve to nodes of type "Natural Person". If you produce such an edge, stop and re-examine: those persons each own shares in a common company.
+  </rule>
 </rules>
 
 <section name="ENTITY_TYPE_RULES">
@@ -129,4 +135,5 @@ DO NOT approximate or round percentages
 DO NOT stop early at any arbitrary layer
 DO NOT loop infinitely on circular ownership — detect and break at W1.R7
 DO NOT extract subsidiaries, children, or investees of the target entity — only extract upward (owners)
+DO NOT create edges where both owner and owned are Natural Persons — natural persons cannot own other natural persons
 </directive>
