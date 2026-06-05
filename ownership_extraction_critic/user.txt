@@ -1,0 +1,24 @@
+<task>
+Review the Ownership Extraction output against the source document. Evaluate every acceptance criterion and provide structured feedback.
+</task>
+
+<target_entity>{{clientEntityName}}</target_entity>
+
+<instructions>
+1. Read the ENTIRE source document first — build your own list of all corporate entities and all natural persons visible in ownership structures (charts, tables, text). Include every intermediate holding company, investment vehicle, and person with an ownership percentage.
+2. Compare your entity list against the Extractor's output. Flag every missing entity.
+3. For each edge, verify ownership direction against the document. Check that the entity in "owner" truly holds shares in the entity in "owned". Check that the target entity never appears as "owner".
+4. For each node, trace the path through edges from the target (layer 0) to that node. Verify the layer number equals the hop count. Verify ownership_chain matches this path exactly.
+5. For each edge, verify the percentage matches the document exactly. Check that no edge has both owner and owned as Natural Person. Flag any relationship not evidenced in the document.
+6. Verify entity types, classification_reasoning, cycles, conflicts, and schema compliance.
+7. Score each acceptance criterion as Pass, Fail, or Mixed_Partial_Pass_Partial_Fail.
+8. Provide actionable improvement points ordered by severity that the Extractor can directly act on.
+</instructions>
+
+<extraction_output>
+{{extractionOutput}}
+</extraction_output>
+
+<source_document>
+{{gcsDocumentPath}}
+</source_document>

@@ -9,6 +9,7 @@ This repo stores the KYC ownership extraction prompts for the 5-wave pipeline (W
 ## Wave pipeline
 
 - **Wave 1** (`ownership_extraction/`): takes GCS document path + client entity name → extracts upward-only per-document ownership graph (who OWNS the target — no subsidiaries/children). Agent reads from GCS, no document text in prompt.
+- **Wave 1 Critic** (`ownership_extraction_critic/`): takes W1 extraction output + GCS doc path + client entity name → validates against all W1 rules (R1–R9), checks entity completeness, ownership direction, layer/chain correctness, person-owns-person prohibition, hallucination. Outputs per-criterion pass/fail + severity-ranked corrections + verdict (PASS/ACCEPT_WITH_NOTES/RETRY). Template vars: `{{extractionOutput}}`, `{{gcsDocumentPath}}`, `{{clientEntityName}}`.
 - **Wave 2** (`name_normalization/`): takes all Wave 1 JSON outputs → normalizes entity and person names; adds `normalizedName`, `dedupKey`, `asciiDedupKey` to every node; one-in-one-out, no merging
 - **Wave 3** (`deduplication/`): takes all Wave 2 normalized outputs → deduplicates entities using `dedupKey`/`asciiDedupKey`, merges relationships, flags cross-document conflicts; produces unified flat graph
 - **Wave 4** (`organisation_chart/`): takes Wave 3 flat graph → converts to nested ownership tree; schema v0 pending internal system spec. Dual-run architecture: deterministic Java code (`OrganisationChartBuilder`) runs alongside the LLM agent, controlled by `w4.primary-strategy` flag (`llm`/`code`). `W4DualRunService` orchestrates both, `W4OutputComparator` diffs results asynchronously.
@@ -36,7 +37,8 @@ Every wave outputs four top-level arrays: `nodes` (entity identity), `edges` (ow
 
 Variables match the Java agent spec (`OwnershipAgentsSpecification`):
 
-- **Wave 1**: `{{gcsDocumentPath}}`, `{{clientEntityName}}` → output: `extractedRecords`
+- **Wave 1**: `{{gcsDocumentPath}}`, `{{clientEntityName}}`, `{{criticFeedback}}` → output: `extractedRecords`. Critic feedback loop: Java agent runs extraction → critic → if RETRY, re-runs extraction with critic's areas_for_improvement injected via `{{criticFeedback}}` (empty string on first run).
+- **Wave 1 Critic**: `{{extractionOutput}}`, `{{gcsDocumentPath}}`, `{{clientEntityName}}` → output: verdict + evaluation_results + areas_for_improvement
 - **Wave 2**: `{{extractedRecords}}` → output: `normalisedEntities`
 - **Wave 3**: `{{normalisedEntities}}` → output: `deduplicatedEntities`
 - **Wave 4**: `{{deduplicatedEntities}}`, `{{clientEntityName}}` → output: `organisationChart`
@@ -72,6 +74,7 @@ Implementation plan: `docs/superpowers/plans/2026-06-04-w4-code-only-tree-builde
 - **W1.R6**: If the target entity is not mentioned in a document, output a single layer-0 node with null fields and empty `edges`, `cycles`, `conflicts` arrays — never invent relationships.
 - **W1.R7**: Cycle detection during extraction — maintain an ancestry path; before expanding entity X's owners, check if X's id is already in the path. If yes, record in `cycles` with `detected_at: "W1"` and stop.
 - **W1.R8**: Upward-only extraction — only extract entities that OWN the target; ignore subsidiaries, children, investees. Target entity at layer 0 always appears in `owned` field of its layer-1 edges, never in `owner`. Includes direction-determination test ("who holds shares in whom") and post-extraction validation step.
+- **W1.R9**: No person-owns-person edges — a Natural Person cannot be "owned" by another Natural Person. Multiple persons with percentages near each other in a diagram are peer shareholders of the same corporate entity. Extraction uses a two-pass workflow: entity inventory first (scan all entities before creating edges), then relationship mapping. Validation cross-checks inventory completeness and rejects person→person edges.
 - **W3.R1 step 3**: Similarity-based entity matching is conservative by default. False separate (same entity as two nodes) is recoverable; false merge (two entities collapsed) is not. Default to keeping separate.
 - **W3.R8**: Ownership chain remapping — after merging nodes, remap every ID in each node's `ownership_chain` array to canonical dedupKeys (same remapping as edge owner/owned fields).
 - **W3.R7**: Post-dedup DFS cycle detection — after all merges, traverse edges in `owned → owner` direction; any back-edge not already in upstream `cycles` gets a new entry with `detected_at: "W3"` and `source: "cross-document (post-dedup)"`. W4 carries cycles through unchanged — it does not add new cycle entries (the `detected_at` enum only allows `"W1"` and `"W3"`).

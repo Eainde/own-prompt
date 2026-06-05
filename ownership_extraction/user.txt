@@ -8,7 +8,10 @@ Extract who OWNS the target entity — the upward ownership chain only. Trace fr
 
 <target_entity>{{clientEntityName}}</target_entity>
 
+<critic_feedback>{{criticFeedback}}</critic_feedback>
+
 <instructions>
+0. CRITIC FEEDBACK — If critic_feedback above is non-empty, a previous extraction attempt was reviewed and rejected. Read every CRITICAL and IMPORTANT correction carefully. These are specific errors you made last time — missing entities, wrong direction, wrong percentages, person-owns-person edges, etc. You MUST address every correction in this attempt. Do not repeat the same mistakes.
 1. Classify entity type from documentary evidence (Category 1, 2, or 3; or "Entity Type not confirmed").
 2. ENTITY INVENTORY — Before creating any nodes or edges, scan the entire document and list every distinct entity (corporate entities AND natural persons) mentioned in ownership structures. Include intermediate holding companies, investment vehicles, and all persons with ownership percentages. This inventory ensures no entity is missed. For each entity, note which other entity it connects to and the percentage shown.
 3. Locate the target entity in the document's ownership structure. The target may sit in the MIDDLE of a hierarchy — with owners above and subsidiaries below. For each entity in your inventory, classify: "Does this entity own the target (directly or indirectly), or does the target own this entity?" Only entities in the OWNER direction proceed to extraction. All entities in the subsidiary/child direction are SKIPPED — no nodes, no edges, no ownership_chain entries for them.
