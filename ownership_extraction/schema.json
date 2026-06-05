@@ -25,7 +25,7 @@
       "description": "All ownership entities extracted from this document. Ownership relationship data lives on edges.",
       "items": {
         "type": "object",
-        "required": ["id", "name", "type", "layer", "ownership_chain", "listing_proof", "data_gaps", "exceptions"],
+        "required": ["id", "name", "type", "layer", "ownership_chain", "listing_proof", "data_gaps", "exceptions", "classification_reasoning"],
         "properties": {
           "id": {
             "type": "string",
@@ -69,7 +69,11 @@
             ]
           },
           "data_gaps": { "type": "string" },
-          "exceptions": { "type": "string" }
+          "exceptions": { "type": "string" },
+          "classification_reasoning": {
+            "type": "string",
+            "description": "Full classification trace: why this entity is an owner (not a subsidiary), how the layer was determined, entity type reasoning, and the document page/section that evidences it."
+          }
         }
       }
     },
@@ -78,7 +82,7 @@
       "description": "All ownership relationships extracted from this document.",
       "items": {
         "type": "object",
-        "required": ["owner", "owned", "ownership_percentage_direct", "control", "source"],
+        "required": ["owner", "owned", "ownership_percentage_direct", "control", "source", "direction_proof"],
         "properties": {
           "owner": {
             "type": "string",
@@ -99,6 +103,10 @@
           "source": {
             "type": "string",
             "description": "Exact document name and page/section where this relationship is evidenced."
+          },
+          "direction_proof": {
+            "type": "string",
+            "description": "Why this edge direction is correct: which entity holds shares in which, and the document page/section that proves it."
           }
         }
       }

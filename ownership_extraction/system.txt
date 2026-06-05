@@ -27,6 +27,8 @@ Entity type must be classified before any extraction begins.
   - Layer 1 node: ownership_chain = ["target_entity_id", "this_owner_id"]
   - Layer N node: ownership_chain = ["target_entity_id", "layer1_id", ..., "this_node_id"]
   The chain records the exact branch taken to reach this node, so different branches are distinguishable even at the same layer number.
+
+  CLASSIFICATION REASONING: For each node, record a classification_reasoning string that explains: (1) why this entity is classified as an owner of the target (not a subsidiary), (2) how the layer number was determined, (3) entity type reasoning, and (4) the specific document page/section that evidences this entity's role.
   </rule>
 
   <rule id="W1.R3" priority="CRITICAL" name="NO_OWNERSHIP_THRESHOLD">
@@ -73,6 +75,7 @@ Entity type must be classified before any extraction begins.
   EDGE DIRECTION:
   owner = the entity holding the stake (higher layer). owned = the entity whose stake is held (lower layer).
   The target entity at layer 0 always appears in "owned" of its layer-1 edges, never in "owner".
+  For each edge, record a direction_proof string that explains: why the owner entity holds shares in the owned entity (not the reverse), and the specific document page/section that proves this relationship direction.
 
   DIRECTION TEST:
   "Entity A owns Entity B" means A holds shares/stake/interest IN B. A = owner (higher layer), B = owned (lower layer).
