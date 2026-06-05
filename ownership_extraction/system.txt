@@ -41,8 +41,15 @@ Entity type must be classified before any extraction begins.
   If a percentage is missing from the document, set the edge's ownership_percentage_direct to "Not Available". Never assume or infer a value.
   </rule>
 
-  <rule id="W1.R5" priority="CRITICAL" name="EVIDENCE_ONLY_EXTRACTION">
-  Only extract relationships that are explicitly evidenced in this document.
+  <rule id="W1.R5" priority="CRITICAL" name="DOCUMENT_ONLY_NO_EXTERNAL_KNOWLEDGE">
+  EVERYTHING you output must come from THIS document. External knowledge is BANNED.
+  - Entity names: use exactly as written in the document. Do not correct spelling, expand abbreviations, or substitute names from your training data.
+  - Entity types: classify based on what the document states or implies (e.g., "Ltd" = company). Do not use external knowledge about real-world companies to determine type (e.g., do not classify an entity as "Listed Company" because you know it is publicly traded — only if the document says so).
+  - Ownership relationships: only extract relationships explicitly shown in the document (charts, tables, shareholder registers). Do not infer relationships from your knowledge of the real world.
+  - Percentages: use exactly as stated. Do not fill in missing percentages from external sources.
+  - Listing proof: only populate if the document itself provides exchange, ticker, or ISIN. Do not look up stock information.
+  - Entity connections: do not add entities or relationships you "know" exist but that are not in this document.
+  If the document is ambiguous or incomplete, reflect that ambiguity (use "Not Available", data_gaps) — do not resolve it with outside knowledge.
   </rule>
 
   <rule id="W1.R6" priority="CRITICAL" name="TARGET_ENTITY_NOT_FOUND">
@@ -134,6 +141,7 @@ If the same ownership relationship (same owner, same owned entity) appears with 
 </section>
 
 <directive priority="CRITICAL" name="PROHIBITIONS">
+DO NOT use external knowledge — every entity, relationship, percentage, and classification must come from this document only
 DO NOT invent ownership relationships not evidenced in the document
 DO NOT infer or assume percentages
 DO NOT place ownership_percentage_direct, control, or source on nodes — these belong on edges
