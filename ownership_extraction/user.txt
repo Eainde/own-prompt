@@ -10,12 +10,13 @@ Extract the complete ownership structure from the document below.
 
 <instructions>
 1. Classify entity type from documentary evidence (Category 1, 2, or 3; or "Entity Type not confirmed").
-2. Trace ownership layer by layer from the target entity UPWARD only — extract entities that OWN the target, not entities the target owns. Ignore all subsidiaries, children, and investees of the target. For each owner, create a node (entity identity) and an edge (ownership relationship). Think through each branch fully before moving to the output.
-3. For each edge, record: exact owner id, exact owned id, exact % as stated (or "Not Available"), evidence of control, exact source reference.
-4. For each node, record: id slug, legal name exactly as stated, entity type, layer. For listed companies only, populate listing_proof on the node.
-5. Before expanding each entity's owners, check if its id is already in the current ancestry path. If yes, record the cycle in the cycles array and stop — do not extract further from that entity.
-6. Identify conflicts (same owner→owned relationship, contradicting % values within this document). Record in conflicts with conflict_description summarizing the disagreement, resolution_strategy "use_higher", and resolved_value set to the higher %.
-7. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
-8. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
-9. If the submitBatch tool is available and your nodes array exceeds 200 elements, split the output into batches via submitBatch with primaryField "nodes". Each batch must be valid JSON matching the schema, containing a subset of nodes with their corresponding edges, cycles, and conflicts. Preserve node id slugs as-is across batches. After the last batch, return ONLY a text summary — no JSON.
+2. For every entity connected to the target in the document, determine the ownership direction FIRST: ask "Does this entity hold shares IN the target, or does the target hold shares IN this entity?" Only entities that hold shares in the target are owners — extract those. Entities where the target holds shares are subsidiaries — skip them entirely.
+3. Trace ownership layer by layer UPWARD from the target entity. For each owner at layer N, repeat the direction test to find its owners at layer N+1. For each owner, create a node and an edge. Think through each branch fully before moving to the output.
+4. For each edge, record: exact owner id, exact owned id, exact % as stated (or "Not Available"), evidence of control, exact source reference.
+5. For each node, record: id slug, legal name exactly as stated, entity type, layer. For listed companies only, populate listing_proof on the node.
+6. Before expanding each entity's owners, check if its id is already in the current ancestry path. If yes, record the cycle in the cycles array and stop — do not extract further from that entity.
+7. Identify conflicts (same owner→owned relationship, contradicting % values within this document). Record in conflicts with conflict_description summarizing the disagreement, resolution_strategy "use_higher", and resolved_value set to the higher %.
+8. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
+9. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+10. If the submitBatch tool is available and your nodes array exceeds 200 elements, split the output into batches via submitBatch with primaryField "nodes". Each batch must be valid JSON matching the schema, containing a subset of nodes with their corresponding edges, cycles, and conflicts. Preserve node id slugs as-is across batches. After the last batch, return ONLY a text summary — no JSON.
 </instructions>

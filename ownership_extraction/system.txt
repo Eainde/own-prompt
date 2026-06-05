@@ -44,11 +44,26 @@ Entity type must be classified before any extraction begins.
   - Output empty edges, cycles, and conflicts arrays.
   </rule>
 
-  <rule id="W1.R8" priority="CRITICAL" name="UPWARD_ONLY_NO_SUBSIDIARIES">
-  Only extract the UPWARD ownership chain — entities that directly or indirectly OWN the target entity.
-  Do NOT extract entities that the target entity owns, controls, or has invested in (subsidiaries, sub-subsidiaries, investee companies, daughter companies, branches held by the target).
+  <rule id="W1.R8" priority="CRITICAL" name="OWNERSHIP_DIRECTION_AND_NO_SUBSIDIARIES">
+  DETERMINING OWNERSHIP DIRECTION:
+  "Entity A owns Entity B" means A holds shares/stake/interest IN B. A is the parent (owner), B is the child (owned).
+  For every relationship you find, apply this test: "Who holds shares in whom?"
+  - The entity that holds shares = owner (higher layer)
+  - The entity whose shares are held = owned (lower layer)
+
+  DIRECTION VERIFICATION FOR THE TARGET ENTITY:
+  For each entity connected to the target, ask: "Does this entity hold shares IN the target, or does the target hold shares IN this entity?"
+  - If the entity holds shares in the target → it is an OWNER of the target → extract it at layer 1
+  - If the target holds shares in the entity → it is a SUBSIDIARY of the target → SKIP it entirely
+
+  UPWARD ONLY:
+  Only extract the upward ownership chain — entities that directly or indirectly own the target.
+  Do NOT extract entities that the target owns, controls, or has invested in (subsidiaries, sub-subsidiaries, investee companies, daughter companies, branches held by the target).
   If a document shows both parents and children of the target, ignore the children entirely — no nodes, no edges.
-  The edge direction is: owner (higher entity) → owned (lower entity). The target entity at layer 0 always appears in the "owned" field of its layer-1 edges, never in the "owner" field of those edges.
+
+  EDGE DIRECTION:
+  owner field = the entity holding the stake (higher layer). owned field = the entity whose stake is held (lower layer).
+  The target entity at layer 0 always appears in the "owned" field of its layer-1 edges, never in the "owner" field of those edges.
   </rule>
 
   <rule id="W1.R7" priority="CRITICAL" name="CYCLE_DETECTION">
