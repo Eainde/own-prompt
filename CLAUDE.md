@@ -9,7 +9,7 @@ This repo stores the KYC ownership extraction prompts for the 5-wave pipeline (W
 ## Wave pipeline
 
 - **Wave 1** (`ownership_extraction/`): takes GCS document path + client entity name → extracts upward-only per-document ownership graph (who OWNS the target — no subsidiaries/children). Agent reads from GCS, no document text in prompt.
-- **Wave 1 Critic** (`ownership_extraction_critic/`): takes W1 extraction output + GCS doc path + client entity name → validates against all W1 rules (R1–R9), checks entity completeness, ownership direction, layer/chain correctness, person-owns-person prohibition, hallucination. Outputs per-criterion pass/fail + severity-ranked corrections + verdict (PASS/ACCEPT_WITH_NOTES/RETRY). Template vars: `{{extractionOutput}}`, `{{gcsDocumentPath}}`, `{{clientEntityName}}`.
+- **Wave 1 Critic** (`ownership_extraction_critic/`): takes W1 extraction output + GCS doc path + client entity name → validates against all W1 rules (R1–R10). 11 acceptance criteria (including Branch Isolation), 7-step evaluation workflow. Checks: entity completeness (LIST A owners vs LIST B subsidiaries), ownership direction + subsidiary exclusion, chain connectivity + orphan detection, edge accuracy (% + control + direction_proof), person-owns-person prohibition, hallucination, entity classification (Cat 1/2/3 + "not confirmed" fallback), W1.R6 halt validation, cycle/conflict completeness, Category 2 exceptions, Category 3 SPV/Trust roles. Outputs per-criterion pass/fail + severity-ranked corrections + verdict (PASS/ACCEPT_WITH_NOTES/RETRY). Template vars: `{{extractionOutput}}`, `{{gcsDocumentPath}}`, `{{clientEntityName}}`.
 - **Wave 2** (`name_normalization/`): takes all Wave 1 JSON outputs → normalizes entity and person names; adds `normalizedName`, `dedupKey`, `asciiDedupKey` to every node; one-in-one-out, no merging
 - **Wave 3** (`deduplication/`): takes all Wave 2 normalized outputs → deduplicates entities using `dedupKey`/`asciiDedupKey`, merges relationships, flags cross-document conflicts; produces unified flat graph
 - **Wave 4** (`organisation_chart/`): takes Wave 3 flat graph → converts to nested ownership tree; schema v0 pending internal system spec. Dual-run architecture: deterministic Java code (`OrganisationChartBuilder`) runs alongside the LLM agent, controlled by `w4.primary-strategy` flag (`llm`/`code`). `W4DualRunService` orchestrates both, `W4OutputComparator` diffs results asynchronously.
@@ -47,7 +47,20 @@ XML tags in user.txt use snake_case of the agent output variable (e.g. `<extract
 
 ## Test harness
 
-`tests/` contains a pytest suite (`test_schemas.py`) and JSON fixtures (`fixtures/w1_valid.json` through `w4_valid.json`). `conftest.py` provides a custom `Draft7Validator` that accepts `null` for `"type": "string"` fields (project convention). Run with `.venv/bin/pytest tests/ -v`.
+`tests/` contains a pytest suite (`test_schemas.py`) and JSON fixtures (`fixtures/w1_valid.json` through `w4_valid.json`). `conftest.py` provides a custom `Draft7Validator` that accepts `null` for `"type": "string"` fields (project convention). Run with `venv/bin/pytest tests/ -v`.
+
+## Topology test suite
+
+`tests/topologies/` contains 6 PDF ownership chart test cases with golden expected JSON outputs, targeting specific structural patterns that trip up the LLM:
+
+- **T1** (`t1_simple_chain`): linear 4-node chain, 100% at each level
+- **T2** (`t2_wide_fan`): 5 direct owners at 20% each (flat fan)
+- **T3** (`t3_diamond`): shared parent (Omega Corp) owns both branches
+- **T4** (`t4_shared_person`): same person (Khan Rashid) owns shares in 2 different holdings — primary bug case for cross-branch contamination
+- **T5** (`t5_mid_chart`): target in middle of hierarchy with subsidiaries below that must be ignored
+- **T6** (`t6_deep_asymmetric`): one branch 5 layers deep, another 1 layer
+
+`tests/branch_validator.py` provides `validate_branches(actual, expected=None)` with 6 structural checks: chain consistency, direction validation, person-owns-person (W1.R9), subsidiary leakage, shared entity handling, cross-branch contamination. Returns `BranchError(check_name, message, severity)` list. `tests/test_topologies.py` validates all golden fixtures against schema + branch validator. `tests/topologies/generate_pdfs.py` regenerates all 6 PDFs deterministically.
 
 ## Batch accumulator (large outputs)
 
@@ -75,6 +88,7 @@ Implementation plan: `docs/superpowers/plans/2026-06-04-w4-code-only-tree-builde
 - **W1.R7**: Cycle detection during extraction — maintain an ancestry path; before expanding entity X's owners, check if X's id is already in the path. If yes, record in `cycles` with `detected_at: "W1"` and stop.
 - **W1.R8**: Upward-only extraction — only extract entities that OWN the target; ignore subsidiaries, children, investees. Target entity at layer 0 always appears in `owned` field of its layer-1 edges, never in `owner`. Includes direction-determination test ("who holds shares in whom") and post-extraction validation step.
 - **W1.R9**: No person-owns-person edges — a Natural Person cannot be "owned" by another Natural Person. Multiple persons with percentages near each other in a diagram are peer shareholders of the same corporate entity. Extraction uses a two-pass workflow: entity inventory first (scan all entities before creating edges), then relationship mapping. Validation cross-checks inventory completeness and rejects person→person edges.
+- **W1.R10**: Branch isolation — when the target has multiple direct owners, process each holding's shareholders independently. A person appearing in multiple branches gets ONE node but SEPARATE edges to each holding. The entity inventory step includes branch mapping (grouping shareholders by their holding company) before creating nodes.
 - **W3.R1 step 3**: Similarity-based entity matching is conservative by default. False separate (same entity as two nodes) is recoverable; false merge (two entities collapsed) is not. Default to keeping separate.
 - **W3.R8**: Ownership chain remapping — after merging nodes, remap every ID in each node's `ownership_chain` array to canonical dedupKeys (same remapping as edge owner/owned fields).
 - **W3.R7**: Post-dedup DFS cycle detection — after all merges, traverse edges in `owned → owner` direction; any back-edge not already in upstream `cycles` gets a new entry with `detected_at: "W3"` and `source: "cross-document (post-dedup)"`. W4 carries cycles through unchanged — it does not add new cycle entries (the `detected_at` enum only allows `"W1"` and `"W3"`).

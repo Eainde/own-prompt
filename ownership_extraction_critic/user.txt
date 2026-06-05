@@ -9,10 +9,11 @@ Review the Ownership Extraction output against the source document. Evaluate eve
 2. Compare LIST A against the Extractor's output — flag every missing owner. Compare LIST B against the output — flag every subsidiary that appears (it should NOT be there).
 3. For each edge, verify ownership direction against the document. Check that the entity in "owner" truly holds shares in the entity in "owned". Check that the target entity never appears as "owner". Verify the control field is accurate (evidenced or null, not fabricated).
 4. For each node, trace the path through edges from the target (layer 0) to that node. Verify connectivity (node is reachable from target), layer number equals hop count, and ownership_chain matches this path exactly. Flag orphan nodes with no connecting edges.
-5. For each edge, verify the percentage matches the document exactly. Check that no edge has both owner and owned as Natural Person. Flag any relationship not evidenced in the document.
-6. Verify entity_type_category (including "Entity Type not confirmed" fallback), classification_reasoning, cycles (with cycle_path, detected_at, and source), conflicts (with conflict_description, resolution_strategy, resolved_value), and schema compliance. For Category 2: verify exceptions field on every node. For Category 3: verify Settlor/Trustee/Beneficiary/Protector extraction and ARP conditions.
-7. Score each acceptance criterion as Pass, Fail, or Mixed_Partial_Pass_Partial_Fail.
-8. Provide actionable improvement points ordered by severity that the Extractor can directly act on.
+5. BRANCH ISOLATION (W1.R10): If the target has multiple layer-1 owners, verify each holding's shareholders are correctly assigned per the document. For each layer-2+ node, confirm the document shows it owning shares in the specific layer-1 entity its ownership_chain passes through. Flag any shareholder connected to a holding it doesn't own shares in (cross-branch contamination). For shared entities (same person in multiple holdings): verify one node, separate edges, valid chain.
+6. For each edge, verify the percentage matches the document exactly. Check that no edge has both owner and owned as Natural Person. Flag any relationship not evidenced in the document.
+7. Verify entity_type_category (including "Entity Type not confirmed" fallback), classification_reasoning, cycles (with cycle_path, detected_at, and source), conflicts (with conflict_description, resolution_strategy, resolved_value), and schema compliance. For Category 2: verify exceptions field on every node. For Category 3: verify Settlor/Trustee/Beneficiary/Protector extraction and ARP conditions.
+8. Score each of the 11 acceptance criteria as Pass, Fail, or Mixed_Partial_Pass_Partial_Fail.
+9. Provide actionable improvement points ordered by severity that the Extractor can directly act on.
 </instructions>
 
 <extraction_output>

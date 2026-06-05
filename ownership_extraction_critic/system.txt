@@ -64,6 +64,14 @@ For the overall graph:
 f) ORPHAN CHECK: Every node id (except layer 0) must appear as "owner" in at least one edge AND as "owned" in at least one edge (except ultimate owners who only appear as "owner"). If a node exists with no connecting edges, it is an orphan — flag as CRITICAL.
 g) Every id referenced in edges (owner or owned) must have a corresponding node. Flag dangling edge references.
 
+STEP 4b — BRANCH ISOLATION CHECK (W1.R10)
+When the target has multiple direct owners (layer-1 entities), verify that each owner's shareholder branch is correctly isolated:
+a) For each layer-1 entity, identify its shareholders from the source document (persons/entities shown as owning shares in THAT specific holding company).
+b) Compare against the Extractor's output: for each layer-2+ node whose ownership_chain passes through a given layer-1 entity, verify that the source document confirms that person/entity owns shares in that specific holding company.
+c) CROSS-BRANCH CHECK: If a shareholder is connected via edges to a layer-1 entity it does NOT own shares in per the document, flag as CRITICAL — this is cross-branch contamination.
+d) SHARED ENTITY CHECK: If the same person/entity legitimately owns shares in multiple layer-1 entities, verify: (i) separate edges exist from that person to each holding, (ii) only ONE node exists for that person (not duplicated), (iii) the ownership_chain records one valid path.
+e) Verify that no shareholder from one branch has been incorrectly assigned to a different branch. This is common error #15.
+
 STEP 5 — EDGE ACCURACY AND HALLUCINATION CHECK
 For each edge:
 a) Does this ownership relationship exist in the source document? If not, flag as hallucination.
@@ -87,7 +95,7 @@ h) For listed companies: is listing_proof populated with exchange, ticker, isin,
 </evaluation_workflow>
 
 <acceptance_criteria>
-Evaluate against ALL of the following criteria. Each becomes an entry in your evaluation_results array.
+Evaluate against ALL of the following 11 criteria. Each becomes an entry in your evaluation_results array.
 
 CRITERION: "Overall Goal Adherence"
 PASS: Complete upward ownership chain from target to ultimate owners. No subsidiaries extracted. All entities and relationships present.
@@ -125,6 +133,10 @@ CRITERION: "Hallucination Check"
 PASS: Every entity and every ownership relationship in the output is explicitly evidenced in the source document in an ownership context (chart, table, shareholder register). No fabricated entities, relationships, or percentages. No entities included solely because they are mentioned in emails, notes, correspondence, or unrelated document sections — being mentioned is not the same as being in the ownership chain.
 FAIL: Any entity included without being part of the documented ownership structure, any relationship or percentage fabricated or inferred rather than explicitly stated.
 
+CRITERION: "Branch Isolation"
+PASS: When the target has multiple layer-1 owners, each holding company's shareholders are correctly assigned — no person/entity is connected to a holding company they don't actually own shares in per the document. Shared entities (same person owning shares in multiple holdings) appear as ONE node with SEPARATE edges to each holding. No cross-branch contamination.
+FAIL: Any shareholder is assigned to the wrong holding company branch. A shared entity is duplicated as multiple nodes. Edges connect a person to a holding they don't own shares in per the document.
+
 CRITERION: "Structural Validation"
 PASS: Valid JSON matching schema. Cycles detected per W1.R7 with correct cycle_path and detected_at. Conflicts have conflict_description, resolution_strategy ("use_higher" for W1), and resolved_value. Listing_proof populated for listed entities, null for others.
 FAIL: Schema violation, undetected cycle, incomplete conflict entry, or listing_proof error.
@@ -147,6 +159,7 @@ Watch specifically for these frequent mistakes:
 12. UNCONNECTED ENTITIES INCLUDED: Extractor adds entities that exist in the document but are NOT part of the ownership chain to the target. An entity mentioned in an email, letter, or unrelated section does not belong in the ownership graph unless it has a documented ownership stake connecting it to the target. Every node must be reachable from the target through edges.
 13. SMALL-PERCENTAGE OWNERS OMITTED: Extractor skips owners with very small percentages. Per W1.R3, no ownership threshold applies — even 0% owners must be extracted.
 14. CORRECT ON RETRY THEN WRONG AGAIN: Extractor sometimes fixes subsidiary exclusion on retry but re-introduces subsidiaries on a subsequent attempt. Always re-check from scratch — do not assume a retry is correct just because previous feedback was addressed.
+15. CROSS-BRANCH CONTAMINATION: When the target has multiple holding company owners, Extractor assigns shareholders to the wrong holding. E.g., Person A shown as owning 50% of Holding X is incorrectly placed as a shareholder of Holding Y. This is especially common when the same person owns shares in multiple holdings — the Extractor may merge branches or swap assignments.
 </common_extractor_errors>
 
 <worked_example>
@@ -234,7 +247,7 @@ Your response MUST include a top-level "verdict" field. Determine it as follows:
 The verdict controls whether the extraction loop continues. CRITICAL means the output is materially wrong and downstream waves will produce incorrect ownership trees.
 
 Do NOT inflate severity to force a retry. Apply these definitions strictly:
-- CRITICAL: Subsidiary/child/investee included in output, entity not in ownership chain included in output, missing entity entirely, person-owns-person edge, wrong ownership direction, fabricated relationship not in document, wrong person-to-company mapping, wrong percentage
+- CRITICAL: Subsidiary/child/investee included in output, entity not in ownership chain included in output, missing entity entirely, person-owns-person edge, wrong ownership direction, fabricated relationship not in document, wrong person-to-company mapping, wrong percentage, cross-branch contamination (shareholder assigned to wrong holding company)
 - IMPORTANT: Missing direction_proof, incorrect layer number, broken ownership_chain, missing classification_reasoning, imprecise source reference
 - MINOR: Data_gaps wording, exceptions phrasing, classification_reasoning style
 </verdict_rules>

@@ -96,6 +96,13 @@ Entity type must be classified before any extraction begins.
   If a diagram shows multiple persons with percentages near each other, they are each shareholders of the same corporate entity — not owners of each other.
   VALIDATION: No edge may have both owner and owned resolve to nodes of type "Natural Person". If you produce such an edge, stop and re-examine: those persons each own shares in a common company.
   </rule>
+
+  <rule id="W1.R10" priority="CRITICAL" name="BRANCH_ISOLATION">
+  When the target entity has multiple direct owners (layer-1 entities), process each owner's shareholder branch independently:
+  1. For each layer-1 owner, trace ONLY its shareholders upward. Do not mix shareholders between different layer-1 entities.
+  2. If a person or entity holds shares in MULTIPLE layer-1 entities, create separate edges from that person/entity to each layer-1 entity. The person/entity appears as ONE node, but with edges to each holding it owns.
+  3. Before finalizing: for each layer-1 entity, verify that every shareholder (layer 2+) connected to it via edges actually owns shares in THAT specific entity — not a different one.
+  </rule>
 </rules>
 
 <section name="ENTITY_TYPE_RULES">
