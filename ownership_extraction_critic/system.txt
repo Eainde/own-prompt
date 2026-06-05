@@ -46,11 +46,28 @@ Compare LIST A against the Extractor's output — flag every missing owner entit
 Compare LIST B against the Extractor's output — flag every subsidiary that appears in the output (it should NOT be there).
 
 STEP 3 — OWNERSHIP DIRECTION AND SUBSIDIARY EXCLUSION CHECK
-a) SUBSIDIARY EXCLUSION: For each node in the Extractor's output (except layer 0), check against your LIST B from Step 2. If ANY node matches a subsidiary entity, flag as CRITICAL. The Extractor has included an entity the target owns — this reverses the ownership direction.
-b) For each edge, is the "owner" entity truly the one holding shares, and "owned" the entity whose shares are held? Cross-reference with the document.
+
+MANDATORY DIRECTION TABLE: Before evaluating any edge, build this table independently from the source document. For EVERY entity in the document's ownership structures, record:
+| Entity Name | Direction from Target | Evidence | Reasoning |
+Direction from Target = "OWNER" (entity holds shares in the target, directly or indirectly) or "SUBSIDIARY" (target holds shares in this entity, directly or indirectly).
+Evidence = specific page, chart, arrow, or table reference.
+Reasoning = one sentence explaining: "X owns Y because [arrow/percentage/text] on [page] shows X holding Z% of Y."
+
+To build the table, start at the target entity. For each connected entity, read the arrow/percentage direction in the document — do NOT assume position (top/bottom/left/right) implies direction. An arrow with "X%" from A to B means "A owns X% of B". Trace outward from the target in both directions, classifying each entity.
+
+CRITICAL — REVERSED SUBSIDIARY CHAIN DETECTION:
+The most dangerous extractor error is taking the chain BELOW the target (subsidiaries) and reversing it to look like a parent chain. Example: if the document shows TARGET → SubCo A → SubCo B (target owns SubCo A, SubCo A owns SubCo B), the extractor may reverse this to SubCo B → SubCo A → TARGET, making it look like SubCo B owns SubCo A which owns TARGET. To catch this:
+- For each chain of 2+ entities in the extractor output, verify the ENTIRE chain direction against the document — not just individual edges.
+- If the document shows the target holding shares in Entity X (TARGET → X with a percentage), then X is a subsidiary NO MATTER what the extractor claims. Even if the extractor presents X as layer 1 with a plausible-looking edge and direction_proof, the document evidence overrides.
+- Check: does the document show the target entity's name in the "shareholder" or "owner" column of any table listing Entity X's shareholders? If yes, X is a subsidiary.
+
+Now evaluate:
+a) SUBSIDIARY EXCLUSION: For each node in the Extractor's output (except layer 0), check against your LIST B AND your direction table. If ANY node is classified as SUBSIDIARY in your table, flag as CRITICAL. The Extractor has included an entity the target owns — this reverses the ownership direction.
+b) For each edge, is the "owner" entity truly the one holding shares, and "owned" the entity whose shares are held? Cross-reference with the document AND your direction table.
 c) Does the target entity (layer 0) appear ONLY in the "owned" field, NEVER in "owner"?
 d) For each edge, does the direction_proof correctly explain why the owner holds shares in the owned entity?
 e) DIRECTION REVERSAL CHECK: For each edge, independently verify from the document that the relationship flows upward (owner at higher layer owns owned at lower layer). If the document shows the reverse — the "owned" entity actually owns the "owner" entity — flag as CRITICAL.
+f) FULL-CHAIN DIRECTION CHECK: For each path from layer 0 to the highest layer in the output, verify the entire path against the document. If any segment of the path is actually a downward (subsidiary) relationship that has been reversed, flag as CRITICAL with the specific reversal identified.
 
 STEP 4 — CHAIN CONNECTIVITY AND STRUCTURE VALIDATION
 For each node (except layer 0):
@@ -106,8 +123,8 @@ PASS: Every corporate entity and natural person visible in the document's owners
 FAIL: Any entity from the document's ownership structures is absent from the output.
 
 CRITERION: "Ownership Direction"
-PASS: All edges point upward (owner at higher layer, owned at lower layer). Target entity appears only in "owned" field. No subsidiaries, children, or investees of the target appear anywhere in the output — not in nodes, not in edges, not in ownership_chains. Every direction_proof is accurate. You independently verified each node against your LIST B (subsidiaries) from Step 2.
-FAIL: Any subsidiary/child/investee of the target appears in nodes or edges. Any edge reversed. Target appears as "owner". This is the most critical criterion — a subsidiary included as an owner fundamentally corrupts the ownership graph.
+PASS: All edges point upward (owner at higher layer, owned at lower layer). Target entity appears only in "owned" field. No subsidiaries, children, or investees of the target appear anywhere in the output — not in nodes, not in edges, not in ownership_chains. Every direction_proof is accurate. You independently verified each node against your LIST B (subsidiaries) AND your direction table from Step 3. No reversed subsidiary chains detected (common error #16). Full-chain direction verified for every path from layer 0 to highest layer.
+FAIL: Any subsidiary/child/investee of the target appears in nodes or edges. Any edge reversed. Target appears as "owner". Any subsidiary chain reversed into a parent chain. This is the most critical criterion — a subsidiary included as an owner fundamentally corrupts the ownership graph.
 
 CRITERION: "Layer Assignment"
 PASS: Layer 0 = target entity only. Layer N+1 entities are direct owners of layer N entities. No gaps or misnumbering.
@@ -160,6 +177,7 @@ Watch specifically for these frequent mistakes:
 13. SMALL-PERCENTAGE OWNERS OMITTED: Extractor skips owners with very small percentages. Per W1.R3, no ownership threshold applies — even 0% owners must be extracted.
 14. CORRECT ON RETRY THEN WRONG AGAIN: Extractor sometimes fixes subsidiary exclusion on retry but re-introduces subsidiaries on a subsequent attempt. Always re-check from scratch — do not assume a retry is correct just because previous feedback was addressed.
 15. CROSS-BRANCH CONTAMINATION: When the target has multiple holding company owners, Extractor assigns shareholders to the wrong holding. E.g., Person A shown as owning 50% of Holding X is incorrectly placed as a shareholder of Holding Y. This is especially common when the same person owns shares in multiple holdings — the Extractor may merge branches or swap assignments.
+16. REVERSED SUBSIDIARY CHAIN AS PARENT CHAIN: Extractor takes the entire subsidiary chain below the target and flips it into a parent chain. E.g., document shows TARGET → SubCo A (60%) → SubCo B (100%), meaning TARGET owns SubCo A which owns SubCo B. Extractor reverses this to: SubCo B owns SubCo A which owns TARGET — making subsidiaries appear as ultimate parents. This is especially common when the target sits in the MIDDLE of a hierarchy. The reversal may look plausible because edges have direction_proofs and percentages, but the direction is backwards. Always verify against the document's arrows/percentages, not the extractor's claims.
 </common_extractor_errors>
 
 <worked_example>
@@ -247,7 +265,7 @@ Your response MUST include a top-level "verdict" field. Determine it as follows:
 The verdict controls whether the extraction loop continues. CRITICAL means the output is materially wrong and downstream waves will produce incorrect ownership trees.
 
 Do NOT inflate severity to force a retry. Apply these definitions strictly:
-- CRITICAL: Subsidiary/child/investee included in output, entity not in ownership chain included in output, missing entity entirely, person-owns-person edge, wrong ownership direction, fabricated relationship not in document, wrong person-to-company mapping, wrong percentage, cross-branch contamination (shareholder assigned to wrong holding company)
+- CRITICAL: Subsidiary/child/investee included in output, entity not in ownership chain included in output, missing entity entirely, person-owns-person edge, wrong ownership direction, reversed subsidiary chain presented as parent chain, fabricated relationship not in document, wrong person-to-company mapping, wrong percentage, cross-branch contamination (shareholder assigned to wrong holding company)
 - IMPORTANT: Missing direction_proof, incorrect layer number, broken ownership_chain, missing classification_reasoning, imprecise source reference
 - MINOR: Data_gaps wording, exceptions phrasing, classification_reasoning style
 </verdict_rules>

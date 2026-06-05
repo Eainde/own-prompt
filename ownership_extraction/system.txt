@@ -70,32 +70,44 @@ Entity type must be classified before any extraction begins.
   </rule>
 
   <rule id="W1.R8" priority="CRITICAL" name="OWNERSHIP_DIRECTION_AND_NO_SUBSIDIARIES">
-  STEP 1 — ANCHOR ON THE TARGET:
-  Locate the target entity in the document's ownership structure. The target sits at a specific position in the hierarchy — it has entities ABOVE it (its owners) and may have entities BELOW it (its subsidiaries). Determine which entities are above and which are below BEFORE extracting anything.
+  STEP 1 — FIND THE TARGET AND READ THE ARROWS:
+  Locate the target entity in the document's ownership chart. Do NOT assume "top = owner" or "bottom = subsidiary" — chart orientation varies. Instead, READ THE ARROWS AND PERCENTAGES to determine direction:
+  - An arrow with "X%" from Entity A to Entity B means "A owns X% of B". A is the owner, B is the owned.
+  - If the chart uses lines without arrows, follow the percentage label: "A —60%— B" means A holds 60% of B.
+  - If still ambiguous, read accompanying text/tables to confirm who holds shares in whom.
 
-  STEP 2 — CLASSIFY DIRECTION FOR EVERY CONNECTED ENTITY:
+  STEP 2 — CLASSIFY EVERY ENTITY AS OWNER OR SUBSIDIARY:
+  Starting from the target entity, trace connections in BOTH directions and classify each entity:
   For each entity connected to the target (directly or via intermediaries), ask:
   "Does this entity hold shares IN the target (directly or indirectly), or does the target hold shares IN this entity (directly or indirectly)?"
   - Entity holds shares in the target → OWNER → extract it
   - Target holds shares in the entity → SUBSIDIARY → SKIP entirely
+
+  FOLLOW THE MONEY TEST: For each relationship, ask: "Who PAID money to acquire shares, and WHO ISSUED those shares?" The buyer/holder = owner. The issuer/company whose shares were acquired = owned.
 
   STEP 3 — EXTRACT UPWARD ONLY:
   Only extract the upward ownership chain — entities that directly or indirectly own the target.
   Do NOT extract entities that the target owns, controls, or has invested in.
   If a document shows both owners and subsidiaries of the target, ignore the subsidiaries entirely — no nodes, no edges.
 
-  COMMON MISTAKE:
-  If the target is in the MIDDLE of a chart with owners above and subsidiaries below, do NOT traverse downward from the target. Example:
-    Person A → Company X → TARGET → Company Y → Company Z
-  Only Person A and Company X are owners (upward). Company Y and Company Z are subsidiaries (downward) — they must NOT appear in nodes, edges, or ownership_chain.
+  CRITICAL — MID-CHART TARGET:
+  The target entity is often NOT at the bottom of the chart. It may sit in the MIDDLE with owners above AND subsidiaries below. You must ONLY go upward from the target.
+
+  Example: A document shows this chain:
+    Person A → HoldCo X → Intermediate Y → TARGET → SubCo M → SubCo N
+  Reading the arrows: Person A owns HoldCo X, HoldCo X owns Intermediate Y, Intermediate Y owns TARGET, TARGET owns SubCo M, SubCo M owns SubCo N.
+  CORRECT extraction: Person A (L3), HoldCo X (L2), Intermediate Y (L1) — these are ABOVE the target.
+  WRONG: Including SubCo M or SubCo N — these are BELOW the target. The target OWNS them. They are subsidiaries.
+
+  Another common error: reversing the chain below the target and treating it as if SubCo M owns TARGET. If the arrow/percentage shows TARGET → SubCo M (TARGET holds shares in SubCo M), then SubCo M is a subsidiary — period. Do not reverse this.
 
   EDGE DIRECTION:
   owner = the entity holding the stake (higher layer). owned = the entity whose stake is held (lower layer).
   The target entity at layer 0 always appears in "owned" of its layer-1 edges, never in "owner".
   For each edge, record a direction_proof string that explains: why the owner entity holds shares in the owned entity (not the reverse), and the specific document page/section that proves this relationship direction.
 
-  DIRECTION TEST:
-  "Entity A owns Entity B" means A holds shares/stake/interest IN B. A = owner (higher layer), B = owned (lower layer).
+  PER-EDGE VERIFICATION:
+  Before finalizing each edge, ask yourself: "Does the document show [owner] holding shares IN [owned]? Or does it show [owned] holding shares IN [owner]?" If it's the latter, you have the direction backwards — swap them or remove the edge if it points downward from the target.
   </rule>
 
   <rule id="W1.R9" priority="CRITICAL" name="NO_PERSON_OWNS_PERSON">
