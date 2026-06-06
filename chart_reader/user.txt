@@ -17,12 +17,19 @@ Parse the ownership chart(s) in the document and output a structured, literal vi
    - evidence: one-line spatial description (e.g., "labeled box in column 3, upper-middle area of page 1 chart").
 
 3. ARROW ENUMERATION — For every arrow visible in any chart:
-   - from: the name of the entity at the arrow's TAIL (the end WITHOUT an arrowhead).
-   - to: the name of the entity at the arrow's HEAD (the end WITH the arrowhead — the pointy end).
-   - label_percentage: any % label visually adjacent to the arrow (not the box), or null.
+   - from: the name of the entity at the arrow's TAIL (the end WITHOUT an arrowhead). MUST be a specific named entity from entities[] — NEVER a collective noun like "group of persons", "cluster", "column", or "shareholders".
+   - to: the name of the entity at the arrow's HEAD (the end WITH the arrowhead — the pointy end). MUST be a specific named entity from entities[].
+   - label_percentage: the percentage attached to the source shareholder (read from the % label adjacent to THAT specific shareholder's name, NOT a group total), or null if no % is visible.
    - chart_id: which chart the arrow is in.
    - evidence: a one-line spatial description of the arrow's path AND where the arrowhead is located (e.g., "vertical line from lower edge of Phoenix Ventures box down to upper edge of Brandix Lanka box; arrowhead is at the BOTTOM end, pointing DOWN at Brandix Lanka").
    - direction_confidence: HIGH (arrowhead clearly visible, direction unambiguous) | MEDIUM (arrowhead small or partial but discernible) | LOW (direction ambiguous, your best guess) | UNKNOWN (no arrowhead visible — line connector only).
+
+   BRACKET HANDLING (CR.R9 — CRITICAL):
+   If a group of shareholders is connected to a company via a BRACKET (a horizontal/vertical line spanning multiple shareholders that joins into a single line ending at the company), you MUST output ONE arrow PER shareholder — never a single "group" arrow.
+   - For each shareholder enclosed by the bracket, create an arrow where from = that individual's name, to = the company at the bracket's terminus.
+   - The evidence MUST name the OTHER shareholders inside the same bracket so the assignment is auditable. Format: "Bracket on page N connects [THIS SHAREHOLDER] (listed at [position] with [%]) together with [OTHER SHAREHOLDER 1] ([%]), [OTHER SHAREHOLDER 2] ([%])... into a single joining line ending at [COMPANY]. Arrowhead at the joining line's [end] pointing [direction] at [COMPANY]. This arrow represents [THIS SHAREHOLDER]'s connection within that bracket."
+   - The arrow's label_percentage is THIS individual shareholder's percentage (not the group total).
+   - The downstream extractor CANNOT decompose a group arrow back to per-shareholder assignments — it will guess by visual proximity and contaminate branches. Do NOT make it guess.
 
 4. ARROW DIRECTION DISCIPLINE:
    - The TAIL of an arrow is the end WITHOUT the arrowhead. The HEAD is the pointy end WITH the arrowhead.
@@ -40,5 +47,16 @@ Parse the ownership chart(s) in the document and output a structured, literal vi
    - If the document has no ownership chart, set entities = [], arrows = [], charts = [], and notes = "No ownership chart found in document."
    - If the document has only a textual ownership description, set entities = [], arrows = [], and notes = "Document contains textual ownership description but no visual chart. Downstream agent should extract from text."
 
-7. OUTPUT — Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+7. PER-TARGET SUM CHECK (CR.R10 — MANDATORY FIELD, schema enforces):
+   You MUST populate the top-level `sum_check` field of your output. Steps:
+   (a) Compute per_target_sums: for every entity that appears as `to` of at least one arrow, sum the numeric values of incoming arrows' label_percentage. Output one {target_entity, sum_percentage, shareholder_count} per such entity.
+   (b) Compute flagged_targets: for every target whose sum is outside [95%, 105%], add its name to flagged_targets. These are the contamination signals.
+   (c) Set overall_status: "CONSISTENT" if flagged_targets is empty and all assignments confident. "INCONSISTENT" if any target's sum is materially off OR you guessed bracket membership without clear visual basis. "PARTIAL" only if the source document explicitly documents partial ownership info.
+   (d) If overall_status = INCONSISTENT, the notes field MUST describe which brackets you could not confidently trace, what your best guesses were, and why the visual was ambiguous (small font, overlapping connectors, etc.).
+   (e) DO NOT fake CONSISTENT to pass the check. The downstream extractor will recompute sums and the critic will compare your reported sums vs computed. Deception is caught and flagged as a CR.R10 violation.
+
+8. BRACKET TRACING HONESTY (CR.R11):
+   If you cannot clearly see which shareholders are inside a specific bracket, do NOT use horizontal_position as your sole assignment basis. Either set the affected arrows' direction_confidence = "LOW" (so extraction refuses to create those edges) OR add the target to flagged_targets and set overall_status = INCONSISTENT. The pipeline will retry chart_reader (different model, different prompt) rather than propagate guesses. Honesty is auditable; silent guessing causes downstream branch contamination.
+
+9. OUTPUT — Return strictly valid JSON matching the provided schema (including the required sum_check object). No commentary, no markdown, no explanation outside the JSON.
 </instructions>

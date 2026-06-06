@@ -5,32 +5,51 @@ Review the Ownership Extraction output against the source document. Evaluate eve
 <target_entity>{{clientEntityName}}</target_entity>
 
 <instructions>
-CRITICAL PREAMBLE — CHART_STRUCTURE IS AUTHORITATIVE (W1.R12):
-If <chart_structure> above is non-empty, it is the output of a dedicated Chart Reader pass that enumerated every entity, every arrow, and every percentage label visible in the document's ownership chart(s). chart_structure is the SHARED GROUND TRUTH for both you and the extractor. You MUST use chart_structure.entities and chart_structure.arrows as authoritative — do NOT re-read the chart from your own vision and trust your own reading over chart_structure.
-- This breaks the vision-hallucination loop where extractor and critic both misread the chart the same way.
-- For every node in the extractor's output, verify: does its name match an entry in chart_structure.entities? If NO → hallucinated entity, CRITICAL.
-- For every edge in the extractor's output, verify: does there exist an arrow in chart_structure.arrows with from == edge.owner AND to == edge.owned? If NO → either the extractor invented an arrow or it reversed direction. Check whether the reverse arrow (from == edge.owned AND to == edge.owner) exists; if YES, the extractor REVERSED direction → CRITICAL (common error #5 or #16).
-- For every node's spatial relationship to the target: use chart_structure.entities[target].vertical_position vs chart_structure.entities[node].vertical_position. If the node sits BELOW target, it is a SUBSIDIARY. If it appears in the extractor's output → CRITICAL.
-- For each edge, the extractor must record direction_proof quoting the chart_structure arrow's evidence string ("From chart_structure arrow: '<evidence>'"). If direction_proof is fabricated prose instead of quoting chart_structure, flag as IMPORTANT.
-- For each arrow with direction_confidence == UNKNOWN: the extractor should NOT have created an edge for this; check that it didn't.
-- If <chart_structure> is empty (Chart Reader stage not run), perform the original visual review per the rules below.
+MODE GATE (matches <pipeline_contract> + <chart_structure_authority> in system.txt):
+- If <chart_structure> is non-empty → MECHANICAL MODE: follow steps 1, 2m, 3m, 4, 5, 6.
+- If <chart_structure> is empty → VISUAL MODE: follow steps 1, 2v, 3v, 4, 5, 6.
 
-CRITICAL PREAMBLE — TARGET ENTITY AUTHORITY (W1.R11):
-The <target_entity> value above is AUTHORITATIVE. The document may be a KYC report, Periodic Review, or AFC escalation prepared FOR a DIFFERENT named client — its title, file name, email subject lines, and headers may dominate with that named client's name. Before reviewing, perform the <target_entity_authority> check in system.txt:
-- Identify the document's NAMED CLIENT (from titles/email subjects/file names).
-- Determine if target_entity == named_client. If NOT, determine whether named_client sits ABOVE, BELOW, UNRELATED, or NOT_IN_CHART relative to target_entity.
-- If named_client is BELOW target_entity, add named_client + every chain intermediate to LIST B. The named client's textual prominence does NOT promote it to an owner.
-- Record your answers in the "Ownership Direction" observations.
+1. TARGET-ENTITY AUTHORITY PREFLIGHT (W1.R11 — both modes):
+   - Identify <target_entity> (authoritative).
+   - Identify the document's NAMED CLIENT (from titles/email subjects/file names).
+   - Determine: target_entity == named_client? YES/NO. If NO, locate named_client relative to target_entity in the chart (use chart_structure.entities vertical_position in mechanical mode; visually in fallback mode): ABOVE / BELOW / UNRELATED / NOT_IN_CHART.
+   - If named_client is BELOW target_entity, the named client and every chain intermediate are SUBSIDIARIES. Add them to LIST B. The named client's textual prominence does NOT promote it to an owner.
+   - Record your YES/NO + relative-position answers in the "Ownership Direction" observations.
 
-1. Read the ENTIRE source document first. Build TWO lists: LIST A (all entities that own the target, directly or indirectly) and LIST B (all subsidiaries/children the target owns — INCLUDING the document's named client and chain intermediates if they sit below target_entity, per the preamble). Include every intermediate holding company, investment vehicle, and person with an ownership percentage — no matter how small (no ownership threshold per W1.R3).
-2. Compare LIST A against the Extractor's output — flag every missing owner. Compare LIST B against the output — flag every subsidiary that appears (it should NOT be there). Pay special attention to whether the document's named client or chain intermediates appear in nodes/edges/ownership_chain — this is the named-client trap (W1.R11 / common error #17) and is CRITICAL.
-3. For each edge, verify ownership direction against the document. Check that the entity in "owner" truly holds shares in the entity in "owned". Check that the target entity never appears as "owner". Verify the control field is accurate (evidenced or null, not fabricated).
-4. For each node, trace the path through edges from the target (layer 0) to that node. Verify connectivity (node is reachable from target), layer number equals hop count, and ownership_chain matches this path exactly. Flag orphan nodes with no connecting edges.
-5. BRANCH ISOLATION (W1.R10): If the target has multiple layer-1 owners, verify each holding's shareholders are correctly assigned per the document. For each layer-2+ node, confirm the document shows it owning shares in the specific layer-1 entity its ownership_chain passes through. Flag any shareholder connected to a holding it doesn't own shares in (cross-branch contamination). For shared entities (same person in multiple holdings): verify one node, separate edges, valid chain.
-6. For each edge, verify the percentage matches the document exactly. Check that no edge has both owner and owned as Natural Person. Flag any relationship not evidenced in the document.
-7. Verify entity_type_category (including "Entity Type not confirmed" fallback), classification_reasoning, cycles (with cycle_path, detected_at, and source), conflicts (with conflict_description, resolution_strategy, resolved_value), and schema compliance. For Category 2: verify exceptions field on every node. For Category 3: verify Settlor/Trustee/Beneficiary/Protector extraction and ARP conditions.
-8. Score each of the 11 acceptance criteria as Pass, Fail, or Mixed_Partial_Pass_Partial_Fail.
-9. Provide actionable improvement points ordered by severity that the Extractor can directly act on.
+2m. MECHANICAL ENTITY + SUBSIDIARY CHECK (mechanical mode only — supersedes 2v):
+    Per <chart_structure_authority> steps 1-3 in system.txt:
+    - Every extractor node must match an entity in chart_structure.entities by name. Mismatch → CRITICAL Hallucination.
+    - Every node's vertical_position must be at or above target_entity's vertical_position. Node below → CRITICAL Direction.
+    - Plus the named-client subsidiary check from step 1 above.
+
+2v. VISUAL ENTITY + SUBSIDIARY LISTS (visual fallback only):
+    Read the document end-to-end. Build LIST A (owners of target) and LIST B (subsidiaries, INCLUDING named client + chain intermediates if below target). Include every intermediate holding, investment vehicle, and person with an ownership percentage (W1.R3 — no threshold). Compare LIST A vs extractor nodes → flag missing owners. Compare LIST B vs extractor nodes → flag included subsidiaries (CRITICAL).
+
+3m. MECHANICAL EDGE + DIRECTION + BRANCH + SUM CHECK (mechanical mode only — supersedes 3v):
+    Per <chart_structure_authority> steps 2, 4, 6, 8, 9, 10, 11 in system.txt:
+    - Every edge must match an arrow in chart_structure.arrows with arrow.from == edge.owner AND arrow.to == edge.owned. Reverse match exists → CRITICAL Direction (reversed). Neither → CRITICAL Hallucination.
+    - Every edge's ownership_percentage_direct must equal arrow.label_percentage (or owned entity's associated_label). Mismatch → CRITICAL Edge Accuracy.
+    - Every edge's direction_proof must start with "From chart_structure arrow: " and quote arrow.evidence verbatim. Missing → IMPORTANT.
+    - For each chart_structure.arrows[i] with direction_confidence == UNKNOWN: extractor MUST have created NO edge. Edge present → CRITICAL.
+    - For each chart_structure.arrows[i] with direction_confidence == LOW: extractor edge MUST have data_gaps noting low confidence. Missing → IMPORTANT.
+    - PER-HOLDING SHAREHOLDER SET: for each layer-1 holding H, expected = {arrow.from : arrow.to == H, arrow.from matches an entity}; actual = {edge.owner : edge.owned == H}. Missing → CRITICAL Entity Completeness. Extra → CRITICAL Branch Isolation. Per-holding sum check: if actual sum ≠ ≈100% and expected sum is ≈100% → CRITICAL extractor.
+    - GROUP-ARROW DETECTION: if chart_structure.arrows has an entry where arrow.from is a collective noun, flag chart_reader CR.R9 failure. Extractor should have refused that edge — verify it did; if not → CRITICAL.
+    - SUM_CHECK HONESTY: recompute per-target sums from chart_structure.arrows. If chart_reader's reported sum differs by > 2% → IMPORTANT on chart_reader (CR.R10 deception).
+    - chart_structure.sum_check.overall_status == "INCONSISTENT" OR flagged_targets non-empty: extractor must have refused edges for flagged targets. Verified → PASS criterion with ACCEPT_WITH_NOTES verdict; recommend chart_reader re-run upstream. Extractor ignored signal → CRITICAL.
+
+3v. VISUAL DIRECTION + EDGE CHECK (visual fallback only):
+    Per <evaluation_workflow> STEP 3 in system.txt — build MANDATORY DIRECTION TABLE with arrow + page citation per entity; verify each extractor edge against arrows in the document; check for REVERSED SUBSIDIARY CHAIN.
+
+4. CHAIN CONNECTIVITY (both modes): For each node, trace path through edges from target (layer 0) to that node. Verify connectivity (no orphans), layer = hop count, ownership_chain = path. Flag dangling edge references.
+
+5. STRUCTURAL + CLASSIFICATION + PER-EDGE CHECKS (both modes; uses document text outside the chart):
+   - Verify no edge has both owner and owned as Natural Person (W1.R9).
+   - Verify entity_type_category (Cat 1/2/3 or "Entity Type not confirmed"), classification_reasoning, cycles (cycle_path, detected_at, source), conflicts (conflict_description, resolution_strategy "use_higher", resolved_value), and schema compliance.
+   - Category 2: verify exceptions field on every node.
+   - Category 3: verify Settlor/Trustee/Beneficiary/Protector extraction and ARP conditions.
+   - Listing_proof populated for listed entities only, null otherwise.
+
+6. SCORE 11 ACCEPTANCE CRITERIA (Pass / Fail / Mixed_Partial_Pass_Partial_Fail) and produce areas_for_improvement ordered by severity. Apply verdict_rules from system.txt.
 </instructions>
 
 <extraction_output>

@@ -3,7 +3,7 @@
   "title": "Chart Reader Output",
   "description": "Literal visual description of ownership chart(s) in a document. Stage 1 of the two-stage extraction pipeline. Output is consumed by ownership_extraction and ownership_extraction_critic as authoritative chart_structure.",
   "type": "object",
-  "required": ["charts", "entities", "arrows", "notes"],
+  "required": ["charts", "entities", "arrows", "sum_check", "notes"],
   "additionalProperties": false,
   "properties": {
     "charts": {
@@ -107,9 +107,41 @@
         }
       }
     },
+    "sum_check": {
+      "type": "object",
+      "description": "MANDATORY per-target sum verification (CR.R10). For every entity that appears as the 'to' of at least one arrow, the chart_reader MUST compute the sum of incoming label_percentage values and report it here. Sums materially != 100% (outside [95%, 105%]) flag a chart_reader contamination — the downstream extraction MUST halt rather than propagate the wrong assignments.",
+      "required": ["per_target_sums", "flagged_targets", "overall_status"],
+      "additionalProperties": false,
+      "properties": {
+        "per_target_sums": {
+          "type": "array",
+          "description": "One entry per entity that has at least one incoming arrow. Computed during CR.R10 sum check.",
+          "items": {
+            "type": "object",
+            "required": ["target_entity", "sum_percentage", "shareholder_count"],
+            "additionalProperties": false,
+            "properties": {
+              "target_entity": {"type": "string", "description": "Entity name (must match entities[].name)."},
+              "sum_percentage": {"type": "number", "description": "Sum of incoming arrow.label_percentage values for this target, as a number (e.g., 100 for 100%, 70 for 70%)."},
+              "shareholder_count": {"type": "integer", "description": "Number of incoming arrows (number of distinct shareholders assigned to this target)."}
+            }
+          }
+        },
+        "flagged_targets": {
+          "type": "array",
+          "description": "Names of targets whose sum is materially outside [95%, 105%] OR where the chart_reader could not confidently assign all shareholders. Empty array means the chart_reader is confident in all assignments. Non-empty means downstream extraction MUST halt on those targets.",
+          "items": {"type": "string"}
+        },
+        "overall_status": {
+          "type": "string",
+          "enum": ["CONSISTENT", "INCONSISTENT", "PARTIAL"],
+          "description": "CONSISTENT = all per-target sums ≈100% and all shareholders confidently assigned. INCONSISTENT = at least one sum is materially off — chart_reader output is contaminated and MUST NOT be used by extraction without correction. PARTIAL = chart is genuinely incomplete in the source document (rare, requires textual evidence) — proceed with documented gaps."
+        }
+      }
+    },
     "notes": {
       "type": "string",
-      "description": "Free-text notes about anything the downstream agent should know. E.g., 'Chart has 4 columns of persons at top converging on 4 holding companies in middle row.' or 'Some arrows have no visible arrowheads — flagged as UNKNOWN.' or 'No chart found in document.' Empty string if nothing to note."
+      "description": "Free-text notes about anything the downstream agent should know. E.g., 'Chart has 4 columns of persons at top converging on 4 holding companies in middle row.' or 'Some arrows have no visible arrowheads — flagged as UNKNOWN.' or 'No chart found in document.' Empty string if nothing to note. If sum_check.overall_status is INCONSISTENT, notes MUST describe what was attempted and which brackets could not be confidently traced."
     }
   }
 }
