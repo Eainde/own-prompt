@@ -75,7 +75,7 @@ Entity type must be classified before any extraction begins.
   - An arrow pointing FROM Entity A TO Entity B means "A owns B".
   - If an arrow points AWAY FROM the target entity towards another entity, it means the target entity OWNS that entity. That entity is a SUBSIDIARY and MUST BE EXCLUDED.
   - If an arrow points TOWARDS the target entity from another entity, it means that entity OWNS the target. That entity is an OWNER and should be included.
-  - If the chart uses lines without arrows, follow the percentage label: "A —60%— B" means A holds 60% of B.
+  - If the chart uses lines without explicit arrowheads, do NOT guess direction from percentage label position, vertical position, or visual proximity. Look for corroborating direction evidence elsewhere in the document (shareholder list, narrative text, corporate filings, certificate of incorporation, Form 20/40/41). If no corroborating evidence exists, mark the relationship direction as ambiguous, record in data_gaps, and DO NOT extract the relationship. NEVER infer direction from label placement alone.
 
   STEP 2 — CLASSIFY EVERY ENTITY AS OWNER OR SUBSIDIARY:
   Starting from the target entity, trace connections in BOTH directions and classify each entity:
@@ -116,6 +116,15 @@ Entity type must be classified before any extraction begins.
   4. If a person or entity holds shares in MULTIPLE layer-1 entities, create separate edges from that person/entity to each layer-1 entity. The person/entity appears as ONE node, but with edges to each holding it owns.
   5. DO NOT group or assign shareholders based on visual proximity, similar names, or shared family names. Just because names appear next to each other does NOT mean they belong to the same branch. Only use explicit lines, brackets, or table assignments.
   6. Before finalizing: for each layer-1 entity, verify that every shareholder (layer 2+) connected to it via edges actually owns shares in THAT specific entity — not a different one. Cross-check your branch assignments vigorously against the brackets.
+  </rule>
+
+  <rule id="W1.R11" priority="CRITICAL" name="TARGET_ENTITY_AUTHORITY">
+  The target_entity passed via the user prompt is the AUTHORITATIVE focal entity. It overrides any client, subject, title, or named party mentioned in the document.
+  - Documents are commonly KYC reports, Periodic Reviews, AFC escalations, or compliance files prepared FOR a specific named client. The document's title, email subject lines (e.g., "Periodic Review 2019 | XYZ Limited"), headers, file names, and prose may repeatedly emphasize THAT client. This emphasis is IRRELEVANT to extraction.
+  - The target_entity may equal the document's named client, OR it may be a parent, a subsidiary, an intermediate holding company, an investor, or any other entity visible in the chart. NEVER assume document_named_client == target_entity.
+  - When you locate "the target" in the chart, locate the entity whose name matches target_entity literally. Do NOT redirect extraction to the document's named client just because it dominates the document's text or appears in every email subject.
+  - If the document's named client sits BELOW target_entity in the ownership chart (i.e., target_entity owns it directly or through intermediaries), the document's named client AND every entity between it and target_entity are SUBSIDIARIES of target_entity. They MUST be excluded per W1.R8 — even though their names dominate the document's text. Do NOT invert the chain. Do NOT promote subsidiaries to owners because they are the document's focus.
+  - If target_entity does not match any entity in the chart, apply W1.R6 (target not found). Do NOT substitute the document's named client.
   </rule>
 </rules>
 
@@ -184,6 +193,64 @@ WRONG — what the extractor must NOT do:
   ✗ Direct Owner Ltd as a subsidiary of Target Entity (Direct Owner OWNS Target Entity, not the reverse)
 </worked_example>
 
+<worked_example name="MULTI_BRANCH_TARGET_WITH_SUBSIDIARY_CHAIN_AND_NAMED_CLIENT_TRAP">
+SOURCE DOCUMENT: a Periodic Review PDF whose every page header, email subject line, and file name reads "Periodic Review 2019 | Subsidiary Two Ltd". The ownership chart on page 1 shows:
+
+  Person A 70%   Person B 30%        Person C 50%   Person D 50%
+       \\           /                     \\            /
+        v         v                        v          v
+     Holding Co X Ltd                  Holding Co Y Ltd
+            \\                              /
+             \\ 30%                   70% /
+              v                          v
+            ► TARGET ENTITY LTD (TARGET) ◄
+                       | 100%
+                       v
+                Subsidiary One Ltd
+                       | 100%
+                       v
+                Subsidiary Two Ltd
+
+Arrows on page 1 chart:
+- Person A → Holding Co X (70%); Person B → Holding Co X (30%)
+- Person C → Holding Co Y (50%); Person D → Holding Co Y (50%)
+- Holding Co X → Target Entity (30%); Holding Co Y → Target Entity (70%)
+- Target Entity → Subsidiary One (100%); Subsidiary One → Subsidiary Two (100%)
+
+USER PROMPT: target_entity = "Target Entity Ltd"
+
+TRAP: The document is a Periodic Review FOR Subsidiary Two Ltd, so "Subsidiary Two Ltd" appears in every header, email subject, and footer. Per W1.R11, this is IRRELEVANT — target_entity is authoritative. Do NOT redirect extraction to Subsidiary Two Ltd. Do NOT treat Subsidiary One Ltd or Subsidiary Two Ltd as ancestors of Target Entity simply because they dominate the document's text.
+
+STEP 3 — DIRECTION TABLE (Evidence MUST cite the specific arrow):
+| Entity | OWNER or SUBSIDIARY | Evidence (arrow citation required) |
+| Holding Co X Ltd | OWNER | Arrow from Holding Co X to Target Entity (30%), page 1 chart |
+| Holding Co Y Ltd | OWNER | Arrow from Holding Co Y to Target Entity (70%), page 1 chart |
+| Person A | OWNER | Arrow from Person A to Holding Co X (70%), page 1 chart |
+| Person B | OWNER | Arrow from Person B to Holding Co X (30%), page 1 chart |
+| Person C | OWNER | Arrow from Person C to Holding Co Y (50%), page 1 chart |
+| Person D | OWNER | Arrow from Person D to Holding Co Y (50%), page 1 chart |
+| Subsidiary One Ltd | SUBSIDIARY | Arrow from Target Entity to Subsidiary One (100%), page 1 chart |
+| Subsidiary Two Ltd | SUBSIDIARY | Arrow from Subsidiary One to Subsidiary Two (100%), page 1 chart — note: this is the document's named client, but per W1.R11 that is IRRELEVANT |
+
+CORRECT OUTPUT — nodes for OWNERS only:
+  Layer 0: Target Entity Ltd
+  Layer 1: Holding Co X Ltd (30% via edge), Holding Co Y Ltd (70% via edge)
+  Layer 2 (under Holding Co X): Person A (70%), Person B (30%)
+  Layer 2 (under Holding Co Y): Person C (50%), Person D (50%)
+  Edges count: 6 (2 layer-1 edges + 4 layer-2 edges, two from each branch)
+
+BRANCH ISOLATION CHECK (W1.R10): Persons A and B belong ONLY to the Holding Co X branch. Persons C and D belong ONLY to the Holding Co Y branch. No person crosses branches.
+
+WRONG — what the extractor must NOT do:
+  ✗ Include Subsidiary One Ltd or Subsidiary Two Ltd as nodes (they are SUBSIDIARIES — target owns them, even though Subsidiary Two is the document's named client)
+  ✗ Invert the subsidiary chain into ancestors: Subsidiary Two → Subsidiary One → Target Entity (making subsidiaries look like parents — this is the most common failure mode when the document is named after a subsidiary)
+  ✗ Treat Subsidiary Two Ltd as the focal entity / target because the document headers say "Periodic Review of Subsidiary Two Ltd" (W1.R11: target_entity overrides document headers)
+  ✗ Add Subsidiary One Ltd as a phantom 5th "layer-1 owner" alongside Holding Co X and Holding Co Y (it is a SUBSIDIARY, not an owner)
+  ✗ Assign Person A or B (Holding Co X shareholders) to Holding Co Y branch, or vice versa (W1.R10: branch isolation)
+  ✗ Skip the arrow citation in the Evidence column of the direction table — direction MUST be justified by a specific arrow on a specific page
+  ✗ Use percentage label position alone to infer direction when the arrow is unclear — look for corroborating evidence (W1.R8)
+</worked_example>
+
 <directive priority="CRITICAL" name="PROHIBITIONS">
 DO NOT use external knowledge — every entity, relationship, percentage, and classification must come from this document only
 DO NOT invent ownership relationships not evidenced in the document
@@ -196,4 +263,7 @@ DO NOT loop infinitely on circular ownership — detect and break at W1.R7
 DO NOT extract subsidiaries, children, or investees of the target entity — only extract upward (owners)
 DO NOT create edges where both owner and owned are Natural Persons — natural persons cannot own other natural persons
 DO NOT assign a shareholder to a company just because of visual proximity, similar names, or a shared family name; strictly follow the explicit lines and brackets in the diagram.
+DO NOT use the document's title, file name, email subject lines, headers, or prose emphasis to redefine the target entity — only the target_entity input is authoritative (W1.R11)
+DO NOT promote a subsidiary of the target to an "owner" / "parent" / "ancestor" position just because the document is named after that subsidiary or because that subsidiary's name dominates the document text
+DO NOT infer arrow direction from percentage label position, vertical position on the page, or visual proximity — direction MUST come from an explicit arrowhead or corroborating textual evidence
 </directive>

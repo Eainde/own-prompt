@@ -11,16 +11,24 @@ Extract who OWNS the target entity — the upward ownership chain only. Trace fr
 <critic_feedback>{{criticFeedback}}</critic_feedback>
 
 <instructions>
+CRITICAL PREAMBLE — TARGET ENTITY AUTHORITY (W1.R11):
+The <target_entity> value above is AUTHORITATIVE. The document may be a KYC report, Periodic Review, AFC escalation, or compliance file prepared FOR a DIFFERENT named client — its title, file name, email subject lines (e.g., "Periodic Review 2019 | XYZ Ltd"), headers, and prose may repeatedly emphasize THAT named client. IGNORE that emphasis. Use ONLY the <target_entity> value to identify your focal entity. If the document's named client sits BELOW your target_entity in the chart (i.e., target_entity owns it directly or indirectly), that named client and every entity between it and target_entity are SUBSIDIARIES of target_entity and MUST be excluded — no nodes, no edges — even though their names dominate the document text. Do NOT promote a subsidiary to an owner just because the document is named after it. Do NOT invert the subsidiary chain.
+
 0. CRITIC FEEDBACK — If critic_feedback above is non-empty, a previous extraction attempt was reviewed and rejected. Read every CRITICAL and IMPORTANT correction carefully. These are specific errors you made last time — missing entities, wrong direction, wrong percentages, person-owns-person edges, etc. You MUST address every correction in this attempt. Do not repeat the same mistakes.
 1. Classify entity type from documentary evidence (Category 1, 2, or 3; or "Entity Type not confirmed").
 2. ENTITY INVENTORY — Before creating any nodes or edges, scan the entire document and list every distinct entity (corporate entities AND natural persons) mentioned in ownership structures. Include intermediate holding companies, investment vehicles, and all persons with ownership percentages. This inventory ensures no entity is missed. For each entity, note which other entity it connects to and the percentage shown. BRANCH MAPPING: After the inventory, group entities by branch — for each direct owner (layer-1 entity) of the target, list which persons/entities are its shareholders. Look closely for vertical or horizontal brackets grouping names together. Trace the line from that specific bracket down to the specific company it points to. Assign all names within that bracket exclusively to that company. DO NOT mix names across brackets. Verify each shareholder is assigned to the correct entity before creating nodes.
 3. MANDATORY DIRECTION TABLE — Before creating ANY nodes or edges, build this table for every entity in your inventory from step 2. For each entity, trace the literal arrows in the document to determine direction relative to the target:
 
-   | Entity Name | OWNER or SUBSIDIARY | Evidence |
+   | Entity Name | OWNER or SUBSIDIARY | Evidence (REQUIRED: cite specific arrow + page) |
    For each entity, ask:
    "Does the arrow point FROM this entity TOWARDS the target (directly or via intermediaries)? → OWNER."
    "Does the arrow point AWAY FROM the target TOWARDS this entity? → SUBSIDIARY."
    An arrow pointing from A to B means A owns B. Do NOT assume chart position (top/bottom) implies direction. If an arrow points DOWN from Company A to Company B, it means Company A OWNS Company B. Company B is a SUBSIDIARY and must be excluded.
+
+   EVIDENCE COLUMN REQUIREMENT: The Evidence column MUST cite the specific arrow you observed (e.g., "Arrow from Holding Co X to Target Entity, page 1 chart" or "Arrow from Target Entity to Subsidiary One, page 1 chart"). Generic evidence like "page 1 chart" or "shown in diagram" is NOT acceptable. If the chart has no explicit arrowhead, cite the corroborating textual evidence (shareholder list, Form 20/40/41, narrative paragraph). If neither exists, mark the relationship as ambiguous and record in data_gaps — do NOT extract it.
+
+   SUBSIDIARY-CHAIN GUARD: If you observe a chain of entities BELOW the target (target → A → B → C with arrows pointing down/away), every entity in that chain is a SUBSIDIARY. Do NOT invert this chain to make A, B, or C appear as ancestors of the target. This is the most common failure mode when the document's named client sits at the bottom of such a chain.
+
    ONLY entities classified as OWNER in this table may become nodes in your output. Every entity classified as SUBSIDIARY is permanently excluded — no nodes, no edges, no ownership_chain entries. Do not revisit this classification later.
 
 4. Trace ownership layer by layer UPWARD from the target entity, using ONLY entities classified as OWNER in your direction table from step 3. For each owner at layer N, repeat the direction test to find its owners at layer N+1. For each owner, create a node and an edge. Think through each branch fully before moving to the output.

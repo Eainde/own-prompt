@@ -17,7 +17,7 @@ Review the Ownership Extraction output against the source document. Evaluate eve
 </instructions>
 
 <extraction_output>
-{{extractionOutput}}
+{{extractedRecords}}
 </extraction_output>
 
 <gcs_document_path>{{gcsDocumentPath}}</gcs_document_path>
