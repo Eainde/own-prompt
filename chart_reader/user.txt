@@ -8,7 +8,12 @@ Parse the ownership chart(s) in the document and output a structured, literal vi
 1. Locate every page that contains an ownership chart (boxes connected by arrows depicting corporate ownership). Note the page number(s). If the document has multiple charts, treat them separately.
 
 2. ENTITY ENUMERATION — For every entity (corporate entity or natural person) visible as a labeled box, text node, or named element in a chart:
-   - name: EXACTLY as written in the chart (preserve casing, spelling, punctuation, suffixes). Do NOT correct, normalize, or expand.
+   - name: EXACTLY as written in the chart (preserve casing, spelling, punctuation, suffixes). Do NOT correct, normalize, or expand. Per CR.R8 + CR.R13:
+     * Read the name CHARACTER-BY-CHARACTER. Do NOT pattern-match to a similar name nearby.
+     * NEVER add a middle name not visually present (if the chart shows "Jane Doe", emit "JANE DOE" — not "JANE SMITH DOE").
+     * NEVER drop a middle name that IS visually present (if the chart shows "Jane Smith Doe", emit "JANE SMITH DOE" — not "JANE DOE").
+     * If two distinct names in the chart share first+last word but differ by middle word (e.g., "Jane Doe" and "Jane Smith Doe"), they are TWO DIFFERENT PEOPLE — emit both as separate entries. Do NOT collapse, do NOT merge, do NOT pick "the more complete" form.
+     * Do NOT normalize spelling variants based on training data familiarity (whatever the chart literally shows is the name — do not change "Saarah" to "Sarah", do not change "Anna" to "Ana", do not change "Catharine" to "Catherine"; preserve the exact characters you see).
    - type_hint: "corporate_entity" (name contains Limited, Ltd, Inc, Pte, LLC, GmbH, S.A., or similar corporate suffix) | "natural_person" (name pattern looks like an individual's name) | "unknown" (cannot tell from name alone).
    - vertical_position: TOP | UPPER_MIDDLE | MIDDLE | LOWER_MIDDLE | BOTTOM (5-point scale based on its placement in the chart).
    - horizontal_position: LEFT | CENTER_LEFT | CENTER | CENTER_RIGHT | RIGHT (5-point scale based on horizontal placement).
@@ -21,7 +26,7 @@ Parse the ownership chart(s) in the document and output a structured, literal vi
    - to: the name of the entity at the arrow's HEAD (the end WITH the arrowhead — the pointy end). MUST be a specific named entity from entities[].
    - label_percentage: the percentage attached to the source shareholder (read from the % label adjacent to THAT specific shareholder's name, NOT a group total), or null if no % is visible.
    - chart_id: which chart the arrow is in.
-   - evidence: a one-line spatial description of the arrow's path AND where the arrowhead is located (e.g., "vertical line from lower edge of Phoenix Ventures box down to upper edge of Brandix Lanka box; arrowhead is at the BOTTOM end, pointing DOWN at Brandix Lanka").
+   - evidence: a one-line spatial description of the arrow's path AND where the arrowhead is located (e.g., "vertical line from lower edge of TargetCo Ltd box down to upper edge of SubCo A Ltd box; arrowhead is at the BOTTOM end, pointing DOWN at SubCo A Ltd").
    - direction_confidence: HIGH (arrowhead clearly visible, direction unambiguous) | MEDIUM (arrowhead small or partial but discernible) | LOW (direction ambiguous, your best guess) | UNKNOWN (no arrowhead visible — line connector only).
 
    BRACKET HANDLING (CR.R9 + CR.R12 — CRITICAL):
@@ -61,5 +66,19 @@ Parse the ownership chart(s) in the document and output a structured, literal vi
 8. BRACKET TRACING HONESTY (CR.R11):
    If you cannot clearly see which shareholders are inside a specific bracket, do NOT use horizontal_position as your sole assignment basis. Either set the affected arrows' direction_confidence = "LOW" (so extraction refuses to create those edges) OR add the target to flagged_targets and set overall_status = INCONSISTENT. The pipeline will retry chart_reader (different model, different prompt) rather than propagate guesses. Honesty is auditable; silent guessing causes downstream branch contamination.
 
-9. OUTPUT — Return strictly valid JSON matching the provided schema (including the required sum_check object). No commentary, no markdown, no explanation outside the JSON.
+9. NAME-DISCIPLINE SELF-CHECK (CR.R13 — run before emitting):
+   Before finalizing entities[], scan your own entity names for the lookalike pattern (same first word + same last word, differing middle word). For each lookalike pair you find (e.g., "MARIAM OMAR" vs "MARIAM ASHROFF OMAR"):
+   (a) Re-locate each name in the chart and re-read its full text character by character. Do NOT rely on memory.
+   (b) Verify the middle word (or its absence) matches what the chart literally shows for that specific position.
+   (c) Verify the two persons' percentages and column assignments are read FROM THEIR OWN ROWS, not swapped between rows.
+   (d) If you cannot confidently distinguish the two visually, keep only the version(s) you can read and add notes describing the ambiguity, AND add the affected targets to sum_check.flagged_targets.
+   Common lookalike trap patterns the model has fallen into:
+   - middle-name swap between adjacent rows (e.g., "Jane Doe" ↔ "Jane Smith Doe" in adjacent columns get their middle name and percentages traded);
+   - given-name single-character swap (e.g., "Mary" ↔ "Marry", "Alan" ↔ "Allan");
+   - vowel-substitution swap (e.g., "Anna" ↔ "Ana", "Sara" ↔ "Sarah");
+   - doubled-letter collapse (e.g., "Saarah" ↔ "Sarah", "Lyyly" ↔ "Lyly");
+   - last-letter drop/add (e.g., "Smyth" ↔ "Smyth e", "Browne" ↔ "Brown").
+   Whenever you detect such a pattern within your emitted entities[], slow down and re-read each occurrence character-by-character from the chart before finalizing.
+
+10. OUTPUT — Return strictly valid JSON matching the provided schema (including the required sum_check object). No commentary, no markdown, no explanation outside the JSON.
 </instructions>

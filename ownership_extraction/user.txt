@@ -86,7 +86,7 @@ MODE GATE — Read this once and follow the appropriate branch for steps 2-4:
 
    BRANCH MAPPING (mandatory table, per W1.R10): For each direct owner (layer-1 entity) of the target, produce this table BEFORE creating any nodes:
    | Layer-1 Entity | Shareholder Name | Shareholder % | Bracket/Column/Line Evidence |
-   Bracket/Column/Line Evidence MUST cite the specific visual cue tying the shareholder to that layer-1 entity (e.g., "in column directly above Athena Innovators (Private) Limited, page 1" or "connected via vertical bracket to SAM Innovators (Private) Limited, page 1"). Generic evidence ("page 1 chart") is NOT acceptable.
+   Bracket/Column/Line Evidence MUST cite the specific visual cue tying the shareholder to that layer-1 entity (e.g., "in column directly above HoldCo Alpha (Private) Limited, page 1" or "connected via vertical bracket to HoldCo Beta (Private) Limited, page 1"). Generic evidence ("page 1 chart") is NOT acceptable.
 
    STRICT BRANCH BOUNDARY: Each shareholder name appears under ONE layer-1 entity only — UNLESS the document EXPLICITLY shows that shareholder owning stakes in multiple layer-1 entities (e.g., a line from the same person to two different holdings). DO NOT cross-assign based on shared surname, visual proximity, or family-name similarity. Two people with similar names in different columns are DIFFERENT shareholders — record both as separate nodes if they are distinguishable; if not distinguishable in the document, record what the document shows and flag in data_gaps.
 
