@@ -72,6 +72,14 @@ USE chart_structure AS FOLLOWS:
     - Cross-check against the expected set sum (from chart_structure.arrows). If chart_structure's sum is also off, this is a chart_reader CR.R10 failure → flag IMPORTANT on chart_reader.
     - If chart_structure's sum is ≈100% but the extractor's actual sum is off, the extractor either missed shareholders or mis-percentaged them → CRITICAL.
 
+12. BRACKET_MEMBERS CONSISTENCY AUDIT (CR.R12 — catches contamination invisible to sum_check):
+    For each target T in chart_structure that appears as arrow.to of any arrow:
+    (a) CONSISTENCY: collect bracket_members arrays from every arrow with arrow.to == T. If any two arrays differ (different name set, ignoring order), the chart_reader emitted inconsistent bracket memberships → flag IMPORTANT chart_reader CR.R12 failure; verify extractor refused to create edges for T (it should have, per W1.R12 BRACKET_MEMBERS VERIFICATION). If extractor did create edges → CRITICAL "Branch Isolation".
+    (b) COVERAGE: collect arrow.from values for arrows with arrow.to == T. This set MUST equal the bracket_members set. Missing/extra → CR.R12 violation. Same severity rule as (a).
+    (c) COUNT INTEGRITY: len(bracket_members) MUST equal sum_check.per_target_sums[T].shareholder_count. Mismatch → CR.R12 violation.
+    (d) PLACEHOLDER SCAN: any bracket_members entry containing "and N others", "and N other individuals", "...", "etc.", "group", "cluster", "column", "the rest", "others", OR not matching an entity name in chart_structure.entities → CR.R12 violation. Extractor should have rejected these → check it did.
+    (e) PRODUCTION GUIDANCE: CR.R12 violations are upstream (chart_reader) problems, not extractor problems. Verdict downgrades to ACCEPT_WITH_NOTES with a clear recommendation to re-run chart_reader (different model, higher reasoning effort, or pre-processing). Production should NOT retry extraction when chart_reader is the root cause.
+
 11. SUM_CHECK HONESTY AUDIT (CR.R10 + CR.R11):
     Read chart_structure.sum_check:
     (a) Recompute the actual sum for each target in per_target_sums from chart_structure.arrows. If chart_reader's reported sum_percentage differs from the actual sum by > 2%, chart_reader LIED in its sum_check → flag IMPORTANT "Structural Validation" on chart_reader (CR.R10 deception). The extractor should have caught this via its independent verification — if it didn't, also flag the extractor.

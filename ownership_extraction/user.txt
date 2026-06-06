@@ -34,12 +34,22 @@ that arrow is MALFORMED. Do NOT create an edge from it. Do NOT guess which indiv
 - The affected shareholders (entities in chart_structure.entities whose only incoming/outgoing arrow is the malformed group arrow) get nodes but NO edges. Add data_gaps on each affected node noting the chart_reader CR.R9 failure.
 - Do NOT fall back to guessing assignments from chart positions, family names, or column alignment. This guarantees contamination. Flagging is correct; guessing is not.
 
-CRITICAL PREAMBLE — HALT ON INCONSISTENT chart_structure (W1.R12 + CR.R10):
+CRITICAL PREAMBLE — HALT ON INCONSISTENT chart_structure (W1.R12 + CR.R10 + CR.R12):
 chart_structure includes a top-level `sum_check` object reporting per-target percentage sums and an overall_status flag. Before extracting:
 - If chart_structure.sum_check.overall_status == "INCONSISTENT", or chart_structure.sum_check.flagged_targets is non-empty, the upstream chart_reader has self-reported branch contamination (one or more holdings' shareholder sums materially deviate from 100%). The chart_structure is NOT trustworthy as ground truth for the flagged targets.
 - For each flagged target T in sum_check.flagged_targets: do NOT create edges from shareholders to T. Instead, include T as a node but record on T's data_gaps: "chart_structure.sum_check flagged this target as INCONSISTENT (sum = N%, expected ~100%). No edges created for shareholders of T. Re-run chart_reader (different model or pre-processing) to resolve branch contamination upstream."
 - For UNFLAGGED targets, proceed normally per W1.R12.
 - INDEPENDENT VERIFICATION: Even when chart_structure says CONSISTENT, recompute per-target sums yourself from chart_structure.arrows. If your computed sum differs from sum_check.per_target_sums entry by >2%, the chart_reader is INTERNALLY INCONSISTENT (reported sum != actual arrow sum) → treat the target as flagged. Record in data_gaps.
+
+BRACKET_MEMBERS VERIFICATION (W1.R12 + CR.R12 — catches compensating-error contamination that sum_check misses):
+For each target T that appears as arrow.to of one or more arrows in chart_structure.arrows:
+  (i) Collect the set of `bracket_members` arrays across all arrows where arrow.to == T. They MUST all be IDENTICAL (same names, ignoring order). If any two differ → CR.R12 CONSISTENCY VIOLATION → add T to your internal flagged_targets list, do NOT create edges for T, record on T's data_gaps: "chart_structure.arrows pointing to T have inconsistent bracket_members lists (CR.R12 violation). Re-run chart_reader."
+  (ii) Collect the set of `from` values across all arrows where arrow.to == T. This set MUST exactly equal the bracket_members set. If any name appears in bracket_members but no arrow with that from exists → CR.R12 COVERAGE VIOLATION (missing shareholder). If any arrow's from is not in bracket_members → CR.R12 violation (extra shareholder). Flag T and skip edges.
+  (iii) Check sum_check.per_target_sums[T].shareholder_count against len(bracket_members). If they differ → CR.R12 violation. Flag T.
+  (iv) Scan each bracket_members entry for forbidden placeholders ("and N others", "and N other individuals", "...", "etc.", "group", "cluster", "column", "the rest", "others") or any string not matching an entity name in chart_structure.entities. Any such hedge → CR.R12 violation. Flag T.
+
+The bracket_members check catches the failure mode where compensating arithmetic errors make sum_check pass but assignments are still wrong (e.g., one holding has +20% from a misassigned shareholder while an adjacent holding has -20% from the same misassignment, making both sums coincidentally close to 100%). This contamination is invisible to sum_check alone but produces inconsistent bracket_members across siblings.
+
 - Do NOT silently propagate INCONSISTENT chart_structure into the extracted graph. Better to emit fewer edges with a clear data_gaps trail than to commit to wrong assignments.
 
 CRITICAL PREAMBLE — STRICT PER-SHAREHOLDER ARROW USAGE (W1.R10):

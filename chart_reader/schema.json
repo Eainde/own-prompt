@@ -76,7 +76,7 @@
       "description": "Every arrow visible in any chart. Arrow direction is determined by arrowhead position, not by spatial convention or external knowledge.",
       "items": {
         "type": "object",
-        "required": ["from", "to", "chart_id", "evidence", "direction_confidence"],
+        "required": ["from", "to", "chart_id", "evidence", "direction_confidence", "bracket_members"],
         "additionalProperties": false,
         "properties": {
           "from": {
@@ -97,12 +97,17 @@
           },
           "evidence": {
             "type": "string",
-            "description": "One-line spatial description of the arrow's path AND where the arrowhead is located. Must explicitly state where the arrowhead points. E.g., 'vertical line from lower edge of Phoenix Ventures box down to upper edge of Brandix Lanka box; arrowhead at the bottom end pointing DOWN at Brandix Lanka'."
+            "description": "One-line spatial description of the arrow's path AND where the arrowhead is located. Must explicitly state where the arrowhead points. E.g., 'vertical line from lower edge of Phoenix Ventures box down to upper edge of Brandix Lanka box; arrowhead at the bottom end pointing DOWN at Brandix Lanka'. For bracket-derived arrows (CR.R9), evidence must enumerate ALL co-bracket members by name — no 'and N other individuals' hedging."
           },
           "direction_confidence": {
             "type": "string",
             "enum": ["HIGH", "MEDIUM", "LOW", "UNKNOWN"],
             "description": "Confidence in the from→to direction based on arrowhead visibility. HIGH = arrowhead clearly visible and unambiguous. MEDIUM = arrowhead small or partially obscured but discernible. LOW = direction ambiguous, best guess. UNKNOWN = no arrowhead visible (line connector only). Downstream agent must use this to decide whether to trust the direction or mark relationship as ambiguous."
+          },
+          "bracket_members": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Required commitment field (CR.R9 + CR.R12). For a direct entity-to-entity arrow (e.g., one company to another), the array contains a single element: the 'from' entity name. For a bracket-derived arrow where multiple shareholders share a bracket pointing to the same target, the array MUST list ALL shareholder names enclosed in that bracket — including this arrow's 'from' value. Every arrow with the SAME 'to' value (i.e., pointing to the same target via the same bracket) MUST have IDENTICAL bracket_members arrays. Collective placeholders ('group', 'cluster', 'and 5 other individuals', '...', 'others') are FORBIDDEN. Element ordering is not significant but every member must match an entry in entities[] by name."
           }
         }
       }
