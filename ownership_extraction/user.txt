@@ -8,11 +8,23 @@ Extract who OWNS the target entity — the upward ownership chain only. Trace fr
 
 <target_entity>{{clientEntityName}}</target_entity>
 
+<chart_structure>{{chartStructure}}</chart_structure>
+
 <critic_feedback>{{criticFeedback}}</critic_feedback>
 
 <instructions>
 CRITICAL PREAMBLE — TARGET ENTITY AUTHORITY (W1.R11):
 The <target_entity> value above is AUTHORITATIVE. The document may be a KYC report, Periodic Review, AFC escalation, or compliance file prepared FOR a DIFFERENT named client — its title, file name, email subject lines (e.g., "Periodic Review 2019 | XYZ Ltd"), headers, and prose may repeatedly emphasize THAT named client. IGNORE that emphasis. Use ONLY the <target_entity> value to identify your focal entity. If the document's named client sits BELOW your target_entity in the chart (i.e., target_entity owns it directly or indirectly), that named client and every entity between it and target_entity are SUBSIDIARIES of target_entity and MUST be excluded — no nodes, no edges — even though their names dominate the document text. Do NOT promote a subsidiary to an owner just because the document is named after it. Do NOT invert the subsidiary chain.
+
+CRITICAL PREAMBLE — CHART_STRUCTURE IS AUTHORITATIVE (W1.R12):
+If <chart_structure> above is non-empty, it is the output of a dedicated chart-parsing pass that has already enumerated every entity, every arrow, and every percentage label in the document's ownership chart(s). chart_structure.entities and chart_structure.arrows are AUTHORITATIVE — treat them as ground truth for the visual content of the chart.
+- Every node you create MUST correspond to an entity in chart_structure.entities. Do NOT add entities not present in chart_structure.entities (extracting from emails/headers/prose is forbidden unless the entity also appears in chart_structure.entities).
+- Every edge you create MUST correspond to an arrow in chart_structure.arrows. The edge's owner = the arrow's "from"; the edge's owned = the arrow's "to" (per the standard convention: arrow tail = owner, arrow head = owned). Do NOT invent arrows. Do NOT reverse arrow direction. Do NOT cite an arrow that is not in chart_structure.arrows.
+- The percentage on each edge MUST come from the corresponding arrow's label_percentage OR from the owned entity's associated_label in chart_structure. If neither is present, set the percentage to "Not Available".
+- The direction_proof you record on each edge MUST quote the chart_structure.arrows[i].evidence string for the arrow you used. Format: "From chart_structure arrow: '<evidence string>'". This makes your direction claim auditable against an upstream artifact.
+- If a chart_structure.arrows[i] has direction_confidence = UNKNOWN, treat the relationship direction as ambiguous: record the entity in data_gaps and do NOT create an edge for it. If direction_confidence = LOW, you may create the edge but you MUST add a note in data_gaps stating the direction is low-confidence per chart_structure.
+- spatial cross-check: target_entity should match exactly one entry in chart_structure.entities. If it does not, apply W1.R6 (target not found). If it does, use that entry's vertical_position to determine which entities sit above (potential owners) vs below (subsidiaries — exclude) in the chart.
+- If <chart_structure> is empty (e.g., the pipeline did not run the chart-reader stage), fall back to reading the PDF directly per the rules below.
 
 0. CRITIC FEEDBACK — If critic_feedback above is non-empty, a previous extraction attempt was reviewed and rejected. Read every CRITICAL and IMPORTANT correction carefully. These are specific errors you made last time — missing entities, wrong direction, wrong percentages, person-owns-person edges, etc. You MUST address every correction in this attempt. Do not repeat the same mistakes.
 1. Classify entity type from documentary evidence (Category 1, 2, or 3; or "Entity Type not confirmed").

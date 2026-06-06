@@ -1,0 +1,44 @@
+<task>
+Parse the ownership chart(s) in the document and output a structured, literal visual description: a list of entities (with vertical and horizontal positions) and a list of arrows (with source, target, label, evidence, direction confidence). Pure visual description only — no interpretation, no graph construction, no layering, no classification.
+</task>
+
+<gcs_document_path>{{gcsDocumentPath}}</gcs_document_path>
+
+<instructions>
+1. Locate every page that contains an ownership chart (boxes connected by arrows depicting corporate ownership). Note the page number(s). If the document has multiple charts, treat them separately.
+
+2. ENTITY ENUMERATION — For every entity (corporate entity or natural person) visible as a labeled box, text node, or named element in a chart:
+   - name: EXACTLY as written in the chart (preserve casing, spelling, punctuation, suffixes). Do NOT correct, normalize, or expand.
+   - type_hint: "corporate_entity" (name contains Limited, Ltd, Inc, Pte, LLC, GmbH, S.A., or similar corporate suffix) | "natural_person" (name pattern looks like an individual's name) | "unknown" (cannot tell from name alone).
+   - vertical_position: TOP | UPPER_MIDDLE | MIDDLE | LOWER_MIDDLE | BOTTOM (5-point scale based on its placement in the chart).
+   - horizontal_position: LEFT | CENTER_LEFT | CENTER | CENTER_RIGHT | RIGHT (5-point scale based on horizontal placement).
+   - chart_id: identifier for the chart this entity belongs to (e.g., "page_1_chart"). Same string for all entities in the same chart.
+   - associated_label: any percentage label that is attached to the entity's box (NOT to an arrow). E.g., a "100%" label INSIDE or DIRECTLY adjacent to the entity's box. Set to null if no such label.
+   - evidence: one-line spatial description (e.g., "labeled box in column 3, upper-middle area of page 1 chart").
+
+3. ARROW ENUMERATION — For every arrow visible in any chart:
+   - from: the name of the entity at the arrow's TAIL (the end WITHOUT an arrowhead).
+   - to: the name of the entity at the arrow's HEAD (the end WITH the arrowhead — the pointy end).
+   - label_percentage: any % label visually adjacent to the arrow (not the box), or null.
+   - chart_id: which chart the arrow is in.
+   - evidence: a one-line spatial description of the arrow's path AND where the arrowhead is located (e.g., "vertical line from lower edge of Phoenix Ventures box down to upper edge of Brandix Lanka box; arrowhead is at the BOTTOM end, pointing DOWN at Brandix Lanka").
+   - direction_confidence: HIGH (arrowhead clearly visible, direction unambiguous) | MEDIUM (arrowhead small or partial but discernible) | LOW (direction ambiguous, your best guess) | UNKNOWN (no arrowhead visible — line connector only).
+
+4. ARROW DIRECTION DISCIPLINE:
+   - The TAIL of an arrow is the end WITHOUT the arrowhead. The HEAD is the pointy end WITH the arrowhead.
+   - from = entity at tail. to = entity at head.
+   - If you cannot see an arrowhead clearly, set direction_confidence to UNKNOWN. The downstream agent will handle the ambiguity.
+   - Do NOT infer direction from spatial position ("parents are at top"). Do NOT infer from percentage label position ("the % is near the owned entity"). Do NOT infer from real-world knowledge ("Big Corp owns Small Co in reality"). USE ONLY the visible arrowhead.
+   - In dense areas of the chart with many arrows, trace each one individually. Do NOT batch-assume.
+
+5. ANTI-BIAS REMINDERS:
+   - The document may contain emails, certificates, headers, and footers mentioning entities prominently (e.g., "Periodic Review of XYZ Limited"). IGNORE all of that. Your output reflects ONLY what is visually in the chart.
+   - If you recognize an entity name as a famous real-world company, IGNORE that recognition. Use only what the chart shows.
+   - You are not extracting ownership. You are describing pixels. Stay descriptive.
+
+6. CHART NOT FOUND:
+   - If the document has no ownership chart, set entities = [], arrows = [], charts = [], and notes = "No ownership chart found in document."
+   - If the document has only a textual ownership description, set entities = [], arrows = [], and notes = "Document contains textual ownership description but no visual chart. Downstream agent should extract from text."
+
+7. OUTPUT — Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+</instructions>

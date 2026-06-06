@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Chart Reader Output",
+  "description": "Literal visual description of ownership chart(s) in a document. Stage 1 of the two-stage extraction pipeline. Output is consumed by ownership_extraction and ownership_extraction_critic as authoritative chart_structure.",
+  "type": "object",
+  "required": ["charts", "entities", "arrows", "notes"],
+  "additionalProperties": false,
+  "properties": {
+    "charts": {
+      "type": "array",
+      "description": "One entry per ownership chart found in the document. Multiple charts may exist on different pages.",
+      "items": {
+        "type": "object",
+        "required": ["chart_id", "page", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "chart_id": {
+            "type": "string",
+            "description": "Stable identifier for this chart, used to link entities and arrows back to the chart they came from. E.g., 'page_1_chart'."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number (1-indexed) where this chart appears."
+          },
+          "description": {
+            "type": "string",
+            "description": "One-paragraph description of the chart's overall layout: how many rows/columns, what's roughly at the top vs bottom, any obvious convergence or chain structure. Pure visual description, no ownership interpretation."
+          }
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "description": "Every entity (corporate or person) visible as a labeled box in any chart.",
+      "items": {
+        "type": "object",
+        "required": ["name", "type_hint", "vertical_position", "horizontal_position", "chart_id", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Entity name EXACTLY as written in the chart. Preserve casing, punctuation, spelling, suffixes verbatim. Do NOT normalize or correct."
+          },
+          "type_hint": {
+            "type": "string",
+            "enum": ["corporate_entity", "natural_person", "unknown"],
+            "description": "Surface-level type hint from the name itself. 'corporate_entity' if the name contains Limited/Ltd/Inc/Pte/LLC/GmbH/S.A. or similar. 'natural_person' if it looks like an individual's name. 'unknown' otherwise."
+          },
+          "vertical_position": {
+            "type": "string",
+            "enum": ["TOP", "UPPER_MIDDLE", "MIDDLE", "LOWER_MIDDLE", "BOTTOM"],
+            "description": "Approximate vertical placement of this entity in the chart on a 5-point scale."
+          },
+          "horizontal_position": {
+            "type": "string",
+            "enum": ["LEFT", "CENTER_LEFT", "CENTER", "CENTER_RIGHT", "RIGHT"],
+            "description": "Approximate horizontal placement of this entity in the chart on a 5-point scale."
+          },
+          "chart_id": {
+            "type": "string",
+            "description": "ID of the chart this entity belongs to (matches charts[].chart_id)."
+          },
+          "associated_label": {
+            "type": "string",
+            "description": "Any percentage label inside or directly adjacent to the entity's box (NOT attached to an arrow). E.g., '100%' shown inside the Phoenix Ventures box. Null if none."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "One-line spatial description of where this entity is located in the chart."
+          }
+        }
+      }
+    },
+    "arrows": {
+      "type": "array",
+      "description": "Every arrow visible in any chart. Arrow direction is determined by arrowhead position, not by spatial convention or external knowledge.",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "chart_id", "evidence", "direction_confidence"],
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Name of the entity at the arrow's TAIL (the end WITHOUT the arrowhead). Must match an entity name from entities[]."
+          },
+          "to": {
+            "type": "string",
+            "description": "Name of the entity at the arrow's HEAD (the end WITH the arrowhead — the pointy end). Must match an entity name from entities[]."
+          },
+          "label_percentage": {
+            "type": "string",
+            "description": "Percentage label visually adjacent to this arrow (NOT to a box). E.g., '32.20%'. Null if no label is near the arrow."
+          },
+          "chart_id": {
+            "type": "string",
+            "description": "ID of the chart this arrow is in (matches charts[].chart_id)."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "One-line spatial description of the arrow's path AND where the arrowhead is located. Must explicitly state where the arrowhead points. E.g., 'vertical line from lower edge of Phoenix Ventures box down to upper edge of Brandix Lanka box; arrowhead at the bottom end pointing DOWN at Brandix Lanka'."
+          },
+          "direction_confidence": {
+            "type": "string",
+            "enum": ["HIGH", "MEDIUM", "LOW", "UNKNOWN"],
+            "description": "Confidence in the from→to direction based on arrowhead visibility. HIGH = arrowhead clearly visible and unambiguous. MEDIUM = arrowhead small or partially obscured but discernible. LOW = direction ambiguous, best guess. UNKNOWN = no arrowhead visible (line connector only). Downstream agent must use this to decide whether to trust the direction or mark relationship as ambiguous."
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-text notes about anything the downstream agent should know. E.g., 'Chart has 4 columns of persons at top converging on 4 holding companies in middle row.' or 'Some arrows have no visible arrowheads — flagged as UNKNOWN.' or 'No chart found in document.' Empty string if nothing to note."
+    }
+  }
+}

@@ -122,6 +122,19 @@ Entity type must be classified before any extraction begins.
   8. Sum check: for each layer-1 entity, the sum of its direct shareholders' percentages should reasonably approximate 100% (allowing for rounding or stated incompleteness). If the sum is materially off, you may have missed a shareholder OR assigned one to the wrong branch — re-verify.
   </rule>
 
+  <rule id="W1.R12" priority="CRITICAL" name="CHART_STRUCTURE_AUTHORITATIVE">
+  If the user prompt provides a non-empty <chart_structure> input, it is the output of a dedicated upstream Chart Reader pass that has enumerated every entity, every arrow, every percentage label visually present in the document's ownership chart(s). chart_structure is AUTHORITATIVE for the chart's visual content. You MUST treat it as ground truth and may NOT contradict it.
+  - Every node you create MUST be backed by an entry in chart_structure.entities (matched by name). The only exception is the layer-0 target entity itself if it is somehow absent from chart_structure (in that case apply W1.R6 halt).
+  - Every edge you create MUST be backed by an entry in chart_structure.arrows. owner = arrow.from; owned = arrow.to. You MAY NOT reverse the direction. You MAY NOT invent arrows. You MAY NOT cite arrows that are not in chart_structure.arrows.
+  - Every percentage on an edge MUST come from arrow.label_percentage or the owned entity's associated_label. If neither is present, set ownership_percentage_direct to "Not Available".
+  - direction_proof on each edge MUST quote the corresponding chart_structure arrow's evidence string verbatim, prefixed with "From chart_structure arrow: ". This makes direction claims auditable against the upstream artifact.
+  - If chart_structure.arrows[i].direction_confidence == "UNKNOWN", do NOT create an edge for that arrow. Record the entities involved in data_gaps with the arrow evidence string.
+  - If chart_structure.arrows[i].direction_confidence == "LOW", you may create the edge but must add data_gaps noting the low-confidence direction.
+  - The target entity's vertical_position in chart_structure.entities determines which entities are potential OWNERS (vertically above target) vs SUBSIDIARIES (vertically below target — exclude per W1.R8). Use vertical_position as the primary spatial check, then verify with arrow direction.
+  - If <chart_structure> is empty, fall back to reading the PDF directly per all other rules — but note in data_gaps that chart_structure was not provided.
+  - If chart_structure says no chart was found (entities and arrows both empty) but the document does have an ownership chart visible to you, you MAY note this discrepancy in data_gaps but you MUST NOT extract from your own chart reading — flag the contradiction for human review.
+  </rule>
+
   <rule id="W1.R11" priority="CRITICAL" name="TARGET_ENTITY_AUTHORITY">
   The target_entity passed via the user prompt is the AUTHORITATIVE focal entity. It overrides any client, subject, title, or named party mentioned in the document.
   - Documents are commonly KYC reports, Periodic Reviews, AFC escalations, or compliance files prepared FOR a specific named client. The document's title, email subject lines (e.g., "Periodic Review 2019 | XYZ Limited"), headers, file names, and prose may repeatedly emphasize THAT client. This emphasis is IRRELEVANT to extraction.
