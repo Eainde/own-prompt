@@ -118,9 +118,10 @@ Entity type must be classified before any extraction begins.
 
   <rule id="W1.R10" priority="CRITICAL" name="BRANCH_ISOLATION">
   When the target entity has multiple direct owners (layer-1 entities), process each owner's shareholder branch independently:
-  1. For each layer-1 owner, trace ONLY its shareholders upward. Do not mix shareholders between different layer-1 entities.
+  1. For each layer-1 owner, trace ONLY its shareholders upward. Do NOT mix shareholders between different layer-1 entities. Follow the literal lines or brackets in the diagram.
   2. If a person or entity holds shares in MULTIPLE layer-1 entities, create separate edges from that person/entity to each layer-1 entity. The person/entity appears as ONE node, but with edges to each holding it owns.
-  3. Before finalizing: for each layer-1 entity, verify that every shareholder (layer 2+) connected to it via edges actually owns shares in THAT specific entity — not a different one.
+  3. DO NOT group or assign shareholders based on visual proximity, similar names, or shared family names. Just because names appear next to each other does NOT mean they belong to the same branch. Only use explicit lines, brackets, or table assignments.
+  4. Before finalizing: for each layer-1 entity, verify that every shareholder (layer 2+) connected to it via edges actually owns shares in THAT specific entity — not a different one. Cross-check your branch assignments vigorously.
   </rule>
 </rules>
 
@@ -155,38 +156,38 @@ If the same ownership relationship (same owner, same owned entity) appears with 
 <worked_example name="MID_CHART_TARGET">
 SOURCE DOCUMENT shows this ownership chart on page 1:
 
-  Sam Innovations Ltd
+  Grandparent HoldCo Ltd
        |  100%
-  Brandix Apparel Ltd
+  Parent HoldCo Ltd
        |  75%
-  Brandix Lanka Ltd
+  Direct Owner Ltd
        |  60%
-  ► PHOENIX VENTURES (TARGET) ◄
+  ► TARGET ENTITY LTD (TARGET) ◄
        |  80%
-  Alpha Manufacturing Ltd
+  Subsidiary A Ltd
        |  100%
-  Beta Retail Ltd
+  Subsidiary B Ltd
 
-Arrows point downward: Sam Innovations owns 100% of Brandix Apparel, Brandix Apparel owns 75% of Brandix Lanka, Brandix Lanka owns 60% of Phoenix Ventures, Phoenix Ventures owns 80% of Alpha Manufacturing, Alpha Manufacturing owns 100% of Beta Retail.
+Arrows point downward: Grandparent HoldCo Ltd owns 100% of Parent HoldCo Ltd, Parent HoldCo Ltd owns 75% of Direct Owner Ltd, Direct Owner Ltd owns 60% of Target Entity Ltd, Target Entity Ltd owns 80% of Subsidiary A Ltd, Subsidiary A Ltd owns 100% of Subsidiary B Ltd.
 
-TARGET = Phoenix Ventures.
+TARGET = Target Entity Ltd.
 
 STEP 3 — DIRECTION TABLE:
 | Entity | OWNER or SUBSIDIARY | Evidence |
-| Sam Innovations Ltd | OWNER | Indirectly owns target via Brandix chain; page 1 chart |
-| Brandix Apparel Ltd | OWNER | Indirectly owns target via Brandix Lanka; page 1 chart |
-| Brandix Lanka Ltd | OWNER | Holds 60% of target; page 1 chart arrow |
-| Alpha Manufacturing Ltd | SUBSIDIARY | Target holds 80% of Alpha; page 1 chart arrow |
-| Beta Retail Ltd | SUBSIDIARY | Target indirectly owns via Alpha; page 1 chart |
+| Grandparent HoldCo Ltd | OWNER | Indirectly owns target via Parent HoldCo; page 1 chart |
+| Parent HoldCo Ltd | OWNER | Indirectly owns target via Direct Owner; page 1 chart |
+| Direct Owner Ltd | OWNER | Holds 60% of target; page 1 chart arrow |
+| Subsidiary A Ltd | SUBSIDIARY | Target holds 80% of Subsidiary A; page 1 chart arrow |
+| Subsidiary B Ltd | SUBSIDIARY | Target indirectly owns via Subsidiary A; page 1 chart |
 
 CORRECT OUTPUT — nodes for OWNERS only:
-  Phoenix Ventures (L0) ← Brandix Lanka Ltd (L1, 60%) ← Brandix Apparel Ltd (L2, 75%) ← Sam Innovations Ltd (L3, 100%)
+  Target Entity Ltd (L0) ← Direct Owner Ltd (L1, 60%) ← Parent HoldCo Ltd (L2, 75%) ← Grandparent HoldCo Ltd (L3, 100%)
 
 WRONG — what the extractor must NOT do:
-  ✗ Alpha Manufacturing Ltd as layer 1 (it is a SUBSIDIARY — target owns it)
-  ✗ Beta Retail Ltd as layer 2 (it is a SUBSIDIARY — target indirectly owns it)
-  ✗ Reversing the subsidiary chain: Beta → Alpha → Phoenix (this makes subsidiaries look like parents)
-  ✗ Brandix Lanka as a subsidiary of Phoenix (Brandix Lanka OWNS Phoenix, not the reverse)
+  ✗ Subsidiary A Ltd as layer 1 (it is a SUBSIDIARY — target owns it)
+  ✗ Subsidiary B Ltd as layer 2 (it is a SUBSIDIARY — target indirectly owns it)
+  ✗ Reversing the subsidiary chain: Subsidiary B → Subsidiary A → Target Entity (this makes subsidiaries look like parents)
+  ✗ Direct Owner Ltd as a subsidiary of Target Entity (Direct Owner OWNS Target Entity, not the reverse)
 </worked_example>
 
 <directive priority="CRITICAL" name="PROHIBITIONS">
@@ -200,4 +201,5 @@ DO NOT stop early at any arbitrary layer
 DO NOT loop infinitely on circular ownership — detect and break at W1.R7
 DO NOT extract subsidiaries, children, or investees of the target entity — only extract upward (owners)
 DO NOT create edges where both owner and owned are Natural Persons — natural persons cannot own other natural persons
+DO NOT assign a shareholder to a company just because of visual proximity, similar names, or a shared family name; strictly follow the explicit lines and brackets in the diagram.
 </directive>
