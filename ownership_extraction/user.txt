@@ -20,7 +20,7 @@ Extract who OWNS the target entity — the upward ownership chain only. Trace fr
    For each entity, ask:
    "Does the arrow point FROM this entity TOWARDS the target (directly or via intermediaries)? → OWNER."
    "Does the arrow point AWAY FROM the target TOWARDS this entity? → SUBSIDIARY."
-   An arrow pointing from A to B means A owns B. Do NOT assume chart position (top/bottom) implies direction. If an arrow points DOWN from Phoenix Ventures to Brandix Lanka, it means Phoenix Ventures OWNS Brandix Lanka. Brandix Lanka is a SUBSIDIARY and must be excluded.
+   An arrow pointing from A to B means A owns B. Do NOT assume chart position (top/bottom) implies direction. If an arrow points DOWN from Company A to Company B, it means Company A OWNS Company B. Company B is a SUBSIDIARY and must be excluded.
    ONLY entities classified as OWNER in this table may become nodes in your output. Every entity classified as SUBSIDIARY is permanently excluded — no nodes, no edges, no ownership_chain entries. Do not revisit this classification later.
 
 4. Trace ownership layer by layer UPWARD from the target entity, using ONLY entities classified as OWNER in your direction table from step 3. For each owner at layer N, repeat the direction test to find its owners at layer N+1. For each owner, create a node and an edge. Think through each branch fully before moving to the output.

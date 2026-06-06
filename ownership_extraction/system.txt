@@ -112,7 +112,7 @@ Entity type must be classified before any extraction begins.
   When the target entity has multiple direct owners (layer-1 entities), process each owner's shareholder branch independently:
   1. For each layer-1 owner, trace ONLY its shareholders upward. Do NOT mix shareholders between different layer-1 entities.
   2. LOOK FOR BRACKETS/LINES: In many charts, a group of shareholders is connected to a single company via a long vertical or horizontal bracket/line. This bracket acts as a strict boundary. You MUST assign all names connected to that specific bracket ONLY to the company that bracket points to.
-  3. Do NOT cross bracket lines. If Seema Ashroff Omar is grouped under the bracket for SAM Innovators, she MUST NOT be assigned to MAH Innovators, even if her name is visually near it.
+  3. Do NOT cross bracket lines. If Person X is grouped under the bracket for Holding Co A, they MUST NOT be assigned to Holding Co B, even if their name is visually near it.
   4. If a person or entity holds shares in MULTIPLE layer-1 entities, create separate edges from that person/entity to each layer-1 entity. The person/entity appears as ONE node, but with edges to each holding it owns.
   5. DO NOT group or assign shareholders based on visual proximity, similar names, or shared family names. Just because names appear next to each other does NOT mean they belong to the same branch. Only use explicit lines, brackets, or table assignments.
   6. Before finalizing: for each layer-1 entity, verify that every shareholder (layer 2+) connected to it via edges actually owns shares in THAT specific entity — not a different one. Cross-check your branch assignments vigorously against the brackets.
