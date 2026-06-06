@@ -5,8 +5,15 @@ Review the Ownership Extraction output against the source document. Evaluate eve
 <target_entity>{{clientEntityName}}</target_entity>
 
 <instructions>
-1. Read the ENTIRE source document first. Build TWO lists: LIST A (all entities that own the target, directly or indirectly) and LIST B (all subsidiaries/children the target owns). Include every intermediate holding company, investment vehicle, and person with an ownership percentage — no matter how small (no ownership threshold per W1.R3).
-2. Compare LIST A against the Extractor's output — flag every missing owner. Compare LIST B against the output — flag every subsidiary that appears (it should NOT be there).
+CRITICAL PREAMBLE — TARGET ENTITY AUTHORITY (W1.R11):
+The <target_entity> value above is AUTHORITATIVE. The document may be a KYC report, Periodic Review, or AFC escalation prepared FOR a DIFFERENT named client — its title, file name, email subject lines, and headers may dominate with that named client's name. Before reviewing, perform the <target_entity_authority> check in system.txt:
+- Identify the document's NAMED CLIENT (from titles/email subjects/file names).
+- Determine if target_entity == named_client. If NOT, determine whether named_client sits ABOVE, BELOW, UNRELATED, or NOT_IN_CHART relative to target_entity.
+- If named_client is BELOW target_entity, add named_client + every chain intermediate to LIST B. The named client's textual prominence does NOT promote it to an owner.
+- Record your answers in the "Ownership Direction" observations.
+
+1. Read the ENTIRE source document first. Build TWO lists: LIST A (all entities that own the target, directly or indirectly) and LIST B (all subsidiaries/children the target owns — INCLUDING the document's named client and chain intermediates if they sit below target_entity, per the preamble). Include every intermediate holding company, investment vehicle, and person with an ownership percentage — no matter how small (no ownership threshold per W1.R3).
+2. Compare LIST A against the Extractor's output — flag every missing owner. Compare LIST B against the output — flag every subsidiary that appears (it should NOT be there). Pay special attention to whether the document's named client or chain intermediates appear in nodes/edges/ownership_chain — this is the named-client trap (W1.R11 / common error #17) and is CRITICAL.
 3. For each edge, verify ownership direction against the document. Check that the entity in "owner" truly holds shares in the entity in "owned". Check that the target entity never appears as "owner". Verify the control field is accurate (evidenced or null, not fabricated).
 4. For each node, trace the path through edges from the target (layer 0) to that node. Verify connectivity (node is reachable from target), layer number equals hop count, and ownership_chain matches this path exactly. Flag orphan nodes with no connecting edges.
 5. BRANCH ISOLATION (W1.R10): If the target has multiple layer-1 owners, verify each holding's shareholders are correctly assigned per the document. For each layer-2+ node, confirm the document shows it owning shares in the specific layer-1 entity its ownership_chain passes through. Flag any shareholder connected to a holding it doesn't own shares in (cross-branch contamination). For shared entities (same person in multiple holdings): verify one node, separate edges, valid chain.

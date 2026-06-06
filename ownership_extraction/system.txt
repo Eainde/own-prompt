@@ -111,11 +111,15 @@ Entity type must be classified before any extraction begins.
   <rule id="W1.R10" priority="CRITICAL" name="BRANCH_ISOLATION">
   When the target entity has multiple direct owners (layer-1 entities), process each owner's shareholder branch independently:
   1. For each layer-1 owner, trace ONLY its shareholders upward. Do NOT mix shareholders between different layer-1 entities.
-  2. LOOK FOR BRACKETS/LINES: In many charts, a group of shareholders is connected to a single company via a long vertical or horizontal bracket/line. This bracket acts as a strict boundary. You MUST assign all names connected to that specific bracket ONLY to the company that bracket points to.
-  3. Do NOT cross bracket lines. If Person X is grouped under the bracket for Holding Co A, they MUST NOT be assigned to Holding Co B, even if their name is visually near it.
-  4. If a person or entity holds shares in MULTIPLE layer-1 entities, create separate edges from that person/entity to each layer-1 entity. The person/entity appears as ONE node, but with edges to each holding it owns.
-  5. DO NOT group or assign shareholders based on visual proximity, similar names, or shared family names. Just because names appear next to each other does NOT mean they belong to the same branch. Only use explicit lines, brackets, or table assignments.
-  6. Before finalizing: for each layer-1 entity, verify that every shareholder (layer 2+) connected to it via edges actually owns shares in THAT specific entity — not a different one. Cross-check your branch assignments vigorously against the brackets.
+  2. LOOK FOR BRACKETS/LINES/COLUMNS: In many charts, a group of shareholders is connected to a single company via a long vertical or horizontal bracket/line, OR clustered in a visual COLUMN directly above/below that holding company. The bracket/column acts as a strict boundary. You MUST assign all names connected to that specific bracket or sitting in that column's bounded area ONLY to the company that bracket/column points to.
+  3. Do NOT cross bracket or column lines. If Person X sits in the column for Holding Co A, they MUST NOT be assigned to Holding Co B, even if their name is visually near the boundary or shares a family name with Holding B's shareholders.
+  4. If a person or entity holds shares in MULTIPLE layer-1 entities, create separate edges from that person/entity to each layer-1 entity. The person/entity appears as ONE node, but with edges to each holding it owns. This must be explicitly evidenced — do NOT infer multi-branch ownership from name similarity.
+  5. DO NOT group or assign shareholders based on visual proximity, similar names, or shared family names. Just because names appear next to each other or share a surname (e.g., "Omar", "Smith") does NOT mean they belong to the same branch. Two people named "John Smith" in different columns are DIFFERENT shareholders of DIFFERENT companies — extract both, do NOT merge or cross-assign. Only use explicit lines, brackets, columns, or table assignments.
+  6. MANDATORY BRANCH TABLE: Before creating any nodes or edges, produce an explicit table:
+     | Layer-1 Entity | Shareholder Name | Shareholder % | Bracket/Column Evidence |
+     One row per shareholder per branch. The Bracket/Column Evidence column MUST cite the specific visual cue (e.g., "in column above Athena Innovators, page 1" or "connected via bracket to SAM Innovators, page 1"). Each shareholder name appears under ONE layer-1 entity unless the document EXPLICITLY shows multi-holding ownership.
+  7. Before finalizing: for each layer-1 entity, verify that every shareholder (layer 2+) connected to it via edges actually owns shares in THAT specific entity — not a different one. Cross-check your branch assignments against the table from step 6.
+  8. Sum check: for each layer-1 entity, the sum of its direct shareholders' percentages should reasonably approximate 100% (allowing for rounding or stated incompleteness). If the sum is materially off, you may have missed a shareholder OR assigned one to the wrong branch — re-verify.
   </rule>
 
   <rule id="W1.R11" priority="CRITICAL" name="TARGET_ENTITY_AUTHORITY">
