@@ -12,7 +12,7 @@
 
 Good morning everyone. I'm Akshay Dipta, Senior Engineer in CLM Tech. Today I'm going to take you inside Nexus AI & Studio, and PromptLint, things I've built that are changing how we do AI engineering across dbCLM.
 
-You've already seen agents and graphs in the Python session. Today is different. I'm going to show you a production-grade Java-native framework, how it works internally, how you define agents, how you compose pipelines, what the database schema looks like, and how you get observability for free. Then Nexus AI Studio, a visual developer experience for your workflows, think Swagger but for agents. After that, PromptLint, a static quality analyser for LLM prompts. And we'll wrap up with how to get started in your own project. We have about 40 minutes of content and then plenty of time for questions.
+You've already seen agents and graphs in the Python session. Today I'll show you a production-grade Java-native framework, a visual developer experience, and a static quality analyser for prompts.
 
 **[Slide 2, The Problem + Vision]**
 
@@ -48,15 +48,15 @@ That's nine capabilities you get for free by adding one dependency.
 
 **[Slide 4, Two-Tier Architecture]**
 
-Here's the high-level architecture. Nexus AI is the complete platform, and everything you see on this slide lives inside it.
+Here's the high-level architecture. Everything you see on this slide lives inside Nexus AI.
 
-There are two tiers. Tier 1 is the workflow orchestration layer, built on LangGraph4j, the Java port of LangGraph that you saw in the Python session. But we've added checkpoints, graph state management, and observability on top. Tier 1 defines the overall workflow as a directed graph. Nodes are processing steps. Some are standard Java logic, but one or more nodes are AI Nodes, and that's where Tier 2 comes in.
+There are two tiers. Tier 1 is the workflow orchestration layer, built on LangGraph4j, the Java port of LangGraph you saw in the Python session. It defines your workflow as a directed graph where nodes are processing steps. We've added checkpoints, state management, and observability on top. Now, some nodes are just standard Java logic, but the interesting ones are AI Nodes. That's where Tier 2 comes in.
 
-Tier 2 is the agent pipeline layer, built on LangChain4j. AgentFactory, AgentSpec, tools, everything needed to orchestrate multi-agent AI pipelines with parallel execution, sequential chaining, and iterative loops.
+Tier 2 is the agent pipeline layer, built on LangChain4j. This is where you define your agents, wire up tools, and compose them into pipelines that can run in parallel, chain sequentially, or loop iteratively.
 
-And spanning both tiers, the database for prompts and state, Gemini as our LLM, and Azure for authentication. These aren't external services you wire up yourself. Nexus AI connects to them automatically.
+Spanning both tiers you have the database for prompts and state, Gemini for the LLM, and Azure for authentication. You don't wire these up yourself. Nexus AI connects to them automatically.
 
-Now, why Java and not Python? When this initiative started, there was a proposal to build it in Python. I rejected that. Our ecosystem is Spring Boot. Our teams are Java engineers. Java-native means direct access to dependency injection, the bank's WIF authentication libraries, and our existing database infrastructure, all natively. No bridges, no adapters, no second deployment pipeline.
+Now, why Java and not Python? When this initiative started, there was a proposal to build it in Python. We realised pretty quickly that wouldn't work for us. Our ecosystem is Spring Boot. Our teams are Java engineers. Java-native means direct access to dependency injection, the bank's WIF authentication libraries, and our existing database infrastructure, all natively. No bridges, no adapters, no second deployment pipeline.
 
 **[Slide 5, AgentSpec]**
 
