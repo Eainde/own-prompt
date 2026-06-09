@@ -14,11 +14,13 @@ Good morning everyone. I'm Akshay Dipta, Senior Engineer in CLM Tech. Today I'm 
 
 You've already seen agents and graphs in the Python session. Today I'll show you a production-grade Java-native framework, a visual developer experience, and a static quality analyser for prompts.
 
+Now, why Java and not Python? When this initiative started, there was a proposal to build it in Python. I realised pretty quickly that wouldn't work. Our domain microservices, our infrastructure, our developers are all Java. The goal isn't to build agents as separate apps. It's to make our existing services agentic, plug AI directly into the processes already running in production. Not a parallel stack, just a natural extension of what we already have.
+
 **[Slide 2, The Problem + Vision]**
 
 So let's start with the problem. When we began exploring AI agents in dbCLM, building a single agent took 18 to 24 hours. Every team was reimplementing auth, retry logic, model configuration from scratch. There were no quality gates for prompts, so bad prompts reached production silently. No observability, no audit trail of what the AI decided and why. And critically, no control over the LLM integration itself. Teams were locked into whatever the library gave them by default.
 
-So the vision was clear. What if building a new agent took one hour, not twenty-four? What if a twelve-agent orchestration pipeline with parallel execution and iterative loops was expressible in twenty lines of code? What if observability, authentication, and database-driven prompts were all built in by default, zero developer code? What if prompt quality was enforced in CI, the same way we enforce code quality, deterministic, no LLM calls, fail the build if a prompt drops below threshold? And what if you could see your agents execute live, click any node, inspect the full state at that checkpoint?
+So the vision was clear. What if building a new agent took one hour, not twenty-four? What if you could express a twelve-agent pipeline with parallel execution and loops in twenty lines of code? What if observability, authentication, and prompts were all built in by default, no developer code needed? What if prompt quality was enforced in CI the same way we enforce code quality, deterministic, no LLM calls, fail the build if a prompt isn't good enough? And what if you could see your agents execute live, click any node, and inspect the full state at that point?
 
 That's what I built. Let me show you what's inside.
 
@@ -30,17 +32,17 @@ That's what I built. Let me show you what's inside.
 
 Before I show you the architecture, I want to give you a sense of what Nexus AI actually provides under the hood. There's a lot here, so let me walk through it column by column.
 
-Starting with the core engine. We have custom chat models. We're not using the default models provided by LangChain4j. We wrote our own. Why? Because we needed more control. LangChain4j's default models have limited features for what we needed in production, things like custom response handling, specific token tracking, and tight integration with our authentication chain. So we built our own chat model implementations.
+Starting with the core engine. I wrote custom chat models from scratch. LangChain gives you default models, but they didn't give me enough control. I needed custom response handling, specific token tracking, tight integration with our auth chain. So I replaced them entirely.
+
+Custom serialization. I've overridden the default serialization and deserialization of the framework because I needed to support custom object types.
 
 Auto checkpoints. The framework automatically persists graph state to the database at every node transition. If a workflow fails halfway through, you can see exactly where it stopped and what the state looked like. No developer code needed for this, it's built into the framework.
 
-Custom serialization. We've overridden the default serialization and deserialization of the framework because we needed to support our own custom object types that flow through the graph state.
+Now the listeners column. This is where observability lives. The AgentExecution listener logs every LLM input and output to the database automatically. You don't add logging code, it just happens. The Observability listener ties into Spring Boot's correlation IDs, so your AI calls show up in the same Splunk traces and Langfuse dashboards as everything else. And the Token Usage listener tracks how many tokens each agent used, broken down by type, so you always know what you're spending.
 
-Now the listeners column. This is where observability lives. The AgentExecution listener logs every single LLM input and output to the database. Every prompt sent, every response received, recorded automatically. The Observability listener integrates with Spring Boot's correlation ID infrastructure, so your AI agent calls show up in the same Splunk traces and Langfuse dashboards as your existing services. End-to-end tracking across your whole application. And the Token Usage listener tracks exactly how many tokens each agent consumed, input, output, cached, and thinking tokens, all saved to the execution table.
+On the integration side, bank authentication is built in. That whole WIF to Azure to JWT chain that every team has to deal with, the framework handles it for you. I've also added per-model rate limiting so you don't blow through your quotas, and a table access API so you can query the framework's own data for reporting or dashboards.
 
-On the integration side, bank authentication is built in. The custom WIF to Azure to JWT chain that every team needs, it's handled internally. Rate limiting. We've implemented custom per-model rate limiting so you don't exceed your quotas. And table access API, methods to query the framework's own tables, so you can build reporting or dashboards on top.
-
-That's nine capabilities you get for free by adding one dependency.
+All of this comes from one Maven dependency.
 
 ---
 
@@ -50,13 +52,11 @@ That's nine capabilities you get for free by adding one dependency.
 
 Here's the high-level architecture. Everything you see on this slide lives inside Nexus AI.
 
-There are two tiers. Tier 1 is the workflow orchestration layer, built on LangGraph4j, the Java port of LangGraph you saw in the Python session. It defines your workflow as a directed graph where nodes are processing steps. We've added checkpoints, state management, and observability on top. Now, some nodes are just standard Java logic, but the interesting ones are AI Nodes. That's where Tier 2 comes in.
+There are two tiers. Tier 1 is the workflow orchestration layer, built on LangGraph. It defines your workflow as a directed graph where nodes are processing steps. I've added checkpoints, state management, and observability on top. Now, some nodes are just standard Java logic, but the interesting ones are AI Nodes. That's where Tier 2 comes in.
 
-Tier 2 is the agent pipeline layer, built on LangChain4j. This is where you define your agents, wire up tools, and compose them into pipelines that can run in parallel, chain sequentially, or loop iteratively.
+Tier 2 is the agent pipeline layer, built on LangChain. This is where you define your agents, wire up tools, and compose them into pipelines. You can run agents in parallel, chain them one after another, or loop them until the output is good enough.
 
 Spanning both tiers you have the database for prompts and state, Gemini for the LLM, and Azure for authentication. You don't wire these up yourself. Nexus AI connects to them automatically.
-
-Now, why Java and not Python? When this initiative started, there was a proposal to build it in Python. We realised pretty quickly that wouldn't work for us. Our ecosystem is Spring Boot. Our teams are Java engineers. Java-native means direct access to dependency injection, the bank's WIF authentication libraries, and our existing database infrastructure, all natively. No bridges, no adapters, no second deployment pipeline.
 
 **[Slide 5, AgentSpec]**
 
@@ -64,15 +64,13 @@ Now let's go inside Tier 2. Every agent in Nexus AI is defined by an AgentSpec. 
 
 The name maps directly to the prompt lookup in the database. All model parameters, system instructions, and temperature are loaded from the database at runtime. You change the prompt without changing code.
 
-Inputs declares which keys this agent reads from the shared scope. The framework resolves the values automatically. OutputKey is where this agent writes its result. Downstream agents read from this key.
-
-Tools are Java objects with @Tool-annotated methods. The LLM sees these as callable functions. And the listener is the AgentMonitor that tracks timing, inputs, outputs, and errors.
+Manual descripton
 
 You describe what the agent needs. The framework handles how it runs.
 
 **[Slide 6, Spring Boot Agent Configuration]**
 
-This is how you configure agents in your Spring Boot application. On the left, a simple agent configuration. You build an AgentSpec, set the name, declare inputs and outputs, attach tools and the listener. It's a Spring bean, standard dependency injection.
+Manual description for simple sequence
 
 On the right, a critic loop configuration. Two agents, a critic and a refiner, wired into a loop. The critic evaluates the output, the refiner improves it. The framework handles the iteration logic. You just define the agents and the quality threshold.
 
@@ -82,9 +80,7 @@ Both are just Spring @Bean methods. If you know Spring Boot, you already know ho
 
 Here's what a workflow looks like in code. This is the real CSM extraction workflow.
 
-We register each node, download documents, upload to cloud storage, CSM extraction, auto-answer trigger. Then we define the edges, start to download, download to upload, upload to extraction, extraction to persistence, persistence to auto-answer, auto-answer to end. Compile. That's it.
-
-The interesting part is that CSM Extraction AI Node. It looks like just another node in the graph. But inside it, there's a full 12-agent Tier 2 pipeline. The graph doesn't need to know about that complexity. It just sees a node that takes input state and returns output state.
+Its all manual explaination.
 
 ---
 
@@ -96,19 +92,19 @@ Now let me show you the data side. This is the entity relationship diagram for t
 
 At the top left, AI_CHAT_PROMPT. This is where all agent configurations live. Prompts, model settings, temperature, response schemas, everything. At the top right, AI_CHAT_WORKFLOW_RUN. This is the parent metadata table for every workflow execution.
 
-The workflow run table has a one-to-many relationship with two tables. NEXUS_AI_AGENT_EXECUTIONS, every individual agent call within that workflow. And NEXUS_AI_CHECKPOINT, the graph state snapshot at every node transition.
+Each workflow run links to two child tables. NEXUS_AI_AGENT_EXECUTIONS, that's every individual agent call within that run. And NEXUS_AI_CHECKPOINT, the graph state at every node transition.
 
-The prompt table also links to agent executions through the prompt version, so you always know which version of the prompt produced a given result.
+The prompt table also links to executions through the version number, so you can always trace a result back to the exact prompt that produced it.
 
-Four tables. Config, metadata, execution trace, and state persistence. Let me walk through each one.
+Let me walk through each one.
 
 **[Slide 9, Prompt Table]**
 
 This is the prompt table, AI_CHAT_PROMPT. Every agent's complete configuration lives here.
 
-You can see the prompt code and version as the composite primary key. The system instruction, model name, temperature, top P, top K, max output tokens, thinking budget, response schema, it's all here.
+The primary key is prompt code plus version. And then you've got everything the agent needs in one row, the system instruction, model name, temperature, token limits, thinking budget, response schema. It's all here.
 
-This is one of my favourite design decisions. Prompts live in the database, not in code. You want to change how an agent behaves? Update this row. The next execution picks up the new configuration. No code change, no pull request, no deployment. Prompt engineers iterate independently from developers.
+This is one of my favourite design decisions. Prompts live in the database, not in code. So if you want to change how an agent behaves, you just update this row. Next execution picks up the new config automatically. No code change, no deployment. Your prompt engineers can iterate without waiting on developers.
 
 And here's the important part. Our framework loads and validates all prompt configurations at application start. If an input variable is referenced in the prompt template but not declared in the agent's inputs, the application throws an exception before it serves a single request. You find configuration errors at startup, not in production.
 
@@ -118,27 +114,27 @@ This is the workflow run table, AI_CHAT_WORKFLOW_RUN. Every workflow execution c
 
 The RUN_ID is the key, and this is what links everything together. You can see the function code identifying which workflow ran, the status, running, finished, or failed. The KYC_ID tells you which client this ran for. Profile version, timestamps, who created it.
 
-This is your compliance and audit trail. You can query any run, when it started, when it finished, what triggered it, what the outcome was. And the RUN_ID is the foreign key that connects to both the agent execution table and the checkpoints table. One RUN_ID, complete traceability of everything that happened.
+This is your audit trail. You can look up any run and see when it started, when it finished, what triggered it, what happened. And that RUN_ID is the thread that connects everything, the agent executions, the checkpoints, all linked back to this one record.
 
 **[Slide 11, Agent Execution Table]**
 
 This is where it gets really interesting. NEXUS_AI_AGENT_EXECUTIONS, every single LLM call within a workflow run.
 
-Look at the columns. Agent ID, agent name, the run ID linking back to the workflow, invocation order, status. Input data, the full prompt that was sent. Output data, the full response that came back. Error message if something failed. Start time, end time, duration in milliseconds.
+You can see the key fields on screen. The agent name, which run it belongs to, what order it ran in, its status. Then the interesting part, the full input that was sent to the LLM and the full output that came back. Plus timing down to the millisecond.
 
-And then the token metrics section. Input tokens, output tokens, total tokens, cached content tokens, thinking tokens, tool use prompt tokens, LLM call count, and a full token usage details JSON. You know exactly what every agent consumed.
+Below that, token usage. How many tokens went in, how many came out, how many were cached, how many the model spent thinking. All broken down per agent call.
 
-The Nexus AI framework automatically saves every agent execution here. The developer doesn't write a single line of database code. You define your agents, run your pipeline, and every interaction with the LLM is recorded. When an agent produces unexpected output, you don't guess. You look up this table and see exactly what happened.
+The framework saves all of this automatically. You don't write any database code. When an agent produces something unexpected, you just look up this table and see exactly what happened.
 
 **[Slide 12, Checkpoints Table]**
 
 The last table, NEXUS_AI_CHECKPOINT. This stores the graph state at every node transition.
 
-Checkpoint ID, run ID linking back to the workflow, the node that just completed, the next node in the graph, and the full state data as a CLOB, the complete state snapshot at that point in the execution.
+You can see the run ID, which node just completed, which node is next, and the full state data at that point.
 
-This is what enables resumability and debugging. If a workflow fails at node 4, you have the complete state from node 3. You can see exactly what data was flowing through the graph at that point. And because we store the next node ID, the framework knows exactly where to resume from.
+So if a workflow fails at node 4, you have the complete state from node 3. You know exactly what data was flowing through the graph. And because the next node is stored, the framework knows where to pick back up.
 
-Combined with the agent execution table, you have two complementary views. The checkpoint table shows you the graph-level state flow, and the execution table shows you the agent-level LLM interactions. Together, full observability from start to finish.
+So now you have two views. The checkpoint table tells you what was happening at the graph level. The execution table tells you what each agent said to the LLM and what came back. Between the two, you can trace anything.
 
 ---
 
@@ -150,7 +146,7 @@ You just saw the raw execution data, database tables, agent traces, token counts
 
 On the left, what Studio delivers today. Graph visualization. The framework reads your workflow graph definition and renders it as an interactive UI. You can run workflows directly from the UI, trigger executions and watch them in real time. As agents execute, nodes light up, complete, or fail. And you can click any node to inspect the full state snapshot at that checkpoint.
 
-On the right, where we're taking it. The vision is Swagger for AI. If you've used Swagger for REST APIs, you know the value. It reads your API definitions and gives you a UI to explore and test them. That's what we want for agents. The framework will auto-discover every agent registered in your application context and build a UI for it. Run individual agents in isolation, or full workflows end to end. One UI for everything. Like Swagger gave REST APIs a face, Studio gives agents a face.
+On the right, where I'm taking it. The vision is Swagger for AI. If you've used Swagger for REST APIs, you know the value. It reads your API definitions and gives you a UI to explore and test them. That's what I want for agents. The framework will auto-discover every agent registered in your application context and build a UI for it. Run individual agents in isolation, or full workflows end to end. One UI for everything. Like Swagger gave REST APIs a face, Studio gives agents a face.
 
 It's a React and TypeScript single-page application, packaged as a Spring Boot JAR. Add one Maven dependency, you get the full UI.
 
@@ -172,9 +168,9 @@ Now let's switch to PromptLint. And I want to start with a fundamental question.
 
 Prompts are code. They define how LLM agents behave, what they extract, how they classify, what format they return. But unlike application code, prompts have no linting. No static analysis. No automated quality gates.
 
-In practice, prompts silently degrade. Someone adds vague language. Someone removes the output schema. Someone introduces contradictory rules. The LLM starts hallucinating or returning malformed output. And nobody can pinpoint when the regression happened, because nobody was testing the prompt.
+In practice, prompts silently degrade. A bit of vague language gets added, the output schema gets removed, contradictory rules creep in. The LLM starts hallucinating or returning malformed output. And nobody can pinpoint when it broke, because nobody was testing the prompt.
 
-PromptLint changes that. It brings the discipline of static analysis to LLM prompts. Rule-based and deterministic, no LLM calls, no API keys, no latency. Runs in milliseconds. And it's fully deterministic. The same prompt always produces the same score.
+PromptLint changes that. It's static analysis for prompts. No LLM calls, no API keys, runs in milliseconds. Fully deterministic, same prompt always gives the same score.
 
 **[Slide 16, 8 Quality Dimensions]**
 
@@ -188,11 +184,11 @@ Each dimension scores 0 to 1. The overall score is a weighted average, and the w
 
 **[Slide 17, JUnit API + CI Integration]**
 
-Here's how you use it. On the left, a real test from our codebase. It fetches the CSM_CLASSIFIER prompt from the database, wraps it in a PromptUnderTest with the agent's declared inputs, output key, agent type profile, and response schema. Then the analyser runs against it. The assertion at the bottom, passesThreshold 0.75 and hasNoCriticalIssues. If the prompt degrades below that threshold, the test fails. Same JUnit runner, same CI pipeline, same quality bar as your Java code.
+Here's how you use it. On the left, a real test from our codebase. You fetch the prompt from the database, wrap it with its inputs, output key, and agent type. Then the analyser scores it. The assertion at the bottom says pass if the score is above 0.75 and there are no critical issues. If the prompt degrades, the test fails. Same JUnit runner, same CI pipeline as your Java code.
 
-On the right, the actual output. The quality report for a document-summarizer prompt using the extraction profile. Overall score 0.75, pass. You can see every dimension scored independently. Clarity and consistency at 1.0, groundedness at 0.92, but constraint coverage at 0.20, that's the weakest. Below the scores, specific warnings. No positive examples, no empty input handling, no defence against embedded prompts. And then actionable suggestions, add examples, fix JSON types, add null handling. This is what prints to your CI log. You don't guess what's wrong with your prompt, the report tells you exactly what to fix.
+On the right, the actual output. You can see the overall score, 0.75 pass, and every dimension scored independently. Clarity at 1.0, groundedness at 0.92, but constraint coverage at 0.20, that's the weak spot. Below that, specific warnings telling you what's wrong and suggestions for how to fix it. This is what prints to your CI log.
 
-No extra service, no API key, no network call. Just a dependency on the classpath. Runs in milliseconds.
+Just a dependency on the classpath. No extra service, no API key.
 
 ---
 
@@ -204,7 +200,7 @@ To get started, three Maven dependencies. nexus-ai gives you the full workflow o
 
 On the right, your application YAML. You configure your WIF provider and keystore paths for authentication. Azure tenant and client IDs. Google Cloud project, location, and credentials for Gemini. Rate limiting settings. And Studio, just set enabled to true and define the path. That's it.
 
-Three dependencies. A few properties. You have the whole framework, workflow orchestration, agent pipelines, enterprise authentication, observability, prompt quality gates, and a visual developer experience. All built in Java, running in production, available for your team to adopt. If you have questions or want help building your first workflow, reach out to me directly.
+Three dependencies, a few properties, and you're running. Everything I showed you today, the orchestration, the agents, the auth, the observability, the prompt quality gates, the Studio UI, it's all there. Running in production right now. If you want help getting started or building your first workflow, come talk to me.
 
 **[Slide 19, Thank You & Q&A]**
 
