@@ -30,7 +30,7 @@ That's what I built. Let me show you what's inside.
 
 **[Slide 3, What's Inside Nexus AI]**
 
-Before I show you the architecture, I want to give you a sense of what Nexus AI actually provides under the hood. There's a lot here, so let me walk through it column by column.
+Nexus AI is built on top of LangChain and LangGraph. Everything I'm about to show you is what I've added on top of those foundations. There's a lot here, so let me walk through it column by column.
 
 Starting with the core engine. I wrote custom chat models from scratch. LangChain gives you default models, but they didn't give me enough control. I needed custom response handling, specific token tracking, tight integration with our auth chain. So I replaced them entirely.
 
