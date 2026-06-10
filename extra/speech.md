@@ -110,29 +110,29 @@ And here's the important part. Our framework loads and validates all prompt conf
 
 **[Slide 10, Workflow Run Table]**
 
-This is the workflow run table, AI_CHAT_WORKFLOW_RUN. Every workflow execution creates a record here.
+This is the workflow run table, AI_WORKFLOW_RUN. Every workflow execution creates a record here.
 
-The RUN_ID is the key, and this is what links everything together. You can see the function code identifying which workflow ran, the status, running, finished, or failed. The KYC_ID tells you which client this ran for. Profile version, timestamps, who created it.
+The CW_RUN_ID is the key, and this is what links everything together. You can see the function code identifying which workflow ran, the status, running, finished, or failed. There's a run comment for describing the execution. The party ID tells you which client this ran for. The profile version ID is the version of the KYC review for that client. Then who created it, when, and when it was last updated.
 
-This is your audit trail. You can look up any run and see when it started, when it finished, what triggered it, what happened. And that RUN_ID is the thread that connects everything, the agent executions, the checkpoints, all linked back to this one record.
+This is your audit trail. You can look up any run and see when it started, what triggered it, what happened. And at the bottom of the slide you can see the relationship, that CW_RUN_ID is the thread that connects everything. One workflow run links to many agent executions and many checkpoints. Full traceability from client to every LLM call.
 
 **[Slide 11, Agent Execution Table]**
 
 This is where it gets really interesting. NEXUS_AI_AGENT_EXECUTIONS, every single LLM call within a workflow run.
 
-You can see the key fields on screen. The agent name, which run it belongs to, what order it ran in, its status. Then the interesting part, the full input that was sent to the LLM and the full output that came back. Plus timing down to the millisecond.
+You can see three groups on the slide. On the left, identity and execution, the agent name, run ID, invocation order, status, and which prompt version was used. In the middle, timing and data, when it started, when it finished, duration in milliseconds, the full input sent to the LLM, the full output that came back, and the error message if something failed. On the right, token metrics, how many tokens went in, how many came out, how many were cached, how many the model spent thinking.
 
-Below that, token usage. How many tokens went in, how many came out, how many were cached, how many the model spent thinking. All broken down per agent call.
+And at the bottom, four things you get from this. Zero code, the framework persists every agent run automatically. Full I/O capture, input and output stored for debugging and replay. Cost visibility, token breakdown per agent including cached and thinking tokens. And compliance ready, a complete audit trail of who ran what, when, and how long it took.
 
-The framework saves all of this automatically. You don't write any database code. When an agent produces something unexpected, you just look up this table and see exactly what happened.
+You don't write any database code for this. When an agent produces something unexpected, you just look up this table and see exactly what happened.
 
 **[Slide 12, Checkpoints Table]**
 
-The last table, NEXUS_AI_CHECKPOINT. This stores the graph state at every node transition.
+The last table, NEXUS_AI_CHECKPOINT. The framework saves the full graph state at every node transition.
 
-You can see the run ID, which node just completed, which node is next, and the full state data at that point.
+You can see the columns on screen. Checkpoint ID, the run ID linking back to the workflow, the node that just completed, the next node to execute, and state data as a CLOB, that's the full graph state snapshot with all scope variables as JSON. Plus a timestamp for when it was saved.
 
-So if a workflow fails at node 4, you have the complete state from node 3. You know exactly what data was flowing through the graph. And because the next node is stored, the framework knows where to pick back up.
+And at the bottom, four things this gives you. Replay, you can re-run from any checkpoint without restarting the entire workflow. Debug, inspect the full state at every node, what went in, what came out. Resume, if a workflow fails, the next node ID tells the framework exactly where to pick back up. And audit, every state transition is recorded and tied back to the run ID.
 
 So now you have two views. The checkpoint table tells you what was happening at the graph level. The execution table tells you what each agent said to the LLM and what came back. Between the two, you can trace anything.
 
