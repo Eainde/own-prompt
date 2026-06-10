@@ -176,11 +176,11 @@ That's why I built PromptLint. It's static analysis for prompts. It doesn't call
 
 PromptLint evaluates prompts across eight independent dimensions.
 
-On the left column, Clarity, does the prompt have a clear role and task definition? Specificity, are there numbered rules, concrete examples, quantified thresholds? Groundedness, does it instruct the LLM to ground answers in source material and avoid hallucination? And Output Contract, is the expected response schema documented with examples?
+On the top row, Clarity checks sentence structure, ambiguous pronouns, vague quantifiers. Specificity checks whether the prompt gives concrete rules instead of vague instructions. Constraint Coverage checks whether the prompt covers edge cases and failure modes. And Consistency looks for contradictory instructions within the same prompt.
 
-On the right, Consistency, do template variables match declared inputs, are there contradictory instructions? Relevance, is everything in the prompt actually needed for the task? Length Efficiency, is the prompt concise relative to its complexity? And Safety, is there system and user boundary enforcement, input sanitisation?
+On the bottom row, Groundedness checks for hallucination risk and claims without context anchoring. Output Format catches missing output schemas and ambiguous response formats. Token Efficiency flags unnecessary verbosity relative to instruction density. And Injection Risk checks for prompt injection surface area and missing delimiters.
 
-Each dimension scores out of 100. The overall score is a weighted average, and the weights depend on the agent profile. An extraction agent weights groundedness highest. A formatting agent weights output contract. You can define custom profiles with your own weights.
+Each dimension scores 0 to 1. The overall score is a weighted composite, and you can configure thresholds per dimension or on the aggregate. You can also define custom profiles with your own weights.
 
 **[Slide 17, JUnit API + CI Integration]**
 
