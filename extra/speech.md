@@ -164,23 +164,23 @@ This is the same execution data from the database tables, rendered as a develope
 
 **[Slide 15, Prompts Are Code]**
 
-Now let's switch to PromptLint. And I want to start with a fundamental question. What happens when a prompt goes bad?
+Now let's switch to PromptLint. Think about this, what happens when a prompt goes bad?
 
-Prompts are code. They define how LLM agents behave, what they extract, how they classify, what format they return. But unlike application code, prompts have no linting. No static analysis. No automated quality gates.
+Prompts define how your agents behave. What they extract, how they classify, what format they return. They're code. But nobody treats them like code. There's no linting, no static analysis, no quality gates.
 
-In practice, prompts silently degrade. A bit of vague language gets added, the output schema gets removed, contradictory rules creep in. The LLM starts hallucinating or returning malformed output. And nobody can pinpoint when it broke, because nobody was testing the prompt.
+So what happens is prompts silently degrade. Vague language gets added, the output schema gets removed, contradictory rules creep in. The LLM starts hallucinating or returning malformed output. And nobody can pinpoint when it broke, because nobody was testing the prompt.
 
-PromptLint changes that. It's static analysis for prompts. No LLM calls, no API keys, runs in milliseconds. Fully deterministic, same prompt always gives the same score.
+That's why I built PromptLint. Static analysis for prompts. No LLM calls, no API keys, runs in milliseconds. Same prompt always gives the same score.
 
 **[Slide 16, 8 Quality Dimensions]**
 
 PromptLint evaluates prompts across eight independent dimensions.
 
-Clarity, does the prompt have a clear role and task definition? Specificity, are there numbered rules, concrete examples, quantified thresholds? Groundedness, does it instruct the LLM to ground answers in source material and avoid hallucination? Output Format, is the expected JSON schema documented with examples?
+On the left column, Clarity, does the prompt have a clear role and task definition? Specificity, are there numbered rules, concrete examples, quantified thresholds? Groundedness, does it instruct the LLM to ground answers in source material and avoid hallucination? And Output Contract, is the expected response schema documented with examples?
 
-Conciseness, is there redundancy or repetition? Consistency, do template variables match declared inputs, are there contradictory instructions? Token Efficiency, is the prompt concise relative to its complexity? And Injection Risk, is there system/user boundary enforcement, input sanitisation?
+On the right, Consistency, do template variables match declared inputs, are there contradictory instructions? Relevance, is everything in the prompt actually needed for the task? Length Efficiency, is the prompt concise relative to its complexity? And Safety, is there system and user boundary enforcement, input sanitisation?
 
-Each dimension scores 0 to 1. The overall score is a weighted average, and the weights depend on the agent type. An extraction agent weights groundedness highest. A classification agent weights specificity. You can also define custom profiles with your own weights.
+Each dimension scores out of 100. The overall score is a weighted average, and the weights depend on the agent profile. An extraction agent weights groundedness highest. A formatting agent weights output contract. You can define custom profiles with your own weights.
 
 **[Slide 17, JUnit API + CI Integration]**
 
