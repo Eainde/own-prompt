@@ -14,11 +14,11 @@ Good morning everyone. I'm Akshay Dipta, Senior Engineer in CLM Tech. Today I'm 
 
 You've already seen agents and graphs in the Python session. Today I'll show you a production-grade Java-native framework, a visual developer experience, and a static quality analyser for prompts.
 
-Now, why Java and not Python? When this initiative started, there was a proposal to build it in Python. I realised pretty quickly that wouldn't work. Our domain microservices, our infrastructure, our developers are all Java. The goal isn't to build agents as separate apps. It's to make our existing services agentic, plug AI directly into the processes already running in production. Not a parallel stack, just a natural extension of what we already have.
+Now, why Java and not Python? When this initiative started, there was a proposal to build it in Python. I realised pretty quickly that wouldn't work. Our domain microservices, our infrastructure, our developers are all Java. The goal isn't to build agents as separate apps. It's to make our existing services agentic, plug AI directly into the processes already running in production. We don't want a parallel stack, just a natural extension of what we already have.
 
 **[Slide 2, The Problem + Vision]**
 
-So let's start with the problem. When we began exploring AI agents in dbCLM, building a single agent took 18 to 24 hours. Every team was reimplementing auth, retry logic, model configuration from scratch. There were no quality gates for prompts, so bad prompts reached production silently. No observability, no audit trail of what the AI decided and why. And critically, no control over the LLM integration itself. Teams were locked into whatever the library gave them by default.
+So let's start with the problem. When we began exploring AI agents in dbCLM, building a single agent took 18 to 24 hours. Every team was reimplementing auth, retry logic, model configuration from scratch. There were no quality gates for prompts, so bad prompts reached production silently. There was no observability, no audit trail of what the AI decided and why. And critically, no control over the LLM integration itself. Teams were locked into whatever the library gave them by default.
 
 So the vision was clear. What if building a new agent took one hour, not twenty-four? What if you could express a twelve-agent pipeline with parallel execution and loops in twenty lines of code? What if observability, authentication, and prompts were all built in by default, no developer code needed? What if prompt quality was enforced in CI the same way we enforce code quality, deterministic, no LLM calls, fail the build if a prompt isn't good enough? And what if you could see your agents execute live, click any node, and inspect the full state at that point?
 
@@ -36,7 +36,7 @@ Starting with the core engine. I wrote custom chat models from scratch. LangChai
 
 Custom serialization. I've overridden the default serialization and deserialization of the framework because I needed to support custom object types.
 
-Auto checkpoints. The framework automatically persists graph state to the database at every node transition. If a workflow fails halfway through, you can see exactly where it stopped and what the state looked like. No developer code needed for this, it's built into the framework.
+Auto checkpoints. The framework automatically persists graph state to the database at every node transition. If a workflow fails halfway through, you can see exactly where it stopped and what the state looked like. You don't write any code for this, it's built into the framework.
 
 Now the listeners column. This is where observability lives. The AgentExecution listener logs every LLM input and output to the database automatically. You don't add logging code, it just happens. The Observability listener ties into Spring Boot's correlation IDs, so your AI calls show up in the same Splunk traces and Langfuse dashboards as everything else. And the Token Usage listener tracks how many tokens each agent used, broken down by type, so you always know what you're spending.
 
@@ -104,7 +104,7 @@ This is the prompt table, AI_CHAT_PROMPT. Every agent's complete configuration l
 
 The primary key is prompt code plus version. And then you've got everything the agent needs in one row, the system instruction, model name, temperature, token limits, thinking budget, response schema. It's all here.
 
-This is one of my favourite design decisions. Prompts live in the database, not in code. So if you want to change how an agent behaves, you just update this row. Next execution picks up the new config automatically. No code change, no deployment. Your prompt engineers can iterate without waiting on developers.
+This is one of my favourite design decisions. Prompts live in the database, not in code. So if you want to change how an agent behaves, you just update this row. Next execution picks up the new config automatically. You don't need a code change or a deployment. Your prompt engineers can iterate without waiting on developers.
 
 And here's the important part. Our framework loads and validates all prompt configurations at application start. If an input variable is referenced in the prompt template but not declared in the agent's inputs, the application throws an exception before it serves a single request. You find configuration errors at startup, not in production.
 
@@ -114,7 +114,7 @@ This is the workflow run table, AI_WORKFLOW_RUN. Every workflow execution create
 
 The CW_RUN_ID is the key, and this is what links everything together. You can see the function code identifying which workflow ran, the status, running, finished, or failed. There's a run comment for describing the execution. The party ID tells you which client this ran for. The profile version ID is the version of the KYC review for that client. Then who created it, when, and when it was last updated.
 
-This is your audit trail. You can look up any run and see when it started, what triggered it, what happened. And at the bottom of the slide you can see the relationship, that CW_RUN_ID is the thread that connects everything. One workflow run links to many agent executions and many checkpoints. Full traceability from client to every LLM call.
+This is your audit trail. You can look up any run and see when it started, what triggered it, what happened. And at the bottom of the slide you can see the relationship, that CW_RUN_ID is the thread that connects everything. One workflow run links to many agent executions and many checkpoints. You get full traceability from client to every LLM call.
 
 **[Slide 11, Agent Execution Table]**
 
@@ -144,15 +144,15 @@ So now you have two views. The checkpoint table tells you what was happening at 
 
 You just saw the raw execution data, database tables, agent traces, token counts. That's powerful for auditing and debugging. But when you're developing a 12-agent pipeline with parallel waves and iterative loops, you need to see it. So I built Nexus AI Studio.
 
-On the left, what Studio delivers today. Graph visualization. The framework reads your workflow graph definition and renders it as an interactive UI. You can run workflows directly from the UI, trigger executions and watch them in real time. As agents execute, nodes light up, complete, or fail. And you can click any node to inspect the full state snapshot at that checkpoint.
+On the left, what Studio delivers today. It gives you graph visualization. The framework reads your workflow graph definition and renders it as an interactive UI. You can run workflows directly from the UI, trigger executions and watch them in real time. As agents execute, nodes light up, complete, or fail. And you can click any node to inspect the full state snapshot at that checkpoint.
 
-On the right, where I'm taking it. The vision is Swagger for AI. If you've used Swagger for REST APIs, you know the value. It reads your API definitions and gives you a UI to explore and test them. That's what I want for agents. The framework will auto-discover every agent registered in your application context and build a UI for it. Run individual agents in isolation, or full workflows end to end. One UI for everything. Like Swagger gave REST APIs a face, Studio gives agents a face.
+On the right, where I'm taking it. The vision is Swagger for AI. If you've used Swagger for REST APIs, you know the value. It reads your API definitions and gives you a UI to explore and test them. That's what I want for agents. The framework will auto-discover every agent registered in your application context and build a UI for it. You can run individual agents in isolation, or full workflows end to end. You get one UI for everything. Like Swagger gave REST APIs a face, Studio gives agents a face.
 
 It's a React and TypeScript single-page application, packaged as a Spring Boot JAR. Add one Maven dependency, you get the full UI.
 
 **[Slide 14, Nexus AI Studio, Live Demo]**
 
-Let me show you what this looks like. This is Nexus AI Studio running against the real CSM workflow. Three panels. On the left, the thread list and input parameters. In the centre, the full graph topology, every node you saw in the code. On the right, the state inspector.
+Let me show you what this looks like. This is Nexus AI Studio running against the real CSM workflow. There are three panels. On the left, the thread list and input parameters. In the centre, the full graph topology, every node you saw in the code. On the right, the state inspector.
 
 You can see every node has completed, green checkmarks. The parallel nodes activated simultaneously. And if I click a node, the state panel shows the full checkpoint data at that point, what went in, what came out.
 
@@ -170,7 +170,7 @@ Prompts define how your agents behave. What they extract, how they classify, wha
 
 So what happens is prompts silently degrade. Vague language gets added, the output schema gets removed, contradictory rules creep in. The LLM starts hallucinating or returning malformed output. And nobody can pinpoint when it broke, because nobody was testing the prompt.
 
-That's why I built PromptLint. Static analysis for prompts. No LLM calls, no API keys, runs in milliseconds. Same prompt always gives the same score.
+That's why I built PromptLint. It's static analysis for prompts. It doesn't call any LLM, doesn't need API keys, and it runs in milliseconds. The same prompt always gives the same score.
 
 **[Slide 16, 8 Quality Dimensions]**
 
@@ -188,7 +188,7 @@ Here's how you use it. On the left, a real test from our codebase. You fetch the
 
 On the right, the actual output. You can see the overall score, 0.75 pass, and every dimension scored independently. Clarity at 1.0, groundedness at 0.92, but constraint coverage at 0.20, that's the weak spot. Below that, specific warnings telling you what's wrong and suggestions for how to fix it. This is what prints to your CI log.
 
-Just a dependency on the classpath. No extra service, no API key.
+It's just a dependency on the classpath. You don't need an extra service or API key.
 
 ---
 
@@ -198,7 +198,7 @@ Just a dependency on the classpath. No extra service, no API key.
 
 To get started, three Maven dependencies. nexus-ai gives you the full workflow orchestration and agent pipeline framework. nexus-ai-studio gives you the graph visualization UI. And clm-prompt-lint gives you the static prompt analyser.
 
-On the right, your application YAML. You configure your WIF provider and keystore paths for authentication. Azure tenant and client IDs. Google Cloud project, location, and credentials for Gemini. Rate limiting settings. And Studio, just set enabled to true and define the path. That's it.
+On the right, your application YAML. You configure your WIF provider and keystore paths for authentication, your Azure tenant and client IDs, your Google Cloud project and credentials for Gemini, and your rate limiting settings. For Studio, just set enabled to true and define the path. That's it.
 
 Three dependencies, a few properties, and you're running. Everything I showed you today, the orchestration, the agents, the auth, the observability, the prompt quality gates, the Studio UI, it's all there. Running in production right now. If you want help getting started or building your first workflow, come talk to me.
 
