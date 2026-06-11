@@ -8,18 +8,8 @@
       "description": "One entry per Wave 1 input document. Nodes enriched with normalization fields. Edges carried forward unchanged.",
       "items": {
         "type": "object",
-        "required": ["client_entity", "entity_type_category", "source_document", "nodes", "edges", "cycles", "conflicts"],
+        "required": ["source_document", "nodes", "edges", "cycles", "conflicts"],
         "properties": {
-          "client_entity": { "type": "string" },
-          "entity_type_category": {
-            "type": "string",
-            "enum": [
-              "Category 1 - Private/Regulated/Listed",
-              "Category 2 - Adverse Media",
-              "Category 3 - SPV/Trust/Charity/Foundation",
-              "Entity Type not confirmed"
-            ]
-          },
           "source_document": { "type": "string" },
           "nodes": {
             "type": "array",
@@ -30,13 +20,17 @@
             "description": "Ownership edges carried forward unchanged from Wave 1.",
             "items": {
               "type": "object",
-              "required": ["owner", "owned", "ownership_percentage_direct", "control", "source", "direction_proof"],
+              "required": ["owner", "owned", "ownership_percentage_direct", "control", "source", "source_type", "direction_proof"],
               "properties": {
                 "owner": { "type": "string" },
                 "owned": { "type": "string" },
                 "ownership_percentage_direct": { "type": "string" },
                 "control": { "type": "string" },
                 "source": { "type": "string" },
+                "source_type": {
+                  "type": "string",
+                  "enum": ["chart_structure", "document_text"]
+                },
                 "direction_proof": { "type": "string", "description": "Direction proof from Wave 1. Carried forward unchanged." }
               }
             }
@@ -70,7 +64,7 @@
                 "source_b": { "type": "string" },
                 "resolution_strategy": {
                   "type": "string",
-                  "enum": ["use_higher", "use_lower", "use_most_recent", "manual"]
+                  "enum": ["use_higher", "use_lower", "use_most_recent", "manual", "deferred"]
                 },
                 "resolved_value": { "type": "string" }
               }
@@ -84,7 +78,7 @@
     "normalized_node": {
       "type": "object",
       "required": [
-        "id", "name", "type", "layer", "ownership_chain",
+        "id", "name", "type", "entity_type_category",
         "listing_proof", "data_gaps", "exceptions",
         "normalizedName", "dedupKey", "asciiDedupKey", "normalizationNote",
         "classification_reasoning"
@@ -100,11 +94,14 @@
             "Partnership", "Government Entity", "Branch", "Unknown"
           ]
         },
-        "layer": { "type": "integer", "minimum": 0 },
-        "ownership_chain": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Full path of entity ids from the target entity (layer 0) to this node. Carried forward unchanged from Wave 1."
+        "entity_type_category": {
+          "type": "string",
+          "enum": [
+            "Category 1 - Private/Regulated/Listed",
+            "Category 2 - Adverse Media",
+            "Category 3 - SPV/Trust/Charity/Foundation",
+            "Entity Type not confirmed"
+          ]
         },
         "listing_proof": {
           "oneOf": [

@@ -44,7 +44,7 @@ public class W4DualRunService {
      * {@code w4.primary-strategy} ("llm" or "code"), and triggers an async
      * comparison for observability.
      *
-     * @param w3               the W3 deduplication output
+     * @param w3               the W3 merge + comparison output
      * @param clientEntityName the client entity name
      * @return the W4Output from the primary strategy, falling back to the shadow
      *         if the primary fails; throws if both fail

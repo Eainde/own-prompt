@@ -1,57 +1,29 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["client_entity", "entity_type_category", "source_document", "nodes", "edges", "cycles", "conflicts"],
+  "required": ["source_document", "nodes", "edges", "cycles", "conflicts"],
   "properties": {
-    "client_entity": {
-      "type": "string",
-      "description": "Legal name of the target entity (Layer 0)"
-    },
-    "entity_type_category": {
-      "type": "string",
-      "enum": [
-        "Category 1 - Private/Regulated/Listed",
-        "Category 2 - Adverse Media",
-        "Category 3 - SPV/Trust/Charity/Foundation",
-        "Entity Type not confirmed"
-      ]
-    },
     "source_document": {
       "type": "string",
-      "description": "GCS path or document name this graph was extracted from"
+      "description": "GCS path or document name this flat ownership graph was extracted from."
     },
     "nodes": {
       "type": "array",
-      "description": "All ownership entities extracted from this document. Ownership relationship data lives on edges.",
+      "description": "Every entity found in the document. No target, no layer, no ownership_chain — grounding is a downstream agent.",
       "items": {
         "type": "object",
-        "required": ["id", "name", "type", "layer", "ownership_chain", "listing_proof", "data_gaps", "exceptions", "classification_reasoning"],
+        "required": ["id", "name", "type", "entity_type_category", "listing_proof", "data_gaps", "exceptions", "classification_reasoning"],
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "Slug: lowercase entity name with spaces replaced by underscores."
-          },
-          "name": {
-            "type": "string",
-            "description": "Legal name exactly as stated in the document."
-          },
+          "id": { "type": "string", "description": "Slug: lowercase name, spaces to underscores." },
+          "name": { "type": "string", "description": "Legal name exactly as stated in the document." },
           "type": {
             "type": "string",
-            "enum": [
-              "Listed Company", "Private Company", "Regulated Entity",
-              "Natural Person", "SPV", "Trust", "Charity", "Foundation",
-              "Partnership", "Government Entity", "Branch", "Unknown"
-            ]
+            "enum": ["Listed Company", "Private Company", "Regulated Entity", "Natural Person", "SPV", "Trust", "Charity", "Foundation", "Partnership", "Government Entity", "Branch", "Unknown"]
           },
-          "layer": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "0 = Client, 1 = direct owners, 2 = owners of layer 1, etc."
-          },
-          "ownership_chain": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Full path of entity ids from the target entity (layer 0) to this node. E.g. layer-0 node: [\"target_id\"], layer-2 node: [\"target_id\", \"layer1_owner_id\", \"this_node_id\"]."
+          "entity_type_category": {
+            "type": "string",
+            "enum": ["Category 1 - Private/Regulated/Listed", "Category 2 - Adverse Media", "Category 3 - SPV/Trust/Charity/Foundation", "Entity Type not confirmed"],
+            "description": "Per-node KYC category. Drives what to extract for this entity (e.g. Cat 3 SPV/Trust roles)."
           },
           "listing_proof": {
             "oneOf": [
@@ -72,71 +44,51 @@
           "exceptions": { "type": "string" },
           "classification_reasoning": {
             "type": "string",
-            "description": "Full classification trace: why this entity is an owner (not a subsidiary), how the layer was determined, entity type reasoning, and the document page/section that evidences it."
+            "description": "Entity type reasoning + the document page/section that evidences this entity. No owner/subsidiary/layer claims (grounding does that)."
           }
         }
       }
     },
     "edges": {
       "type": "array",
-      "description": "All ownership relationships extracted from this document.",
+      "description": "Every ownership relationship found, in whatever direction the document shows. No upward-only filtering.",
       "items": {
         "type": "object",
-        "required": ["owner", "owned", "ownership_percentage_direct", "control", "source", "direction_proof"],
+        "required": ["owner", "owned", "ownership_percentage_direct", "control", "source", "source_type", "direction_proof"],
         "properties": {
-          "owner": {
+          "owner": { "type": "string", "description": "id of the entity that holds the stake." },
+          "owned": { "type": "string", "description": "id of the entity whose stake is held." },
+          "ownership_percentage_direct": { "type": "string", "description": "Exact % as stated, or 'Not Available', or 'CONFLICT — see conflicts array'." },
+          "control": { "type": "string" },
+          "source": { "type": "string", "description": "Document name + page/section." },
+          "source_type": {
             "type": "string",
-            "description": "id of the entity that holds the ownership stake."
-          },
-          "owned": {
-            "type": "string",
-            "description": "id of the entity being owned."
-          },
-          "ownership_percentage_direct": {
-            "type": "string",
-            "description": "Exact % as stated in the document, or 'Not Available' if missing."
-          },
-          "control": {
-            "type": "string",
-            "description": "Evidence of control (voting rights, board rights, etc.). Null if no control evidence found."
-          },
-          "source": {
-            "type": "string",
-            "description": "Exact document name and page/section where this relationship is evidenced."
+            "enum": ["chart_structure", "document_text"],
+            "description": "Provenance: derived from the Chart Reader artifact, or read from non-chart document text."
           },
           "direction_proof": {
             "type": "string",
-            "description": "Why this edge direction is correct: which entity holds shares in which, and the document page/section that proves it."
+            "description": "For chart_structure edges: 'From chart_structure arrow: <evidence>'. For document_text edges: the page/section text proving direction."
           }
         }
       }
     },
     "cycles": {
       "type": "array",
-      "description": "Ownership cycles detected during extraction.",
+      "description": "Structural cycles detected by DFS over the flat directed edge graph.",
       "items": {
         "type": "object",
         "required": ["cycle_path", "detected_at", "source"],
         "properties": {
-          "cycle_path": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Entity ids forming the cycle, starting and ending at the repeated node."
-          },
-          "detected_at": {
-            "type": "string",
-            "enum": ["W1", "W3"]
-          },
-          "source": {
-            "type": "string",
-            "description": "Source document where the cycle was detected."
-          }
+          "cycle_path": { "type": "array", "items": { "type": "string" } },
+          "detected_at": { "type": "string", "enum": ["W1", "W3"] },
+          "source": { "type": "string" }
         }
       }
     },
     "conflicts": {
       "type": "array",
-      "description": "Ownership % conflicts found within this document.",
+      "description": "Within-document % conflicts (e.g. chart vs text). Resolution is deferred to Agent 4.",
       "items": {
         "type": "object",
         "required": ["owner", "owned", "conflict_description", "value_a", "source_a", "value_b", "source_b", "resolution_strategy", "resolved_value"],
@@ -148,14 +100,8 @@
           "source_a": { "type": "string" },
           "value_b": { "type": "string" },
           "source_b": { "type": "string" },
-          "resolution_strategy": {
-            "type": "string",
-            "enum": ["use_higher", "use_lower", "use_most_recent", "manual"]
-          },
-          "resolved_value": {
-            "type": "string",
-            "description": "The value Wave 5 should use. Derived by applying resolution_strategy to value_a and value_b."
-          }
+          "resolution_strategy": { "type": "string", "enum": ["use_higher", "use_lower", "use_most_recent", "manual", "deferred"] },
+          "resolved_value": { "type": "string" }
         }
       }
     }

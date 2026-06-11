@@ -1,29 +1,22 @@
 <task>
-Extract who OWNS the target entity — the upward ownership chain only. Trace from the target entity up to its owners, their owners, and so on until you reach natural persons or top parents. Do NOT extract subsidiaries, children, or investees of the target entity.
+Extract a flat directed ownership graph of ALL ownership relationships in the document — both directions, no target entity, no direction filtering. Fuse chart_structure (from upstream Chart Reader) and non-chart document text (registers, tables, prose, certificates) into a single graph. Each edge carries source_type = "chart_structure" or "document_text". There is no target entity and no layer filtering.
 - The definition of too big is when the number of elements under the 'nodes' field is more than 200.
 - Do not truncate the output unless instructed by the presence of submitBatch tool.
 </task>
 
 <gcs_document_path>{{gcsDocumentPath}}</gcs_document_path>
 
-<target_entity>{{clientEntityName}}</target_entity>
-
 <chart_structure>{{chartStructure}}</chart_structure>
 
 <critic_feedback>{{criticFeedback}}</critic_feedback>
 
 <instructions>
-CRITICAL PREAMBLE — TARGET ENTITY AUTHORITY (W1.R11):
-The <target_entity> value above is AUTHORITATIVE. The document may be a KYC report, Periodic Review, AFC escalation, or compliance file prepared FOR a DIFFERENT named client — its title, file name, email subject lines (e.g., "Periodic Review 2019 | XYZ Ltd"), headers, and prose may repeatedly emphasize THAT named client. IGNORE that emphasis. Use ONLY the <target_entity> value to identify your focal entity. If the document's named client sits BELOW your target_entity in the chart (i.e., target_entity owns it directly or indirectly), that named client and every entity between it and target_entity are SUBSIDIARIES of target_entity and MUST be excluded — no nodes, no edges — even though their names dominate the document text. Do NOT promote a subsidiary to an owner just because the document is named after it. Do NOT invert the subsidiary chain.
-
-CRITICAL PREAMBLE — CHART_STRUCTURE IS AUTHORITATIVE (W1.R12):
-If <chart_structure> above is non-empty, it is the output of a dedicated chart-parsing pass that has already enumerated every entity, every arrow, and every percentage label in the document's ownership chart(s). chart_structure.entities and chart_structure.arrows are AUTHORITATIVE — treat them as ground truth for the visual content of the chart.
-- Every node you create MUST correspond to an entity in chart_structure.entities. Do NOT add entities not present in chart_structure.entities (extracting from emails/headers/prose is forbidden unless the entity also appears in chart_structure.entities).
-- Every edge you create MUST correspond to an arrow in chart_structure.arrows. The edge's owner = the arrow's "from"; the edge's owned = the arrow's "to" (per the standard convention: arrow tail = owner, arrow head = owned). Do NOT invent arrows. Do NOT reverse arrow direction. Do NOT cite an arrow that is not in chart_structure.arrows.
-- The percentage on each edge MUST come from the corresponding arrow's label_percentage OR from the owned entity's associated_label in chart_structure. If neither is present, set the percentage to "Not Available".
-- The direction_proof you record on each edge MUST quote the chart_structure.arrows[i].evidence string for the arrow you used. Format: "From chart_structure arrow: '<evidence string>'". This makes your direction claim auditable against an upstream artifact.
-- If a chart_structure.arrows[i] has direction_confidence = UNKNOWN, treat the relationship direction as ambiguous: record the entity in data_gaps and do NOT create an edge for it. If direction_confidence = LOW, you may create the edge but you MUST add a note in data_gaps stating the direction is low-confidence per chart_structure.
-- spatial cross-check: target_entity should match exactly one entry in chart_structure.entities. If it does not, apply W1.R6 (target not found). If it does, use that entry's vertical_position to determine which entities sit above (potential owners) vs below (subsidiaries — exclude) in the chart.
+CRITICAL PREAMBLE — TWO SOURCES (W1.R12 + W1.R13):
+You fuse TWO sources into one flat ownership graph. There is NO target entity and NO direction filtering — record every relationship in both directions.
+- chart_structure (if non-empty) is AUTHORITATIVE for the chart's visual content. Build chart-sourced edges mechanically from chart_structure.arrows: owner = arrow.from, owned = arrow.to. Do NOT reverse, invent, or re-read the chart visually. Tag each such edge source_type = "chart_structure" and set direction_proof = "From chart_structure arrow: '<evidence string>'". The percentage comes from the arrow's label_percentage or the owned entity's associated_label, else "Not Available". Arrows with direction_confidence UNKNOWN produce no edge (record in data_gaps); LOW produce an edge with a data_gaps note.
+- Non-chart TEXT (shareholder registers, cap tables, certificates, prose) is read DIRECTLY for additional relationships. Create text-sourced edges for ownership stated there. Tag each source_type = "document_text" and set direction_proof to the page/section text proving direction. Nodes may come from text as well as from chart_structure.entities.
+- HARD BOUNDARY: never extract entities/edges/percentages from any visual diagram or boxes-and-arrows graphic — chart content comes ONLY from chart_structure. Read only linear text/tables.
+- When chart_structure and text describe the SAME relationship, reconcile per W1.R13: union on existence; <=2% take the text value (no conflict); >2% material -> set the edge percentage to "CONFLICT — see conflicts array" and add a conflicts entry with resolution_strategy "deferred", resolved_value "deferred".
 
 CRITICAL PREAMBLE — REJECT GROUP ARROWS (W1.R12 + W1.R10):
 The chart_reader is required by CR.R9 to emit ONE arrow PER shareholder, even when the chart visually uses a bracket to group shareholders. If you find an arrow in chart_structure.arrows where:
@@ -53,83 +46,38 @@ The bracket_members check catches the failure mode where compensating arithmetic
 - Do NOT silently propagate INCONSISTENT chart_structure into the extracted graph. Better to emit fewer edges with a clear data_gaps trail than to commit to wrong assignments.
 
 CRITICAL PREAMBLE — STRICT PER-SHAREHOLDER ARROW USAGE (W1.R10):
-For every shareholder you place under a layer-1 entity, the edge MUST be backed by a chart_structure.arrows entry where arrow.from == that specific shareholder's exact name AND arrow.to == that specific layer-1 entity. If no such arrow exists in chart_structure.arrows, do NOT create the edge. Do NOT infer the assignment from horizontal_position. Do NOT infer from name similarity (shared surnames). Do NOT infer from visual proximity.
-- For each layer-1 holding company, derive its shareholders STRICTLY by filtering chart_structure.arrows for entries where arrow.to == this holding. The set of valid shareholders for this holding is EXACTLY {arrow.from for arrow in that filtered set}.
-- Cross-branch contamination check: if a shareholder name appears as arrow.from to MULTIPLE different layer-1 holdings in chart_structure.arrows, that shareholder owns stakes in multiple holdings (create separate edges, one per holding). If a shareholder name appears as arrow.from to exactly ONE holding, that shareholder belongs to EXACTLY that branch — they do NOT belong to any other branch regardless of column position or surname.
-- Per-branch sum check: after deriving each layer-1's shareholders from chart_structure.arrows, sum their percentages. If the sum is not approximately 100% (±5%), do NOT silently accept. Record in data_gaps: "Layer-1 entity X shareholder sum = N% per chart_structure.arrows — does not approximate 100%. Possible chart_reader CR.R10 failure or genuinely partial chart info." Do NOT attempt to "fix" the sum by reassigning shareholders across branches. Re-running chart_reader is the correct fix.
-
-If <chart_structure> is empty (e.g., the pipeline did not run the chart-reader stage), fall back to reading the PDF directly per the rules below.
+For every shareholder you place under a holding entity, the edge MUST be backed by a chart_structure.arrows entry where arrow.from == that specific shareholder's exact name AND arrow.to == that specific holding entity. If no such arrow exists in chart_structure.arrows, do NOT create the edge. Do NOT infer the assignment from horizontal_position. Do NOT infer from name similarity (shared surnames). Do NOT infer from visual proximity.
+- For each holding entity, derive its shareholders STRICTLY by filtering chart_structure.arrows for entries where arrow.to == this holding. The set of valid shareholders for this holding is EXACTLY {arrow.from for arrow in that filtered set}.
+- Cross-branch contamination check: if a shareholder name appears as arrow.from to MULTIPLE different holding entities in chart_structure.arrows, that shareholder owns stakes in multiple holdings (create separate edges, one per holding). If a shareholder name appears as arrow.from to exactly ONE holding, that shareholder belongs to EXACTLY that branch — they do NOT belong to any other branch regardless of column position or surname.
+- Per-holding sum check: after deriving each holding entity's shareholders from chart_structure.arrows, sum their percentages. If the sum is not approximately 100% (±5%), do NOT silently accept. Record in data_gaps: "Holding entity X shareholder sum = N% per chart_structure.arrows — does not approximate 100%. Possible chart_reader CR.R10 failure or genuinely partial chart info." Do NOT attempt to "fix" the sum by reassigning shareholders across branches. Re-running chart_reader is the correct fix.
 
 0. CRITIC FEEDBACK — If critic_feedback above is non-empty, a previous extraction attempt was reviewed and rejected. Read every CRITICAL and IMPORTANT correction carefully. These are specific errors you made last time — missing entities, wrong direction, wrong percentages, person-owns-person edges, etc. You MUST address every correction in this attempt. Do not repeat the same mistakes.
-1. Classify entity type from documentary evidence (Category 1, 2, or 3; or "Entity Type not confirmed"). This step uses document text outside the chart (certificates, registration filings, prose) and applies in BOTH chart_structure mode and visual-fallback mode.
+1. Classify entity type from documentary evidence (Category 1, 2, or 3; or "Entity Type not confirmed"). This step uses document text outside the chart (certificates, registration filings, prose).
 
-MODE GATE — Read this once and follow the appropriate branch for steps 2-4:
-- chart_structure MODE (when <chart_structure> is non-empty): SKIP visual-mode steps 2v-4v below. Instead, perform steps 2c-4c (chart_structure-mode derivation). The visual-mode steps are SUPERSEDED by W1.R12 — do NOT duplicate the work.
-- VISUAL-FALLBACK MODE (when <chart_structure> is empty): SKIP chart_structure-mode steps 2c-4c. Perform steps 2v-4v (visual mode) as written.
+SINGLE EXTRACTION FLOW (no modes — chart_structure is consumed, never re-read):
 
-=========== chart_structure MODE (steps 2c-4c) ===========
+2. CONSUME chart_structure — use chart_structure.entities as the chart entity inventory. Build chart-sourced edges mechanically from chart_structure.arrows (owner = arrow.from, owned = arrow.to), applying the group-arrow rejection, UNKNOWN/LOW confidence, bracket_members and sum_check checks above. Tag each such edge source_type = "chart_structure".
 
-2c. CONSUME chart_structure — Use chart_structure.entities as your full entity inventory. Do NOT build a separate inventory by re-reading the chart in the PDF. Locate target_entity by exact name match in chart_structure.entities.
+3. READ NON-CHART TEXT — read shareholder registers, cap tables, certificates, and prose (NOT any diagram). Create text-sourced edges for ownership relationships stated there. Tag each source_type = "document_text" with a page/section citation in source and direction_proof. Apply W1.R9 (no person-owns-person).
 
-3c. MECHANICAL DIRECTION + BRANCH DERIVATION — Per W1.R12:
-   - Direction: edge.owner = arrow.from, edge.owned = arrow.to for each arrow in chart_structure.arrows. SUBSIDIARY check uses vertical_position (entity below target_entity = subsidiary, exclude).
-   - Branches: for each layer-1 holding H, its shareholders = {arrow.from : arrow in chart_structure.arrows AND arrow.to == H AND arrow.from matches an entity name in chart_structure.entities}. STRICT — no horizontal_position fallback, no surname matching, no proximity inference.
-   - Reject any arrow where arrow.from is a collective noun or does not match an entity name (CR.R9 violation) — those shareholders get nodes but no edges, with data_gaps citing the violation.
-   - Reject any flagged target from chart_structure.sum_check.flagged_targets — that target gets a node but no shareholder edges, with data_gaps citing the inconsistency.
-   - Reject any arrow with direction_confidence == UNKNOWN — record in data_gaps.
+4. MERGE + RECONCILE — combine chart-sourced and text-sourced edges per W1.R13 (union on existence; <=2% take text; >2% material conflict -> deferred).
 
-4c. BUILD GRAPH FROM ARROWS — Trace upward layer by layer starting from target_entity, following chart_structure.arrows in the owned→owner direction. For each layer-1 owner found, recurse to its layer-2 owners, and so on. For each edge created, record direction_proof = "From chart_structure arrow: '<exact evidence string from chart_structure.arrows[i].evidence>'". Cycle detection (W1.R7) applies normally on this derived graph.
+5. STRUCTURAL CYCLES — run W1.R7 DFS over the merged edge graph.
 
-=========== VISUAL-FALLBACK MODE (steps 2v-4v) ===========
+EMPTY chart_structure: if <chart_structure> is empty, extract from text only. If a chart is visibly present but chart_structure is empty, do NOT read it — add data_gaps "chart present but chartStructure empty; chart_reader may have failed; chart-sourced ownership not extracted."
 
-2v. ENTITY INVENTORY — Before creating any nodes or edges, scan the entire document and list every distinct entity (corporate entities AND natural persons) mentioned in ownership structures. Include intermediate holding companies, investment vehicles, and all persons with ownership percentages. This inventory ensures no entity is missed. For each entity, note which other entity it connects to and the percentage shown.
-
-   BRANCH MAPPING (mandatory table, per W1.R10): For each direct owner (layer-1 entity) of the target, produce this table BEFORE creating any nodes:
-   | Layer-1 Entity | Shareholder Name | Shareholder % | Bracket/Column/Line Evidence |
-   Bracket/Column/Line Evidence MUST cite the specific visual cue tying the shareholder to that layer-1 entity (e.g., "in column directly above HoldCo Alpha (Private) Limited, page 1" or "connected via vertical bracket to HoldCo Beta (Private) Limited, page 1"). Generic evidence ("page 1 chart") is NOT acceptable.
-
-   STRICT BRANCH BOUNDARY: Each shareholder name appears under ONE layer-1 entity only — UNLESS the document EXPLICITLY shows that shareholder owning stakes in multiple layer-1 entities (e.g., a line from the same person to two different holdings). DO NOT cross-assign based on shared surname, visual proximity, or family-name similarity. Two people with similar names in different columns are DIFFERENT shareholders — record both as separate nodes if they are distinguishable; if not distinguishable in the document, record what the document shows and flag in data_gaps.
-
-   SUM CHECK: For each layer-1 entity, the sum of its shareholders' percentages should reasonably approximate 100% (allow for rounding or stated incompleteness). If the sum is materially off, you may have missed a shareholder OR cross-assigned one — re-verify against the brackets/columns before proceeding.
-
-3v. MANDATORY DIRECTION TABLE — Before creating ANY nodes or edges, build this table for every entity in your inventory from step 2v. For each entity, trace the literal arrows in the document to determine direction relative to the target:
-
-   | Entity Name | OWNER or SUBSIDIARY | Evidence (REQUIRED: cite specific arrow + page) |
-   For each entity, ask:
-   "Does the arrow point FROM this entity TOWARDS the target (directly or via intermediaries)? → OWNER."
-   "Does the arrow point AWAY FROM the target TOWARDS this entity? → SUBSIDIARY."
-   An arrow pointing from A to B means A owns B. Do NOT assume chart position (top/bottom) implies direction. If an arrow points DOWN from Company A to Company B, it means Company A OWNS Company B. Company B is a SUBSIDIARY and must be excluded.
-
-   EVIDENCE COLUMN REQUIREMENT: The Evidence column MUST cite the specific arrow you observed (e.g., "Arrow from Holding Co X to Target Entity, page 1 chart" or "Arrow from Target Entity to Subsidiary One, page 1 chart"). Generic evidence like "page 1 chart" or "shown in diagram" is NOT acceptable. If the chart has no explicit arrowhead, cite the corroborating textual evidence (shareholder list, Form 20/40/41, narrative paragraph). If neither exists, mark the relationship as ambiguous and record in data_gaps — do NOT extract it.
-
-   SUBSIDIARY-CHAIN GUARD: If you observe a chain of entities BELOW the target (target → A → B → C with arrows pointing down/away), every entity in that chain is a SUBSIDIARY. Do NOT invert this chain to make A, B, or C appear as ancestors of the target. This is the most common failure mode when the document's named client sits at the bottom of such a chain.
-
-   ONLY entities classified as OWNER in this table may become nodes in your output. Every entity classified as SUBSIDIARY is permanently excluded — no nodes, no edges, no ownership_chain entries. Do not revisit this classification later.
-
-4v. Trace ownership layer by layer UPWARD from the target entity, using ONLY entities classified as OWNER in your direction table from step 3v. For each owner at layer N, repeat the direction test to find its owners at layer N+1. For each owner, create a node and an edge. Think through each branch fully before moving to the output.
-5. For each edge, record: exact owner id, exact owned id, exact % as stated (or "Not Available"), evidence of control, exact source reference, and direction_proof (why this edge direction is correct and which page proves it).
-6. For each node, record: id slug, legal name exactly as stated, entity type, layer, ownership_chain (the full path of ids from the target entity to this node), and classification_reasoning (why this entity is an owner, how the layer was determined, entity type reasoning, and proof page/section). For listed companies only, populate listing_proof on the node.
-7. Before expanding each entity's owners, check if its id is already in the current ancestry path. If yes, record the cycle in the cycles array and stop — do not extract further from that entity.
-8. Identify conflicts (same owner→owned relationship, contradicting % values within this document). Record in conflicts with conflict_description summarizing the disagreement, resolution_strategy "use_higher", and resolved_value set to the higher %.
-9. VALIDATION — before writing JSON:
-   (a) MODE-INDEPENDENT CHECKS (always run):
-       (a1) The target entity (layer 0) must NEVER appear in the "owner" field of any edge.
-       (a2) No edge has both owner and owned as Natural Person (W1.R9) — if found, re-examine which corporate entity those persons actually own.
-       (a3) NAMED-CLIENT CHECK (W1.R11): Identify the document's named client (from titles, email subjects, file names). If this differs from target_entity AND the named client sits below target_entity in the chart (use chart_structure.entities vertical_position if available; otherwise visual chart), verify that the named client and every chain intermediate between target_entity and the named client are NOT in your nodes/edges/ownership_chains. If any appear, remove them — they are subsidiaries regardless of textual prominence.
-   (b) chart_structure MODE checks (run when <chart_structure> non-empty):
-       (b1) For each node, verify it appears in chart_structure.entities by name. If not → remove it (it would be a hallucination).
-       (b2) For each edge, verify a matching arrow exists in chart_structure.arrows where arrow.from == edge.owner AND arrow.to == edge.owned. If not → remove the edge.
-       (b3) No node may have vertical_position lower (BOTTOM > LOWER_MIDDLE > MIDDLE > UPPER_MIDDLE > TOP) than target_entity's vertical_position — that would make it a subsidiary. Remove any such node.
-       (b4) BRANCH CROSS-CHECK: For each layer-1 holding H in your output, the set of shareholders in your edges (where edge.owned == H) MUST exactly equal {arrow.from : arrow.to == H in chart_structure.arrows AND arrow.from matches an entity name}. If missing → add the edge; if extra → remove it.
-       (b5) For each flagged target in chart_structure.sum_check.flagged_targets, verify NO shareholder edges exist for that target in your output. data_gaps on that target node must cite the inconsistency.
-       (b6) For each edge, direction_proof MUST start with "From chart_structure arrow: " — flag if missing.
-   (c) VISUAL-FALLBACK MODE checks (run only when <chart_structure> is empty):
-       (c1) For each node, cross-check against your direction table from step 3v. If classified as SUBSIDIARY, remove it.
-       (c2) No ownership_chain may include ids of entities classified as SUBSIDIARY in your direction table.
-       (c3) Layer 1 entities must be direct owners of the target — verify each one: does the document show this entity holding shares IN the target? If the document shows the target holding shares in this entity, it is a subsidiary — remove it.
-       (c4) Cross-check your entity inventory from step 2v — every entity classified as OWNER in your direction table should appear in your nodes; if any are missing, add them.
-       (c5) BRANCH CROSS-CHECK against your BRANCH MAPPING table from step 2v — each shareholder must appear under the layer-1 entity that the document's brackets/columns/lines tie them to. If any shareholder is connected to the wrong layer-1 entity, fix the edge. If any layer-1 entity's shareholder percentages do not approximate 100%, re-verify branch assignments and look for missed shareholders.
-10. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
-11. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
-12. If the submitBatch tool is available and your nodes array exceeds 200 elements, split the output into batches via submitBatch with primaryField "nodes". Each batch must be valid JSON matching the schema, containing a subset of nodes with their corresponding edges, cycles, and conflicts. Preserve node id slugs as-is across batches. After the last batch, return ONLY a text summary — no JSON.
+6. For each edge, record: exact owner id, exact owned id, exact % as stated (or "Not Available"), evidence of control, exact source reference, source_type ("chart_structure" or "document_text"), and direction_proof (cite chart_structure arrow evidence or page/section text).
+7. For each node, record: id slug, legal name exactly as stated, entity type, and classification_reasoning (entity type reasoning and proof page/section). For listed companies only, populate listing_proof on the node.
+8. Before expanding each entity's owners during DFS cycle detection, check if its id is already in the current path. If yes, record the cycle in the cycles array and stop — do not extract further from that entity.
+9. Identify conflicts (same owner→owned relationship, contradicting % values within this document, or chart_structure vs document_text disagreement >2%). Record in conflicts with conflict_description summarizing the disagreement, resolution_strategy "deferred", and resolved_value "deferred".
+10. VALIDATION — before writing JSON:
+ (a) No edge has both owner and owned as Natural Person (W1.R9).
+ (b) Every node appears in at least one edge OR is recorded with a data_gaps note explaining why it is isolated.
+ (c) Every chart_structure-sourced node matches an entry in chart_structure.entities by name; every chart_structure-sourced edge matches a chart_structure.arrows entry (owner=from, owned=to). Remove chart-sourced nodes/edges that fail this.
+ (d) Every edge has source_type set. chart_structure edges have direction_proof starting "From chart_structure arrow: "; document_text edges cite a page/section.
+ (e) Cycles recorded per W1.R7. Conflicts recorded per W1.R13 with resolution_strategy "deferred".
+ (f) No layer, ownership_chain, client_entity, or top-level entity_type_category fields are emitted.
+11. Reason through all steps above before writing the JSON. Your reasoning is not included in the output.
+12. Return strictly valid JSON matching the provided schema. No commentary, no markdown, no explanation outside the JSON.
+13. If the submitBatch tool is available and your nodes array exceeds 200 elements, split the output into batches via submitBatch with primaryField "nodes". Each batch must be valid JSON matching the schema, containing a subset of nodes with their corresponding edges, cycles, and conflicts. Preserve node id slugs as-is across batches. After the last batch, return ONLY a text summary — no JSON.
 </instructions>

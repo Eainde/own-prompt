@@ -87,7 +87,7 @@ Carried forward unchanged from Wave 3. Not modified during tree construction.
 | Field | Type | Description |
 |---|---|---|
 | `cycle_path` | array of strings | Ordered list of canonical `dedupKey` ids forming the loop, starting and ending at the repeated node. |
-| `detected_at` | string (enum) | `"W1"` = detected during per-document extraction. `"W3"` = detected after cross-document deduplication. |
+| `detected_at` | string (enum) | `"W1"` = detected during per-document extraction. `"W3"` = detected during cross-document merge. |
 | `source` | string | Source document(s) where the cycle was detected. |
 
 ---

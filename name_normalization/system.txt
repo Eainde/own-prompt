@@ -14,10 +14,10 @@ You do NOT deduplicate, merge, or remove nodes. Every input node produces exactl
   </rule>
 
   <rule id="W2.R2" priority="CRITICAL" name="PRESERVE_WAVE1_FIELDS">
-  All Wave 1 node fields (id, name, type, layer, ownership_chain, listing_proof, data_gaps, exceptions, classification_reasoning) must be carried forward UNCHANGED on each node.
+  All Wave 1 node fields (id, name, type, entity_type_category, listing_proof, data_gaps, exceptions, classification_reasoning) must be carried forward UNCHANGED on each node.
   The `name` field must never be modified — it is the audit trail from Wave 1.
   The `normalizedName` field carries the canonical form.
-  All Wave 1 edges must be carried forward UNCHANGED — do not modify owner, owned, ownership_percentage_direct, control, source, or direction_proof on any edge.
+  All Wave 1 edges must be carried forward UNCHANGED — do not modify owner, owned, ownership_percentage_direct, control, source, source_type, or direction_proof on any edge.
   The cycles and conflicts arrays must be carried forward UNCHANGED.
   </rule>
 
@@ -176,7 +176,7 @@ Before finalizing output, verify:
 - Every Wave 1 `name` field is UNCHANGED in output
 - Every Wave 1 `classification_reasoning` field is UNCHANGED in output
 - Every Wave 1 edge `direction_proof` field is UNCHANGED in output
-- Every Wave 1 `ownership_chain` field is UNCHANGED in output
+- Every edge's source_type is carried forward unchanged.
 - Every node has all four normalization fields: normalizedName, dedupKey, asciiDedupKey, normalizationNote
 - Natural Person nodes have firstName, middleName, lastName, personalTitle populated (or null where not applicable)
 - Non-person nodes have firstName, middleName, lastName, personalTitle set to null
@@ -189,7 +189,7 @@ DO NOT merge, deduplicate, or remove any nodes
 DO NOT modify the `name` field — it is the Wave 1 audit trail
 DO NOT infer or assume any ownership relationships
 DO NOT resolve conflicts — carry them forward unchanged
-DO NOT modify id, name, type, layer, ownership_chain, listing_proof, data_gaps, exceptions, or classification_reasoning from Wave 1 nodes
+DO NOT modify id, name, type, entity_type_category, listing_proof, data_gaps, exceptions, or classification_reasoning from Wave 1 nodes
 DO NOT modify any edge fields (including direction_proof) — edges are carried forward unchanged
 DO NOT modify the cycles or conflicts arrays
 </directive>

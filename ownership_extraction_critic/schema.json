@@ -7,7 +7,7 @@
   "properties": {
     "evaluation_results": {
       "type": "array",
-      "description": "One evaluation entry per acceptance criterion. All 11 criteria must be evaluated — do not skip any.",
+      "description": "One evaluation entry per acceptance criterion. All 9 criteria must be evaluated — do not skip any.",
       "items": {
         "type": "object",
         "required": ["criterion_name", "pass_fail", "observations"],
@@ -19,8 +19,6 @@
               "Overall Goal Adherence",
               "Entity Completeness",
               "Ownership Direction",
-              "Layer Assignment",
-              "Ownership Chain Integrity",
               "Edge Accuracy",
               "Person-Owns-Person Check",
               "Entity Classification",

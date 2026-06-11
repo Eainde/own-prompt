@@ -31,7 +31,7 @@ public class OrganisationChartBuilder {
     /**
      * Builds a W4 output from a W3 flat graph.
      *
-     * @param w3               the W3 deduplication output
+     * @param w3               the W3 merge + comparison output
      * @param clientEntityName the client entity name (used for metadata only; root is identified by layer=0)
      * @return W4Output containing a nested ownership_tree, plus passthrough cycles and conflicts
      */
