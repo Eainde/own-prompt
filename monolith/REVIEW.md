@@ -5,9 +5,13 @@ Split into `system.txt` / `user.txt` / `schema.json`. `system.txt` and `user.txt
 
 ---
 
-## 0. Schema update (2026-06-16) — supersedes findings below
+## 0. Schema update — supersedes findings below
 
-`schema.json` has been **replaced** with a purpose-built ownership-extraction schema (`title: "Monolith Ownership Extraction Schema"`), based on the multi-agent pipeline's W1 flat-graph model: `client_entity` + `entity_type_category` + `nodes[]` + `edges[]` + `cycles[]` + `conflicts[]` + `data_gaps[]`, plus top-level `outOfBounds` and `qaFlags` objects carried over from the CSM schema (same structure). Every node and edge carries `document_name` + `document_path`; nodes carry `layer` (grounded) and `entity_classification` (GP/LP/Fund Vehicle); edges carry `ownership_percentage_direct`, `gp_lp_role`, `control`, `source_type`, `direction_proof`.
+`schema.json` has been **replaced** with a purpose-built ownership-extraction schema (`title: "Monolith Ownership Extraction Schema"`). Current shape (single-parent, batchable — see `docs/superpowers/specs/2026-06-17-monolith-single-parent-schema-design.md`):
+
+- **One parent array** `extracted_records[]`; no `nodes`/`edges`. The client entity is the record with `layer: 0`.
+- Each **record** is self-contained: identity (`id`, `name`, `type`, `entity_classification`, `entity_type_category`, `layer`, `document_name`, `document_path`, `isUBO`, `isIBO`, `listing_proof`, `classification_reasoning`), `owners[]` (embedded ownership links replacing edges, each with `ownership_percentage_direct`, `gp_lp_role`, `control`, `source`, `source_type`, `direction_proof`, and per-link `conflicts[]`), and per-record audit (`cycle_path`, `data_gaps`, `exceptions`, `qaFlags[]`, `outOfBounds`).
+- Folding everything into the one batched array keeps batches self-contained: `BatchAccumulatorTool` concatenates arrays but clobbers top-level objects, so `outOfBounds`/`qaFlags` are now per-record (mirrors CSM item-level capture).
 
 This resolves **CRITICAL-1, CRITICAL-2, HIGH-1, and MEDIUM-1** below (the CSM/governance mismatch). The original CSM "Classified Candidates Schema" is preserved verbatim in `source.md` if it is ever needed. HIGH-2 (direct visual chart extraction reintroducing the vision-hallucination loop) still stands — it is a prompt-design issue, independent of the schema. The findings below are retained for history.
 

@@ -1,0 +1,304 @@
+{
+  "extracted_records": [
+    {
+      "id": "acme_holdings_ltd",
+      "name": "Acme Holdings Ltd",
+      "type": "Private Company",
+      "entity_classification": "Corporate Entity",
+      "entity_type_category": "Category 1 - Private/Regulated/Listed",
+      "layer": 0,
+      "document_name": "shareholder_register.pdf",
+      "document_path": "gcs://kyc-docs/acme/shareholder_register.pdf",
+      "isUBO": false,
+      "isIBO": false,
+      "listing_proof": null,
+      "classification_reasoning": "Client entity. Private limited company per Certificate of Incorporation, shareholder_register.pdf p1. Category 1 (Private/Regulated): full ownership drill-down required.",
+      "owners": [
+        {
+          "owner_id": "omega_corp",
+          "owner_name": "Omega Corp",
+          "ownership_percentage_direct": "60%",
+          "gp_lp_role": "Not Applicable",
+          "control": "",
+          "source": "shareholder_register.pdf p2",
+          "source_type": "document_text",
+          "direction_proof": "Register of Members lists Omega Corp holding 60% of Acme Holdings Ltd ordinary shares (p2).",
+          "conflicts": []
+        },
+        {
+          "owner_id": "phoenix_fund_lp",
+          "owner_name": "Phoenix Fund LP",
+          "ownership_percentage_direct": "40%",
+          "gp_lp_role": "Not Applicable",
+          "control": "",
+          "source": "shareholder_register.pdf p2",
+          "source_type": "document_text",
+          "direction_proof": "Register of Members lists Phoenix Fund LP holding 40% of Acme Holdings Ltd ordinary shares (p2).",
+          "conflicts": []
+        }
+      ],
+      "cycle_path": [],
+      "data_gaps": "",
+      "exceptions": "",
+      "qaFlags": [],
+      "outOfBounds": { "isOutOfBounds": false }
+    },
+    {
+      "id": "omega_corp",
+      "name": "Omega Corp",
+      "type": "Private Company",
+      "entity_classification": "Corporate Entity",
+      "entity_type_category": "Category 1 - Private/Regulated/Listed",
+      "layer": 1,
+      "document_name": "org_chart.pdf",
+      "document_path": "gcs://kyc-docs/acme/org_chart.pdf",
+      "isUBO": false,
+      "isIBO": false,
+      "listing_proof": null,
+      "classification_reasoning": "Direct 60% owner of the client. Private company per org_chart.pdf box label and annual_report_2025.pdf p3.",
+      "owners": [
+        {
+          "owner_id": "global_listed_plc",
+          "owner_name": "Global Listed PLC",
+          "ownership_percentage_direct": "75%",
+          "gp_lp_role": "Not Applicable",
+          "control": "Majority shareholder",
+          "source": "shareholder_register.pdf p4",
+          "source_type": "document_text",
+          "direction_proof": "Register shows Global Listed PLC holds 75% of Omega Corp (p4).",
+          "conflicts": [
+            {
+              "value": "72%",
+              "source": "annual_report_2025.pdf p12",
+              "description": "Annual report 2025 states Global Listed PLC holds 72% of Omega Corp; shareholder register states 75% (3% material disagreement, not resolved)."
+            }
+          ]
+        },
+        {
+          "owner_id": "cross_holdings_ltd",
+          "owner_name": "Cross Holdings Ltd",
+          "ownership_percentage_direct": "25%",
+          "gp_lp_role": "Not Applicable",
+          "control": "",
+          "source": "org_chart.pdf",
+          "source_type": "document_chart",
+          "direction_proof": "Org chart arrow from Cross Holdings Ltd to Omega Corp labelled 25%.",
+          "conflicts": []
+        }
+      ],
+      "cycle_path": ["omega_corp", "cross_holdings_ltd", "omega_corp"],
+      "data_gaps": "",
+      "exceptions": "",
+      "qaFlags": [
+        {
+          "reason": "Ownership % for Global Listed PLC -> Omega Corp conflicts across documents (75% vs 72%); carried unresolved.",
+          "status": "NOT_CONFIDENT"
+        }
+      ],
+      "outOfBounds": { "isOutOfBounds": false }
+    },
+    {
+      "id": "phoenix_fund_lp",
+      "name": "Phoenix Fund LP",
+      "type": "Partnership",
+      "entity_classification": "Fund Vehicle",
+      "entity_type_category": "Category 3 - SPV/Trust/Charity/Foundation",
+      "layer": 1,
+      "document_name": "partnership_agreement.pdf",
+      "document_path": "gcs://kyc-docs/acme/partnership_agreement.pdf",
+      "isUBO": false,
+      "isIBO": false,
+      "listing_proof": null,
+      "classification_reasoning": "Direct 40% owner of the client. Limited partnership fund vehicle per partnership_agreement.pdf p1. Category 3: capture GP and LP parties.",
+      "owners": [
+        {
+          "owner_id": "investor_trust",
+          "owner_name": "Investor Trust",
+          "ownership_percentage_direct": "98%",
+          "gp_lp_role": "LP",
+          "control": "",
+          "source": "partnership_agreement.pdf p3",
+          "source_type": "document_text",
+          "direction_proof": "Partnership agreement Schedule 1 lists Investor Trust as Limited Partner holding 98% of capital (p3).",
+          "conflicts": []
+        },
+        {
+          "owner_id": "phoenix_gp_ltd",
+          "owner_name": "Phoenix GP Ltd",
+          "ownership_percentage_direct": "2%",
+          "gp_lp_role": "GP",
+          "control": "General Partner manages and controls the fund per partnership_agreement.pdf cl.4",
+          "source": "partnership_agreement.pdf p3",
+          "source_type": "document_text",
+          "direction_proof": "Partnership agreement names Phoenix GP Ltd as General Partner holding 2% and exercising management control (p3, cl.4).",
+          "conflicts": []
+        }
+      ],
+      "cycle_path": [],
+      "data_gaps": "",
+      "exceptions": "",
+      "qaFlags": [],
+      "outOfBounds": { "isOutOfBounds": false }
+    },
+    {
+      "id": "global_listed_plc",
+      "name": "Global Listed PLC",
+      "type": "Listed Company",
+      "entity_classification": "Listed Parent",
+      "entity_type_category": "Category 2 - Adverse Media",
+      "layer": 2,
+      "document_name": "annual_report_2025.pdf",
+      "document_path": "gcs://kyc-docs/acme/annual_report_2025.pdf",
+      "isUBO": false,
+      "isIBO": false,
+      "listing_proof": {
+        "exchange": "London Stock Exchange",
+        "ticker": "GLBL",
+        "isin": "GB00B1234567",
+        "proof_source": "annual_report_2025.pdf cover + p1; LSE listing confirmed."
+      },
+      "classification_reasoning": "75% owner of Omega Corp. DB-recognised listed entity on the London Stock Exchange (annual_report_2025.pdf p1).",
+      "owners": [],
+      "cycle_path": [],
+      "data_gaps": "",
+      "exceptions": "Client/Parent is a DB-recognised listed entity; no further drill-down is required as per KOS 8.0, unless adverse media is identified.",
+      "qaFlags": [],
+      "outOfBounds": { "isOutOfBounds": false }
+    },
+    {
+      "id": "cross_holdings_ltd",
+      "name": "Cross Holdings Ltd",
+      "type": "Private Company",
+      "entity_classification": "Corporate Entity",
+      "entity_type_category": "Category 1 - Private/Regulated/Listed",
+      "layer": 2,
+      "document_name": "org_chart.pdf",
+      "document_path": "gcs://kyc-docs/acme/org_chart.pdf",
+      "isUBO": false,
+      "isIBO": false,
+      "listing_proof": null,
+      "classification_reasoning": "25% owner of Omega Corp per org chart. Wholly owned by Omega Corp in turn, forming a circular cross-holding.",
+      "owners": [
+        {
+          "owner_id": "omega_corp",
+          "owner_name": "Omega Corp",
+          "ownership_percentage_direct": "100%",
+          "gp_lp_role": "Not Applicable",
+          "control": "Wholly owned subsidiary",
+          "source": "org_chart.pdf",
+          "source_type": "document_chart",
+          "direction_proof": "Org chart arrow from Omega Corp to Cross Holdings Ltd labelled 100%.",
+          "conflicts": []
+        }
+      ],
+      "cycle_path": ["cross_holdings_ltd", "omega_corp", "cross_holdings_ltd"],
+      "data_gaps": "",
+      "exceptions": "Circular ownership detected: Omega Corp owns Cross Holdings Ltd 100% while Cross Holdings Ltd owns Omega Corp 25%. Carried forward unresolved.",
+      "qaFlags": [],
+      "outOfBounds": { "isOutOfBounds": false }
+    },
+    {
+      "id": "phoenix_gp_ltd",
+      "name": "Phoenix GP Ltd",
+      "type": "Private Company",
+      "entity_classification": "General Partner (GP)",
+      "entity_type_category": "Category 1 - Private/Regulated/Listed",
+      "layer": 2,
+      "document_name": "partnership_agreement.pdf",
+      "document_path": "gcs://kyc-docs/acme/partnership_agreement.pdf",
+      "isUBO": false,
+      "isIBO": false,
+      "listing_proof": null,
+      "classification_reasoning": "General Partner of Phoenix Fund LP (2% + management control). Private company wholly owned by Khan Rashid per partnership_agreement.pdf p5.",
+      "owners": [
+        {
+          "owner_id": "khan_rashid",
+          "owner_name": "Khan Rashid",
+          "ownership_percentage_direct": "100%",
+          "gp_lp_role": "Not Applicable",
+          "control": "Sole shareholder",
+          "source": "partnership_agreement.pdf p5",
+          "source_type": "document_text",
+          "direction_proof": "Partnership agreement states Phoenix GP Ltd is wholly owned (100%) by Khan Rashid (p5).",
+          "conflicts": []
+        }
+      ],
+      "cycle_path": [],
+      "data_gaps": "",
+      "exceptions": "",
+      "qaFlags": [],
+      "outOfBounds": { "isOutOfBounds": false }
+    },
+    {
+      "id": "investor_trust",
+      "name": "Investor Trust",
+      "type": "Trust",
+      "entity_classification": "Limited Partner (LP)",
+      "entity_type_category": "Category 3 - SPV/Trust/Charity/Foundation",
+      "layer": 2,
+      "document_name": "trust_deed.pdf",
+      "document_path": "gcs://kyc-docs/acme/trust_deed.pdf",
+      "isUBO": false,
+      "isIBO": true,
+      "listing_proof": null,
+      "classification_reasoning": "Limited Partner holding 98% of Phoenix Fund LP. Trust per trust_deed.pdf p1. Category 3: identify trust roles.",
+      "owners": [],
+      "cycle_path": [],
+      "data_gaps": "Trust settlor and beneficiaries are not evidenced in the documents available (trust_deed.pdf redacted at p4). Upward chain incomplete.",
+      "exceptions": "Share Trustee identified - add as IBO.",
+      "qaFlags": [
+        {
+          "reason": "Trust beneficiaries not evidenced; IBO chain above the trust could not be completed from available documents.",
+          "status": "NOT_CONFIDENT"
+        }
+      ],
+      "outOfBounds": { "isOutOfBounds": false }
+    },
+    {
+      "id": "khan_rashid",
+      "name": "Khan Rashid",
+      "type": "Natural Person",
+      "entity_classification": "Individual",
+      "entity_type_category": "Category 1 - Private/Regulated/Listed",
+      "layer": 3,
+      "document_name": "partnership_agreement.pdf",
+      "document_path": "gcs://kyc-docs/acme/partnership_agreement.pdf",
+      "isUBO": true,
+      "isIBO": false,
+      "listing_proof": null,
+      "classification_reasoning": "Natural person, ultimate owner of Phoenix GP Ltd (100%). No further owners — terminal UBO of the Phoenix branch.",
+      "owners": [],
+      "cycle_path": [],
+      "data_gaps": "",
+      "exceptions": "",
+      "qaFlags": [
+        { "reason": "Identity corroborated by passport on file and partnership agreement signature.", "status": "CONFIDENT" }
+      ],
+      "outOfBounds": { "isOutOfBounds": false }
+    },
+    {
+      "id": "acme_foundation",
+      "name": "Acme Foundation",
+      "type": "Foundation",
+      "entity_classification": "Corporate Entity",
+      "entity_type_category": "Category 3 - SPV/Trust/Charity/Foundation",
+      "layer": 1,
+      "document_name": "annual_report_2025.pdf",
+      "document_path": "gcs://kyc-docs/acme/annual_report_2025.pdf",
+      "isUBO": false,
+      "isIBO": false,
+      "listing_proof": null,
+      "classification_reasoning": "Named in the annual report as the company's charitable arm. No ownership/shareholding relationship to the client; corporate social responsibility vehicle only.",
+      "owners": [],
+      "cycle_path": [],
+      "data_gaps": "",
+      "exceptions": "",
+      "qaFlags": [],
+      "outOfBounds": {
+        "isOutOfBounds": true,
+        "reason": "Charitable foundation mentioned in the annual report; holds no shares in and is not an owner of any entity in the ownership structure. Not relevant to ownership extraction.",
+        "status": "DOCUMENT_NOT_RELEVANT"
+      }
+    }
+  ]
+}

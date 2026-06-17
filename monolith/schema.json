@@ -1,32 +1,37 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Monolith Ownership Extraction Schema",
-  "description": "End-to-end ownership extraction for the monolith prompt. Flat directed ownership graph (nodes + edges) grounded to the client, plus cycles and conflicts. Based on the multi-agent W1 extraction schema. Every node and edge carries the source document name + path.",
+  "description": "End-to-end ownership extraction for the monolith prompt. One parent array of self-contained records (entity identity + embedded ownership links + per-record audit), so the output batches cleanly via submitBatch(json, \"extracted_records\"). The client entity is the record with layer 0. Chart is reconstructed by walking owners[] links across records using layer for hierarchy.",
   "type": "object",
-  "required": ["client_entity", "entity_type_category", "nodes", "edges", "cycles", "conflicts", "data_gaps", "outOfBounds", "qaFlags"],
+  "required": ["extracted_records"],
   "properties": {
-    "client_entity": {
-      "type": "string",
-      "description": "The client entity the structure is anchored to (Layer 0). Carried from clientEntityName input."
-    },
-    "entity_type_category": {
-      "type": "string",
-      "enum": [
-        "Category 1 - Private/Regulated/Listed",
-        "Category 2 - Adverse Media",
-        "Category 3 - SPV/Trust/Charity/Foundation",
-        "Entity Type not confirmed"
-      ],
-      "description": "The CLIENT entity's KYC classification, decided first (system rules 5 + 6). Drives extraction behaviour (e.g. Category 2 listing stop, Category 3 SPV/Trust roles)."
-    },
-    "nodes": {
+    "extracted_records": {
       "type": "array",
-      "description": "Every entity/person found across all documents. One node per distinct entity even if it appears in multiple documents or multiple ownership paths (do NOT duplicate; create separate edges instead).",
+      "description": "One record per distinct entity/person across all documents. Self-contained: each record carries its own ownership links, conflicts, cycle membership, gaps, and flags. Do NOT duplicate an entity across records even if it appears in multiple documents or paths; record multiple owners as multiple owners[] entries.",
       "items": {
         "type": "object",
-        "required": ["id", "name", "type", "entity_classification", "entity_type_category", "layer", "document_name", "document_path", "listing_proof", "data_gaps", "exceptions", "classification_reasoning"],
+        "required": [
+          "id",
+          "name",
+          "type",
+          "entity_classification",
+          "entity_type_category",
+          "layer",
+          "document_name",
+          "document_path",
+          "isUBO",
+          "isIBO",
+          "listing_proof",
+          "classification_reasoning",
+          "owners",
+          "cycle_path",
+          "data_gaps",
+          "exceptions",
+          "qaFlags",
+          "outOfBounds"
+        ],
         "properties": {
-          "id": { "type": "string", "description": "Slug: lowercase name, spaces to underscores. Stable across all edges referencing this entity." },
+          "id": { "type": "string", "description": "Slug: lowercase name, spaces to underscores. Stable; referenced by owners[].owner_id of other records." },
           "name": { "type": "string", "description": "Legal name exactly as stated in the document." },
           "type": {
             "type": "string",
@@ -36,20 +41,22 @@
           "entity_classification": {
             "type": "string",
             "enum": ["Corporate Entity", "General Partner (GP)", "Limited Partner (LP)", "Fund Vehicle", "Listed Parent", "Individual"],
-            "description": "Structural tag per system rule 4.3 ENTITY CLASSIFICATION. Captures GP/LP/Fund Vehicle roles the legal type alone does not convey."
+            "description": "Structural tag per system rule 4.3 ENTITY CLASSIFICATION (captures GP/LP/Fund Vehicle roles the legal type alone does not convey)."
           },
           "entity_type_category": {
             "type": "string",
             "enum": ["Category 1 - Private/Regulated/Listed", "Category 2 - Adverse Media", "Category 3 - SPV/Trust/Charity/Foundation", "Entity Type not confirmed"],
-            "description": "Per-node KYC category. Drives what to extract for this entity (e.g. Cat 3 SPV/Trust roles)."
+            "description": "KYC category for this entity. For the layer-0 client record this is the client classification decided first (system rules 5 + 6)."
           },
           "layer": {
             "type": "integer",
             "minimum": 0,
-            "description": "Ownership layer relative to the client. Layer 0 = client, Layer 1 = direct owners of client, Layer 2 = their owners, etc. (system rule 4.1)."
+            "description": "Ownership layer relative to the client. 0 = client, 1 = direct owners of client, 2 = their owners, etc. (system rule 4.1)."
           },
           "document_name": { "type": "string", "description": "Name of the source document this entity record was extracted from." },
           "document_path": { "type": "string", "description": "GCS path / file path of the source document this entity record was extracted from." },
+          "isUBO": { "type": "boolean", "description": "True if this entity/person is a UBO of the client." },
+          "isIBO": { "type": "boolean", "description": "True if this entity/person is an IBO of the client." },
           "listing_proof": {
             "oneOf": [
               { "type": "null" },
@@ -66,149 +73,86 @@
             ],
             "description": "Populate for Listed entities only (Category 2 / system rule 6 step 1). null otherwise."
           },
-          "data_gaps": { "type": "string", "description": "Missing data for this entity (e.g. missing %, incomplete layer), with document reference. Empty string if none." },
-          "exceptions": { "type": "string", "description": "Exceptions/special handling for this entity (e.g. orphan SPV no ownership identified, 'Share Trustee identified - add as IBO'). Empty string if none." },
           "classification_reasoning": {
             "type": "string",
             "description": "Entity type reasoning + the document page/section that evidences this entity."
-          }
-        }
-      }
-    },
-    "edges": {
-      "type": "array",
-      "description": "Every ownership relationship found, in whatever direction the document states. owner -> owned. Multiple owners of one entity = multiple edges into it (multi-path/convergence per system rule 4.3). Never collapse paths.",
-      "items": {
-        "type": "object",
-        "required": ["owner", "owned", "ownership_percentage_direct", "gp_lp_role", "control", "source", "source_type", "document_name", "document_path", "direction_proof"],
-        "properties": {
-          "owner": { "type": "string", "description": "id of the entity that holds the stake." },
-          "owned": { "type": "string", "description": "id of the entity whose stake is held." },
-          "ownership_percentage_direct": {
-            "type": "string",
-            "description": "Direct % exactly as stated (e.g. '55%', '12.5%'). 'Not Available' if absent, 'Negligible' for <=0.01%, or 'CONFLICT - see conflicts array' for material disagreements. Never assume (system rules 4.3 Percentage / 9)."
           },
-          "gp_lp_role": {
-            "type": "string",
-            "enum": ["GP", "LP", "Not Applicable"],
-            "description": "GP/LP role of the owner in this relationship where applicable (system rule 4.2)."
-          },
-          "control": { "type": "string", "description": "Control / domination indicator, ONLY when supported by evidence (system rule 9). Empty string if no evidenced control." },
-          "source": { "type": "string", "description": "Document name + page/section evidencing this relationship." },
-          "source_type": {
-            "type": "string",
-            "enum": ["document_chart", "document_text"],
-            "description": "Provenance within the document: read from a visual org chart, or from non-chart text (registers, tables, prose)."
-          },
-          "document_name": { "type": "string", "description": "Name of the source document this relationship was extracted from." },
-          "document_path": { "type": "string", "description": "GCS path / file path of the source document this relationship was extracted from." },
-          "direction_proof": {
-            "type": "string",
-            "description": "Text/visual evidence proving the owner->owned direction (the page/section or chart annotation stating who owns whom)."
-          }
-        }
-      }
-    },
-    "cycles": {
-      "type": "array",
-      "description": "Structural cycles detected by DFS over the directed edge graph (an entity reachable from itself via ownership links).",
-      "items": {
-        "type": "object",
-        "required": ["cycle_path", "detected_at", "source"],
-        "properties": {
-          "cycle_path": { "type": "array", "items": { "type": "string" }, "description": "Ordered list of node ids forming the cycle." },
-          "detected_at": { "type": "string", "enum": ["monolith"] },
-          "source": { "type": "string", "description": "Document reference(s) for the edges forming the cycle." }
-        }
-      }
-    },
-    "conflicts": {
-      "type": "array",
-      "description": "Conflicting ownership values for the same owner->owned relationship across documents. Capture ALL conflicting values with sources; do NOT resolve (system rule 4.3 Data Conflict / 8).",
-      "items": {
-        "type": "object",
-        "required": ["owner", "owned", "conflict_description", "value_a", "source_a", "value_b", "source_b", "resolution_strategy", "resolved_value"],
-        "properties": {
-          "owner": { "type": "string" },
-          "owned": { "type": "string" },
-          "conflict_description": { "type": "string" },
-          "value_a": { "type": "string" },
-          "source_a": { "type": "string", "description": "Document name + page/section for value_a." },
-          "value_b": { "type": "string" },
-          "source_b": { "type": "string", "description": "Document name + page/section for value_b." },
-          "resolution_strategy": { "type": "string", "enum": ["deferred"], "description": "Always 'deferred' — the monolith does not resolve conflicts." },
-          "resolved_value": { "type": "string", "description": "Always 'deferred'." }
-        }
-      }
-    },
-    "data_gaps": {
-      "type": "array",
-      "description": "Document- or structure-level gaps and exceptions not tied to a single node (incomplete layers, missing documents, unresolved entity type), per output section 8.4. Empty array if none.",
-      "items": {
-        "type": "object",
-        "required": ["description", "document_name", "document_path"],
-        "properties": {
-          "description": { "type": "string", "description": "What is missing/incomplete and why." },
-          "document_name": { "type": "string", "description": "Related document name, or 'Not Available' if not document-specific." },
-          "document_path": { "type": "string", "description": "Related document path, or 'Not Available' if not document-specific." }
-        }
-      }
-    },
-    "outOfBounds": {
-      "type": "object",
-      "required": ["summary", "documents", "records"],
-      "description": "Records and documents that were identified but fall outside the defined scope of ownership extraction (mirrors the CSM outOfBounds capture). Empty arrays + empty summary if none.",
-      "properties": {
-        "summary": {
-          "type": "string",
-          "description": "Start with the document name, then give an overall summary of the out-of-bounds records (names / legalName where available, document name, reason, status). Empty string if none."
-        },
-        "documents": {
-          "type": "array",
-          "description": "Documents identified but out of scope.",
-          "items": {
-            "type": "object",
-            "required": ["fileName", "reason", "status"],
-            "properties": {
-              "fileName": { "type": "string", "description": "Document file name." },
-              "reason": { "type": "string", "description": "Why this document is considered out of bounds." },
-              "status": { "type": "string", "enum": ["DOC_INVALID", "DOCUMENT_NOT_RELEVANT"] }
+          "owners": {
+            "type": "array",
+            "description": "Direct owners (parents) of this entity. One entry per ownership link into this entity. Empty array if this entity has no identified owner (top parent, natural-person UBO, orphan SPV, or the client where not owned). Multiple entries capture multi-path / convergence (system rule 4.3); never collapse paths.",
+            "items": {
+              "type": "object",
+              "required": ["owner_name", "ownership_percentage_direct", "gp_lp_role", "control", "source", "source_type", "direction_proof", "conflicts"],
+              "properties": {
+                "owner_id": { "type": "string", "description": "id (slug) of the owner's own record in extracted_records, when that owner is itself an emitted record; null otherwise." },
+                "owner_name": { "type": "string", "description": "Legal name of the owning entity/person exactly as stated." },
+                "ownership_percentage_direct": {
+                  "type": "string",
+                  "description": "Direct % this owner holds in this entity, exactly as stated (e.g. '55%', '12.5%'). 'Not Available' if absent, 'Negligible' for <=0.01%. Never assume (system rules 4.3 Percentage / 9)."
+                },
+                "gp_lp_role": {
+                  "type": "string",
+                  "enum": ["GP", "LP", "Not Applicable"],
+                  "description": "GP/LP role of this owner in this relationship where applicable (system rule 4.2)."
+                },
+                "control": { "type": "string", "description": "Control / domination indicator for this link, ONLY when supported by evidence (system rule 9). Empty string if no evidenced control." },
+                "source": { "type": "string", "description": "Document name + page/section evidencing this relationship." },
+                "source_type": {
+                  "type": "string",
+                  "enum": ["document_chart", "document_text"],
+                  "description": "Provenance within the document: read from a visual org chart, or from non-chart text (registers, tables, prose)."
+                },
+                "direction_proof": {
+                  "type": "string",
+                  "description": "Text/visual evidence proving the owner->owned direction (page/section text or chart annotation stating who owns whom)."
+                },
+                "conflicts": {
+                  "type": "array",
+                  "description": "Conflicting % values for THIS ownership link across documents. Capture ALL conflicting values with sources; do NOT resolve (system rule 4.3 Data Conflict / 8). Empty array if no conflict.",
+                  "items": {
+                    "type": "object",
+                    "required": ["value", "source", "description"],
+                    "properties": {
+                      "value": { "type": "string", "description": "The conflicting % value as stated." },
+                      "source": { "type": "string", "description": "Document name + page/section for this conflicting value." },
+                      "description": { "type": "string", "description": "Short note on the disagreement." }
+                    }
+                  }
+                }
+              }
             }
-          }
-        },
-        "records": {
-          "type": "array",
-          "description": "Entities/records identified but out of scope.",
-          "items": {
-            "type": "object",
-            "required": ["id", "reason", "status"],
-            "properties": {
-              "id": { "type": "string", "description": "Node id (slug) this record refers to, or a unique id if it is not an emitted node." },
-              "reason": { "type": "string", "description": "Why this record is considered out of bounds." },
-              "status": { "type": "string", "enum": ["NEEDS_REVIEW", "COUNTRY_OUT_OF_SCOPE"] }
+          },
+          "cycle_path": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Ordered node ids of the circular-ownership cycle this entity participates in (entity reachable from itself via ownership links), detected by DFS over owners[] links. Empty array if this entity is not part of a cycle."
+          },
+          "data_gaps": { "type": "string", "description": "Missing/incomplete data for this entity (missing %, incomplete layer, missing document), with document reference. Empty string if none." },
+          "exceptions": { "type": "string", "description": "Exceptions / special handling for this entity (e.g. orphan SPV no ownership identified, 'Share Trustee identified - add as IBO'). Empty string if none." },
+          "qaFlags": {
+            "type": "array",
+            "description": "Quality-assurance and inference flags for this record (mirrors the CSM qaFlags capture, per record). Empty array if none.",
+            "items": {
+              "type": "object",
+              "required": ["reason", "status"],
+              "properties": {
+                "reason": { "type": "string", "description": "A clear explanation of the QA / inference flag." },
+                "status": { "type": "string", "enum": ["CONFIDENT", "NOT_CONFIDENT"] }
+              }
             }
-          }
-        }
-      }
-    },
-    "qaFlags": {
-      "type": "object",
-      "required": ["summary", "records"],
-      "description": "Quality-assurance and inference flags from the document analysis (mirrors the CSM qaFlags capture). Empty array + empty summary if none.",
-      "properties": {
-        "summary": {
-          "type": "string",
-          "description": "Start with the document name, then give an overall summary of the QA flag records. Empty string if none."
-        },
-        "records": {
-          "type": "array",
-          "description": "Quality-assurance and inference flag reasons based on the document analysis.",
-          "items": {
+          },
+          "outOfBounds": {
             "type": "object",
-            "required": ["reason", "status"],
+            "required": ["isOutOfBounds"],
+            "description": "Out-of-bounds assessment for this record (mirrors the CSM outOfBounds capture, per record). isOutOfBounds=false with reason/status omitted when in scope.",
             "properties": {
-              "reason": { "type": "string", "description": "A clear explanation of the QA / inference flag." },
-              "status": { "type": "string", "enum": ["CONFIDENT", "NOT_CONFIDENT"] }
+              "isOutOfBounds": { "type": "boolean", "description": "True if this entity/person/record falls outside the defined scope of ownership extraction." },
+              "reason": { "type": "string", "description": "Why this record is out of bounds. Omit when isOutOfBounds is false." },
+              "status": {
+                "type": "string",
+                "enum": ["NEEDS_REVIEW", "DOC_INVALID", "COUNTRY_OUT_OF_SCOPE", "DOCUMENT_NOT_RELEVANT"],
+                "description": "OOB status category. Omit when isOutOfBounds is false."
+              }
             }
           }
         }
