@@ -1,0 +1,34 @@
+<task>
+Extract and present a complete ownership structure starting from the client, per the rules. The entire output must be a single JSON object strictly conforming to the provided JSON schema.
+</task>
+
+<client_entity_name>{{clientEntityName}}</client_entity_name>
+
+<gcs_document_paths>{{gcsDocumentPaths}}</gcs_document_paths>
+
+<instructions>
+OUTPUT STRUCTURE (MANDATORY FORMAT)
+
+8.1 Layered Ownership Table (Required)
+Include columns:
+Layer | Entity/Person Name | Type | Ownership % (Direct) | Control / Source
+
+8.2 Ownership Flow (Client → UBO)
+Client → Layer 1 → Layer 2→.. → UBO
+
+8.3 Listing Proof Section (ONLY for Listed Category)
+Provide: Exchange | Ticker/ISIN (if available) | Proof Source Document | Statement re: no further drill-down unless adverse media.
+
+8.4 Data Gaps / Exceptions
+Missing data, conflicts, incomplete layers (with document source references).
+
+(MANDATORY FORMAT) The entire output must be a single JSON object strictly conforming to the provided JSON schema.
+
+FINAL OUTPUT EXPECTATION
+The final output must be a valid JSON object conforming to the provided schema, containing:
+• Full layer-by-layer ownership structure within extracted records.
+• Actual % at each step (or "Not Available" where absent, or "Negligible" for &lt;=0.01%).
+• Control identification (evidence-based).
+• Entity-type segregated handling (as above) aligned to KOS 8.0.
+• outOfBounds and qaFlags properties populated according to the schema (empty arrays/nulls if no relevant data).
+</instructions>
