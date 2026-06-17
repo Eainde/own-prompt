@@ -31,7 +31,7 @@
           "outOfBounds"
         ],
         "properties": {
-          "id": { "type": "string", "description": "Slug: lowercase name, spaces to underscores. Stable; referenced by owners[].owner_id of other records." },
+          "id": { "type": "integer", "minimum": 1, "description": "Sequential integer id, 1-based, in document reading order across all documents. Stable; referenced by owners[].owner_id and cycle_path of other records." },
           "name": { "type": "string", "description": "Legal name exactly as stated in the document." },
           "type": {
             "type": "string",
@@ -79,12 +79,12 @@
           },
           "owners": {
             "type": "array",
-            "description": "Direct owners (parents) of this entity. One entry per ownership link into this entity. Empty array if this entity has no identified owner (top parent, natural-person UBO, orphan SPV, or the client where not owned). Multiple entries capture multi-path / convergence (system rule 4.3); never collapse paths.",
+            "description": "DIRECT (first-layer) owners only — the immediate parents one layer above this entity. Do NOT include grandparents or any upstream ownership chain here; each owner is itself a separate record, and the full chain is reconstructed by walking owner_id links across records. One entry per direct ownership link into this entity. Empty array if this entity has no identified direct owner (top parent, natural-person UBO, orphan SPV, or the client where not owned). Multiple entries capture multi-path / convergence (system rule 4.3); never collapse paths.",
             "items": {
               "type": "object",
               "required": ["owner_name", "ownership_percentage_direct", "gp_lp_role", "control", "source", "source_type", "direction_proof", "conflicts"],
               "properties": {
-                "owner_id": { "type": "string", "description": "id (slug) of the owner's own record in extracted_records, when that owner is itself an emitted record; null otherwise." },
+                "owner_id": { "type": "integer", "minimum": 1, "description": "id of the owner's own record in extracted_records, when that owner is itself an emitted record. Omit when the owner is not emitted as a record." },
                 "owner_name": { "type": "string", "description": "Legal name of the owning entity/person exactly as stated." },
                 "ownership_percentage_direct": {
                   "type": "string",
@@ -124,7 +124,7 @@
           },
           "cycle_path": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": { "type": "integer", "minimum": 1 },
             "description": "Ordered node ids of the circular-ownership cycle this entity participates in (entity reachable from itself via ownership links), detected by DFS over owners[] links. Empty array if this entity is not part of a cycle."
           },
           "data_gaps": { "type": "string", "description": "Missing/incomplete data for this entity (missing %, incomplete layer, missing document), with document reference. Empty string if none." },

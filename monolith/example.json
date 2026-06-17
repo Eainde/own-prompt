@@ -1,7 +1,7 @@
 {
   "extracted_records": [
     {
-      "id": "acme_holdings_ltd",
+      "id": 1,
       "name": "Acme Holdings Ltd",
       "type": "Private Company",
       "entity_classification": "Corporate Entity",
@@ -15,7 +15,7 @@
       "classification_reasoning": "Client entity. Private limited company per Certificate of Incorporation, shareholder_register.pdf p1. Category 1 (Private/Regulated): full ownership drill-down required.",
       "owners": [
         {
-          "owner_id": "omega_corp",
+          "owner_id": 2,
           "owner_name": "Omega Corp",
           "ownership_percentage_direct": "60%",
           "gp_lp_role": "Not Applicable",
@@ -26,7 +26,7 @@
           "conflicts": []
         },
         {
-          "owner_id": "phoenix_fund_lp",
+          "owner_id": 3,
           "owner_name": "Phoenix Fund LP",
           "ownership_percentage_direct": "40%",
           "gp_lp_role": "Not Applicable",
@@ -44,7 +44,7 @@
       "outOfBounds": { "isOutOfBounds": false }
     },
     {
-      "id": "omega_corp",
+      "id": 2,
       "name": "Omega Corp",
       "type": "Private Company",
       "entity_classification": "Corporate Entity",
@@ -58,7 +58,7 @@
       "classification_reasoning": "Direct 60% owner of the client. Private company per org_chart.pdf box label and annual_report_2025.pdf p3.",
       "owners": [
         {
-          "owner_id": "global_listed_plc",
+          "owner_id": 4,
           "owner_name": "Global Listed PLC",
           "ownership_percentage_direct": "75%",
           "gp_lp_role": "Not Applicable",
@@ -75,7 +75,7 @@
           ]
         },
         {
-          "owner_id": "cross_holdings_ltd",
+          "owner_id": 5,
           "owner_name": "Cross Holdings Ltd",
           "ownership_percentage_direct": "25%",
           "gp_lp_role": "Not Applicable",
@@ -86,7 +86,7 @@
           "conflicts": []
         }
       ],
-      "cycle_path": ["omega_corp", "cross_holdings_ltd", "omega_corp"],
+      "cycle_path": [2, 5, 2],
       "data_gaps": "",
       "exceptions": "",
       "qaFlags": [
@@ -98,7 +98,7 @@
       "outOfBounds": { "isOutOfBounds": false }
     },
     {
-      "id": "phoenix_fund_lp",
+      "id": 3,
       "name": "Phoenix Fund LP",
       "type": "Partnership",
       "entity_classification": "Fund Vehicle",
@@ -112,7 +112,7 @@
       "classification_reasoning": "Direct 40% owner of the client. Limited partnership fund vehicle per partnership_agreement.pdf p1. Category 3: capture GP and LP parties.",
       "owners": [
         {
-          "owner_id": "investor_trust",
+          "owner_id": 7,
           "owner_name": "Investor Trust",
           "ownership_percentage_direct": "98%",
           "gp_lp_role": "LP",
@@ -123,7 +123,7 @@
           "conflicts": []
         },
         {
-          "owner_id": "phoenix_gp_ltd",
+          "owner_id": 6,
           "owner_name": "Phoenix GP Ltd",
           "ownership_percentage_direct": "2%",
           "gp_lp_role": "GP",
@@ -141,7 +141,7 @@
       "outOfBounds": { "isOutOfBounds": false }
     },
     {
-      "id": "global_listed_plc",
+      "id": 4,
       "name": "Global Listed PLC",
       "type": "Listed Company",
       "entity_classification": "Listed Parent",
@@ -166,7 +166,7 @@
       "outOfBounds": { "isOutOfBounds": false }
     },
     {
-      "id": "cross_holdings_ltd",
+      "id": 5,
       "name": "Cross Holdings Ltd",
       "type": "Private Company",
       "entity_classification": "Corporate Entity",
@@ -180,7 +180,7 @@
       "classification_reasoning": "25% owner of Omega Corp per org chart. Wholly owned by Omega Corp in turn, forming a circular cross-holding.",
       "owners": [
         {
-          "owner_id": "omega_corp",
+          "owner_id": 2,
           "owner_name": "Omega Corp",
           "ownership_percentage_direct": "100%",
           "gp_lp_role": "Not Applicable",
@@ -191,14 +191,14 @@
           "conflicts": []
         }
       ],
-      "cycle_path": ["cross_holdings_ltd", "omega_corp", "cross_holdings_ltd"],
+      "cycle_path": [5, 2, 5],
       "data_gaps": "",
       "exceptions": "Circular ownership detected: Omega Corp owns Cross Holdings Ltd 100% while Cross Holdings Ltd owns Omega Corp 25%. Carried forward unresolved.",
       "qaFlags": [],
       "outOfBounds": { "isOutOfBounds": false }
     },
     {
-      "id": "phoenix_gp_ltd",
+      "id": 6,
       "name": "Phoenix GP Ltd",
       "type": "Private Company",
       "entity_classification": "General Partner (GP)",
@@ -212,7 +212,7 @@
       "classification_reasoning": "General Partner of Phoenix Fund LP (2% + management control). Private company wholly owned by Khan Rashid per partnership_agreement.pdf p5.",
       "owners": [
         {
-          "owner_id": "khan_rashid",
+          "owner_id": 8,
           "owner_name": "Khan Rashid",
           "ownership_percentage_direct": "100%",
           "gp_lp_role": "Not Applicable",
@@ -230,7 +230,7 @@
       "outOfBounds": { "isOutOfBounds": false }
     },
     {
-      "id": "investor_trust",
+      "id": 7,
       "name": "Investor Trust",
       "type": "Trust",
       "entity_classification": "Limited Partner (LP)",
@@ -255,7 +255,7 @@
       "outOfBounds": { "isOutOfBounds": false }
     },
     {
-      "id": "khan_rashid",
+      "id": 8,
       "name": "Khan Rashid",
       "type": "Natural Person",
       "entity_classification": "Individual",
@@ -277,7 +277,7 @@
       "outOfBounds": { "isOutOfBounds": false }
     },
     {
-      "id": "acme_foundation",
+      "id": 9,
       "name": "Acme Foundation",
       "type": "Foundation",
       "entity_classification": "Corporate Entity",
