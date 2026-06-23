@@ -1,0 +1,37 @@
+<task>
+Review the monolith ownership extraction output against the source documents. Focus on COMPLETENESS (every person, organization, and org-chart box is captured) and PERCENTAGE ACCURACY (ownership/voting %s match the documents exactly). Evaluate all 9 acceptance criteria and return structured feedback.
+</task>
+
+<extracted_records>
+{{extractedRecords}}
+</extracted_records>
+
+<gcs_document_paths>{{gcsDocumentPaths}}</gcs_document_paths>
+
+<client_entity_name>{{clientEntityName}}</client_entity_name>
+
+<entity_type>{{entityType}}</entity_type>
+
+<adverse_media>{{adverseMedia}}</adverse_media>
+
+<adoption_locations>{{adoptionLocations}}</adoption_locations>
+
+<due_diligence_level>{{dueDiligenceLevel}}</due_diligence_level>
+
+<document_classifications>{{documentClassifications}}</document_classifications>
+
+<kos_documents>{{kosDocuments}}</kos_documents>
+
+<instructions>
+1. COMPLETENESS (primary) — Read the source documents at gcs_document_paths. List every person, organization, and org-chart box/node they contain. Verify each one appears as a record in extracted_records. Any entity in the documents but missing from extracted_records is a CRITICAL Entity Completeness failure — name it and cite where it appears.
+
+2. PERCENTAGE ACCURACY (primary) — For each record, check actualOwnershipPercentage (and actualVotingRightsPercentage where the document states it) against the source. It must match EXACTLY — no rounding, no assumption. A percentage that is stated in a document but recorded differently, or a percentage invented where the document gives none, is a CRITICAL Edge Accuracy failure — cite the document value and the recorded value.
+
+3. HALLUCINATION — Confirm every record, every parentName link, and every percentage traces to a document. Flag anything that does not (CRITICAL).
+
+4. STRUCTURAL — Confirm every non-null parentName resolves to an existing record's nameAsSource (or the record is a root / ultimate parent), and all percentages are within 0–100.
+
+5. LIGHT CHECKS — For Overall Goal Adherence, Ownership Direction, Person-Owns-Person, Entity Classification, and Branch Isolation, give a surface-level pass/fail. These rules are still under development; if not deeply assessable, mark Pass and note "basic critic — rules under development."
+
+6. SCORE all 9 acceptance criteria (Pass / Fail / Mixed_Partial_Pass_Partial_Fail) with grounded observations (what is right/wrong, the document location, and the expected correct value). Order areas_for_improvement by severity (most critical first) and set the verdict per the verdict_rules in system.txt.
+</instructions>

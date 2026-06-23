@@ -5,7 +5,28 @@ Split into `system.txt` / `user.txt` / `schema.json`. `system.txt` and `user.txt
 
 ---
 
-## 0. Schema update — supersedes findings below
+## LATEST (2026-06-23) — prompt v36 + "Ownership Structure Candidates Schema"
+
+The user supplied a new canonical prompt (`ownership_prompt_36.txt`) and schema (`extracted_schema.txt`). Applied to the directory:
+- `source.md` = prompt v36 (verbatim); `schema.source.txt` = the new schema (raw OCR, verbatim).
+- `system.txt` / `user.txt` = v36 split into XML (verbatim wording; v36 adds the "Holding Company" entity tag and a `Control | Source` output column).
+- `schema.json` = the new schema reconstructed to valid Draft-07 (`title: "Ownership Structure Candidates Schema"`).
+
+**This new schema replaces the single-parent `owners[]` model** (sections 0/A/B below are now historical). Key shape: flat `extracted_records[]` keyed by integer `id`, hierarchy via a **single `parentName`** per record; numeric ownership fields (`actualOwnershipPercentage`, `actualVotingRightsPercentage`, `accumulated*`, `domination*`, `denominator*`, all `number` 0–100); `isUltimateParent` / `isIBO` / `isUBO`; governance/audit fields (`governanceBasis`, `canonicalReasonTokens`, `transparencyCode`, `confidenceScore`, `conflictTag`, `negativeSignals`, `controlsApplied`); per-record `qaFlags[]` + `outOfBounds`; and top-level `outOfBounds` + `qaFlags` objects.
+
+**Open concerns to flag (not blockers):**
+1. **Single `parentName` cannot represent multi-path / convergence** — an entity owned by two parents, or an owner holding stakes in two entities, needs more than one parent link. This contradicts the prompt's own MULTI-PATH & CONVERGENCE rule (4.3). Confirm whether duplicate records are intended, or whether the link should be an array.
+2. **Numeric `actualOwnershipPercentage` (number 0–100) cannot hold `"Not Available"` / `"Negligible"`** — but the prompt (4.3 / section 10) mandates those literals. Either a sentinel value or a companion string field is needed.
+3. **No entity-classification field** — the prompt tags entities (Corporate Entity / Holding Company / GP / LP / Fund Vehicle / Listed Parent / Individual) but `itemType` only carries PERSON/ORGANIZATION; the tag has nowhere to go.
+4. **No `layer` and no client field** — layering is implicit via `parentName` chains and `isUltimateParent`; there is no explicit client anchor.
+5. **`parentName` direction is ambiguous** — "Name of Parent Organization" + "ownership percentage … in the entity" needs confirming (does `parentName` = the entity this record owns, or the entity that owns this record?).
+6. **Reconstruction notes:** preserved author's `"nullable": true` (OpenAPI, ignored by Draft-07); standardized the top-level key casing to `outOfBounds` (source OCR mixed `outofBounds`); item-level `outOfBounds.status` enum taken as `[NEEDS_REVIEW, DOC_INVALID, COUNTRY_OUT_OF_SCOPE, DOCUMENT_NOT_RELEVANT]`; `dominationOwnership`/`dominationVotingRights`/`conflictTag` are optional (not in the source's item `required` list).
+
+`example.json` is now **stale** (built for the old `owners[]` schema; 221 validation errors against the new one). Pending a decision on whether to regenerate it for the new schema (see concern #5 first).
+
+---
+
+## 0. Schema update — supersedes findings below (HISTORICAL)
 
 `schema.json` has been **replaced** with a purpose-built ownership-extraction schema (`title: "Monolith Ownership Extraction Schema"`). Current shape (single-parent, batchable — see `docs/superpowers/specs/2026-06-17-monolith-single-parent-schema-design.md`):
 

@@ -1,158 +1,283 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Monolith Ownership Extraction Schema",
-  "description": "End-to-end ownership extraction for the monolith prompt. One parent array of self-contained records (entity identity + embedded ownership links + per-record audit), so the output batches cleanly via submitBatch(json, \"extracted_records\"). The client entity is the record with layer 0. Chart is reconstructed by walking owners[] links across records using layer for hierarchy.",
+  "title": "Ownership Structure Candidates Schema",
+  "description": "Schema for ownership structure chart candidates with appropriate reasons.",
   "type": "object",
-  "required": ["extracted_records"],
+  "required": ["extracted_records", "outOfBounds", "qaFlags"],
   "properties": {
     "extracted_records": {
       "type": "array",
-      "description": "One record per distinct entity/person across all documents. Self-contained: each record carries its own ownership links, conflicts, cycle membership, gaps, and flags. Do NOT duplicate an entity across records even if it appears in multiple documents or paths; record multiple owners as multiple owners[] entries.",
+      "description": "Organization and person candidates to build ownership structure chart.",
       "items": {
         "type": "object",
         "required": [
           "id",
-          "name",
-          "type",
-          "entity_classification",
-          "entity_type_category",
-          "layer",
-          "document_name",
-          "document_path",
-          "isUBO",
+          "itemType",
+          "nameAsSource",
+          "parentName",
+          "pageNumber",
+          "documentName",
+          "isUltimateParent",
           "isIBO",
-          "listing_proof",
-          "classification_reasoning",
-          "owners",
-          "cycle_path",
-          "data_gaps",
-          "exceptions",
+          "isUBO",
+          "actualOwnershipPercentage",
+          "actualVotingRightsPercentage",
+          "accumulatedOwnership",
+          "accumulatedVotingRights",
+          "denominatorOwnership",
+          "denominatorVotingRights",
+          "confidenceScore",
+          "governanceBasis",
+          "canonicalReasonTokens",
+          "temporalStatus",
+          "countryProfileApplied",
+          "countryOverrideNote",
+          "scopeTag",
+          "currencyTag",
+          "coverageMode",
+          "transparencyCode",
+          "controlsApplied",
+          "negativeSignals",
           "qaFlags",
           "outOfBounds"
         ],
         "properties": {
-          "id": { "type": "integer", "minimum": 1, "description": "Sequential integer id, 1-based, in document reading order across all documents. Stable; referenced by owners[].owner_id and cycle_path of other records." },
-          "name": { "type": "string", "description": "Legal name exactly as stated in the document." },
-          "type": {
-            "type": "string",
-            "enum": ["Listed Company", "Private Company", "Regulated Entity", "Natural Person", "SPV", "Trust", "Charity", "Foundation", "Partnership", "Fund Vehicle", "Government Entity", "Branch", "Unknown"],
-            "description": "Legal entity type."
-          },
-          "entity_classification": {
-            "type": "string",
-            "enum": ["Corporate Entity", "General Partner (GP)", "Limited Partner (LP)", "Fund Vehicle", "Listed Parent", "Individual"],
-            "description": "Structural tag per system rule 4.3 ENTITY CLASSIFICATION (captures GP/LP/Fund Vehicle roles the legal type alone does not convey)."
-          },
-          "entity_type_category": {
-            "type": "string",
-            "enum": ["Category 1 - Private/Regulated/Listed", "Category 2 - Adverse Media", "Category 3 - SPV/Trust/Charity/Foundation", "Entity Type not confirmed"],
-            "description": "KYC category for this entity. For the layer-0 client record this is the client classification decided first (system rules 5 + 6)."
-          },
-          "layer": {
+          "id": {
             "type": "integer",
-            "minimum": 0,
-            "description": "Ownership layer relative to the client. 0 = client, 1 = direct owners of client, 2 = their owners, etc. (system rule 4.1)."
+            "minimum": 1,
+            "description": "Sequential integer, 1-based, in document reading order."
           },
-          "document_name": { "type": "string", "description": "Name of the source document this entity record was extracted from." },
-          "document_path": { "type": "string", "description": "GCS path / file path of the source document this entity record was extracted from." },
-          "isUBO": { "type": "boolean", "description": "True if this entity/person is a UBO of the client." },
-          "isIBO": { "type": "boolean", "description": "True if this entity/person is an IBO of the client." },
-          "listing_proof": {
-            "oneOf": [
-              { "type": "null" },
-              {
-                "type": "object",
-                "required": ["exchange", "ticker", "isin", "proof_source"],
-                "properties": {
-                  "exchange": { "type": "string" },
-                  "ticker": { "type": "string", "description": "Ticker, or 'Not Available'." },
-                  "isin": { "type": "string", "description": "ISIN, or 'Not Available'." },
-                  "proof_source": { "type": "string", "description": "Source document name + section/page evidencing the listing." }
-                }
-              }
-            ],
-            "description": "Populate for Listed entities only (Category 2 / system rule 6 step 1). null otherwise."
-          },
-          "classification_reasoning": {
+          "itemType": {
             "type": "string",
-            "description": "Entity type reasoning + the document page/section that evidences this entity."
+            "enum": ["PERSON", "ORGANIZATION"],
+            "description": "PERSON when item is derived from a person input, ORGANIZATION when item is derived from an organization input."
           },
-          "owners": {
+          "nameAsSource": {
+            "type": "string",
+            "description": "Original name."
+          },
+          "parentName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Name of Parent Organization."
+          },
+          "pageNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "documentName": {
+            "type": "string",
+            "description": "Name of the document from which this record was extracted."
+          },
+          "isUltimateParent": {
+            "type": "boolean",
+            "description": "True if this record is the ultimate parent of the ownership structure."
+          },
+          "isIBO": {
+            "type": "boolean",
+            "description": "IBO is true if an IBO of the organisation else false."
+          },
+          "isUBO": {
+            "type": "boolean",
+            "description": "UBO is true if an UBO of the organisation else false."
+          },
+          "actualOwnershipPercentage": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Actual ownership percentage of the person or organization in the entity."
+          },
+          "actualVotingRightsPercentage": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Voting rights percentage of the person or organization in the entity."
+          },
+          "accumulatedOwnership": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Accumulated ownership of the person or organization in the entity."
+          },
+          "accumulatedVotingRights": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Accumulated voting rights of the person or organization in the entity."
+          },
+          "dominationOwnership": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Domination ownership of the person or organization in the entity."
+          },
+          "dominationVotingRights": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Domination voting rights of the person or organization in the entity."
+          },
+          "denominatorOwnership": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Denominator ownership of the person or organization in the entity."
+          },
+          "denominatorVotingRights": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Denominator voting rights of the person or organization in the entity."
+          },
+          "conflictTag": {
+            "type": "string",
+            "enum": ["C: clear", "C: resolved", "C: unresolved"],
+            "description": "Provide if conflict detected. C: clear = no conflict detected. C: resolved = conflict detected but resolved. C: unresolved = conflict detected but not resolved."
+          },
+          "confidenceScore": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "Deterministic confidence score computed per SD scoring rules. Formula: round(clamp(sum(positives) + sum(negatives), 0, 1) * consensus_multiplier, 2). Threshold: 0.70 for inclusion."
+          },
+          "governanceBasis": {
+            "type": "string",
+            "description": "7-part structured reason. Format: [1] GOVERNANCE ROLE: role per rule_id. [2] SOURCE BASIS: sourceClass and distribution. [3] ENTITY SCOPE: binding status and entity type. [4] KDB ROLE INTERPRETATION: how role maps to IBO/UBO under applicable rules. [5] CURRENCY and QUALITY: temporal status and source quality. [6] SIGNING NARRATIVE: signatoryType and token weight. [7] FINAL DECISION: isIBO/isUBO, rules applied, confidence, transparencyCode."
+          },
+          "canonicalReasonTokens": {
+            "type": "string",
+            "description": "Machine-checkable reason tokens. Format: 'GOV={basis} SRC={tier} ESEL={status} C={conflict} U={currency} T=0.70({met/not_met}) MODE={ALL/CUR}'. Example: 'GOV=exec_body SRC=H1 ESEL=binding C=clear U=current T=0.70(met) MODE=ALL'."
+          },
+          "temporalStatus": {
+            "type": "string",
+            "enum": ["current", "former", "unknown"]
+          },
+          "countryProfileApplied": {
+            "type": "string",
+            "description": "'CP-XX' code or null."
+          },
+          "countryOverrideNote": {
+            "type": "string",
+            "description": "Override explanation or null."
+          },
+          "scopeTag": {
+            "type": "string",
+            "description": "'S: branch' or null."
+          },
+          "currencyTag": {
+            "type": "string",
+            "description": "'U: low authority source' or null."
+          },
+          "transparencyCode": {
+            "type": "string",
+            "enum": ["CONFIDENT", "NOT_CONFIDENT", "DOC_INVALID", "CONFLICT_VS", "COGNATE_MIS", "Q_STALE", "Q_CHANGING", "FORMER_ONLY", "MKF_APPLIED"],
+            "description": "Structured transparency code. CONFIDENT = high confidence. NOT_CONFIDENT = ambiguous. DOC_INVALID = source issue. CONFLICT_VS = source conflict. COGNATE_MIS = cognate name mismatch concern. Q_STALE = outdated source (>3yr). Q_CHANGING = registry in flux. FORMER_ONLY = all roles departed. MKF_APPLIED = executive body override used."
+          },
+          "coverageMode": {
+            "type": "string",
+            "enum": ["ALL"],
+            "description": "Coverage mode. ALL = all persons/organisations emitted regardless of currency. Always ALL in current pipeline."
+          },
+          "negativeSignals": {
             "type": "array",
-            "description": "DIRECT (first-layer) owners only — the immediate parents one layer above this entity. Do NOT include grandparents or any upstream ownership chain here; each owner is itself a separate record, and the full chain is reconstructed by walking owner_id links across records. One entry per direct ownership link into this entity. Empty array if this entity has no identified direct owner (top parent, natural-person UBO, orphan SPV, or the client where not owned). Multiple entries capture multi-path / convergence (system rule 4.3); never collapse paths.",
-            "items": {
-              "type": "object",
-              "required": ["owner_name", "ownership_percentage_direct", "gp_lp_role", "control", "source", "source_type", "direction_proof", "conflicts"],
-              "properties": {
-                "owner_id": { "type": "integer", "minimum": 1, "description": "id of the owner's own record in extracted_records, when that owner is itself an emitted record. Omit when the owner is not emitted as a record." },
-                "owner_name": { "type": "string", "description": "Legal name of the owning entity/person exactly as stated." },
-                "ownership_percentage_direct": {
-                  "type": "string",
-                  "description": "Direct % this owner holds in this entity, exactly as stated (e.g. '55%', '12.5%'). 'Not Available' if absent, 'Negligible' for <=0.01%. Never assume (system rules 4.3 Percentage / 9)."
-                },
-                "gp_lp_role": {
-                  "type": "string",
-                  "enum": ["GP", "LP", "Not Applicable"],
-                  "description": "GP/LP role of this owner in this relationship where applicable (system rule 4.2)."
-                },
-                "control": { "type": "string", "description": "Control / domination indicator for this link, ONLY when supported by evidence (system rule 9). Empty string if no evidenced control." },
-                "source": { "type": "string", "description": "Document name + page/section evidencing this relationship." },
-                "source_type": {
-                  "type": "string",
-                  "enum": ["document_chart", "document_text"],
-                  "description": "Provenance within the document: read from a visual org chart, or from non-chart text (registers, tables, prose)."
-                },
-                "direction_proof": {
-                  "type": "string",
-                  "description": "Text/visual evidence proving the owner->owned direction (page/section text or chart annotation stating who owns whom)."
-                },
-                "conflicts": {
-                  "type": "array",
-                  "description": "Conflicting % values for THIS ownership link across documents. Capture ALL conflicting values with sources; do NOT resolve (system rule 4.3 Data Conflict / 8). Empty array if no conflict.",
-                  "items": {
-                    "type": "object",
-                    "required": ["value", "source", "description"],
-                    "properties": {
-                      "value": { "type": "string", "description": "The conflicting % value as stated." },
-                      "source": { "type": "string", "description": "Document name + page/section for this conflicting value." },
-                      "description": { "type": "string", "description": "Short note on the disagreement." }
-                    }
-                  }
-                }
-              }
-            }
+            "items": { "type": "string" },
+            "description": "List of negative signals detected. Empty array if none. Format: 'former-only roles (-0.40)', 'single H4 source (-0.30)'."
           },
-          "cycle_path": {
+          "controlsApplied": {
             "type": "array",
-            "items": { "type": "integer", "minimum": 1 },
-            "description": "Ordered node ids of the circular-ownership cycle this entity participates in (entity reachable from itself via ownership links), detected by DFS over owners[] links. Empty array if this entity is not part of a cycle."
+            "items": { "type": "string" },
+            "description": "Control rules checked or applied for this candidate. Include rules checked or triggered. Omit rules structurally irrelevant to this candidate's entity type or country."
           },
-          "data_gaps": { "type": "string", "description": "Missing/incomplete data for this entity (missing %, incomplete layer, missing document), with document reference. Empty string if none." },
-          "exceptions": { "type": "string", "description": "Exceptions / special handling for this entity (e.g. orphan SPV no ownership identified, 'Share Trustee identified - add as IBO'). Empty string if none." },
           "qaFlags": {
             "type": "array",
-            "description": "Quality-assurance and inference flags for this record (mirrors the CSM qaFlags capture, per record). Empty array if none.",
-            "items": {
-              "type": "object",
-              "required": ["reason", "status"],
-              "properties": {
-                "reason": { "type": "string", "description": "A clear explanation of the QA / inference flag." },
-                "status": { "type": "string", "enum": ["CONFIDENT", "NOT_CONFIDENT"] }
-              }
-            }
+            "items": { "type": "string" },
+            "description": "QA annotation flags for downstream audit and review. Each entry is a free-text flag from QA rules. Empty array when no issues detected."
           },
           "outOfBounds": {
             "type": "object",
+            "description": "Out-of-bounds assessment derived from ownership results.",
             "required": ["isOutOfBounds"],
-            "description": "Out-of-bounds assessment for this record (mirrors the CSM outOfBounds capture, per record). isOutOfBounds=false with reason/status omitted when in scope.",
             "properties": {
-              "isOutOfBounds": { "type": "boolean", "description": "True if this entity/person/record falls outside the defined scope of ownership extraction." },
-              "reason": { "type": "string", "description": "Why this record is out of bounds. Omit when isOutOfBounds is false." },
+              "isOutOfBounds": {
+                "type": "boolean",
+                "description": "True if this person or organization is determined to be out of bounds for ownership candidacy based on ownership results."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Canonical reason for OOB flag. Null when isOutOfBounds is false."
+              },
               "status": {
                 "type": "string",
                 "enum": ["NEEDS_REVIEW", "DOC_INVALID", "COUNTRY_OUT_OF_SCOPE", "DOCUMENT_NOT_RELEVANT"],
-                "description": "OOB status category. Omit when isOutOfBounds is false."
+                "description": "OOB status category. Set to null when isOutOfBounds is false."
               }
+            }
+          }
+        }
+      }
+    },
+    "outOfBounds": {
+      "type": "object",
+      "nullable": true,
+      "description": "A summary and list of records that were identified but fall outside the defined scope of an Ownership Structure.",
+      "required": ["summary", "documents", "records"],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "nullable": true,
+          "description": "Start with the documentName and then give an overall summary of the out-of-bounds records (avoid count of records) including firstName, lastName or legalName (if available), documentName (mention the documentName in this summary), reason (if applicable) including the status."
+        },
+        "documents": {
+          "type": "array",
+          "nullable": true,
+          "description": "A list of documents that were identified but fall outside the defined scope of an Ownership Structure.",
+          "items": {
+            "type": "object",
+            "required": ["fileName", "reason", "status"],
+            "properties": {
+              "fileName": { "type": "string", "description": "A unique fileName." },
+              "reason": { "type": "string", "description": "A clear explanation of why this file record is considered out of bounds." },
+              "status": { "type": "string", "enum": ["DOC_INVALID", "DOCUMENT_NOT_RELEVANT"], "description": "The status of the reason, indicating DOC_INVALID or DOCUMENT_NOT_RELEVANT." }
+            }
+          }
+        },
+        "records": {
+          "type": "array",
+          "nullable": true,
+          "description": "A list of items that were identified but fall outside the defined scope of an Ownership Structure.",
+          "items": {
+            "type": "object",
+            "required": ["id", "reason", "status"],
+            "properties": {
+              "id": { "type": "integer", "description": "A unique, auto-generated incremental ID for this record." },
+              "reason": { "type": "string", "description": "A clear explanation of why this record is considered out of bounds." },
+              "status": { "type": "string", "enum": ["NEED_REVIEW", "COUNTRY_OUT_OF_SCOPE"], "description": "The status of the reason, indicating NEED_REVIEW or COUNTRY_OUT_OF_SCOPE." }
+            }
+          }
+        }
+      }
+    },
+    "qaFlags": {
+      "type": "object",
+      "nullable": false,
+      "description": "A summary and set of quality assurance and inference flags based on the document analysis.",
+      "required": ["summary", "records"],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "nullable": true,
+          "description": "Start with the documentName and then give an overall summary of the qa_flags records."
+        },
+        "records": {
+          "type": "array",
+          "nullable": true,
+          "description": "A list of quality assurance and inference flag reasons based on the document analysis.",
+          "items": {
+            "type": "object",
+            "required": ["reason", "status"],
+            "properties": {
+              "reason": { "type": "string", "description": "A clear explanation of why this reason has quality assurance and inference flags." },
+              "status": { "type": "string", "enum": ["CONFIDENT", "NOT_CONFIDENT"], "description": "The status of the record, indicating CONFIDENT or NOT_CONFIDENT." }
             }
           }
         }

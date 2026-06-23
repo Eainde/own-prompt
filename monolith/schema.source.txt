@@ -1,0 +1,475 @@
+ind
+a Now: TDI Enginee..
+"schema": "http: //json-schema.org/draft-07/schemat",
+"title"':
+"description":
+"Ownership Structure Candidates Schema",
+"type":
+"object",
+"Schema for ownership structure chart candidates with appropriate reasons.",
+"properties":
+"extracted_records";
+"items": (
+"type": "array",
+"type":
+"description":
+"object",
+"properties": [
+"Organization and person candidates to build ownership structure chart.".
+"type": "integer",
+"minimum":
+"description":
+"Sequential integer, 1-based, in document reading order."
+"itemType":
+"type":
+"enum":
+"string",
+"PERSON"
+"ORGANIZATION"
+"nameAsSource": {
+"description': "PERSON when item is derived from a person input, ORCANIZATION when item is derived from an organization input."
+"type":
+"string"
+},
+"description":
+"Original name."
+"parentName": <
+"nullable":
+"type":
+"string",
+"description":
+true,
+3,
+"Name of Parent Organization"
+"pageNumber": (
+"minimum": 1
+"type":
+"integer",
+"documentName":
+"type": "string",
+"description":
+"Name of the document from which this record was extracted.
+"isUltimateParent":
+"type":
+"description";
+"boo lean",
+"True if this record is the ultinate parent of the ownership structure.•
+"type":
+"description":
+"boolean"
+"iSIBO": 1
+"UBO is true if an UBO of the organisation else false"
+"type":
+"description":
+"boolean",
+},
+"IBO is true if an IBO of the organisation else false"
+"actual0wnershipPercentage": 1
+"type":
+"minimum":
+"number",
+"maximum":
+0.6,
+"description":
+100.0,
+"actualVotingRightsPercentage": (
+"Actual Ounership percentage of the person or organization in the entity."
+"type":
+"minimum":
+"number",
+"maximum":
+0.0,
+100.0,
+DONI
+UTF-8 Text ~
+& Now: TDI Enginee...
+*
+Q
+"type":
+"minimum";
+'number",
+"maximum": 100.0,
+0.0,
+"description":
+"Voting rights percentage of the person or
+4 нал,zacton 1n
+the
+entity."
+"accumulatedOwnership": {
+"minimum": 0.0,
+"type":
+"number",
+"description":
+"maximum":
+100.0,
+0,
+"Accumulated ownership of the person or
+ion 10 the entity."
+"accumulatedVotingRights": (
+"type";
+"minimum": 0.0,
+"number",
+"description":
+"maximum":
+100.0,
+"dominationOwnership": (
+"Accumulated voting rights of the person or organization in the entity."
+"type":
+"minimum": 0.0,
+"number",
+"maximum":
+100.0,
+"description": "Domination ownership of the person or
+"dominationVot ingRights"; 1
+organization in the entity."
+"type":
+"number",
+"minimum": 0.0,
+"maximum":
+"description":
+100.e,
+},
+"denominatorOwnership": (
+"Domination voting rights of the person or organization in the entity."
+"type":
+"minimum": Đ.8,
+"number",
+"maximum":
+"description":
+108.e,
+},
+"Denominator ownership of the person or organization in the entity."
+"denominatorVotingRights":(
+"type":
+"minimum": D.0,
+"number",
+"description":
+"maximum":
+100.0,
+"'conflicttag,
+"Denominator voting rights of the person or organization in the entity."
+"type":
+"enum":
+"string",
+"C:
+"C:
+resolved",
+clear",
+1,
+"C:
+unresolved"
+"'confidencescore:
+"description": "Provide if conflict detected. C: clear = no conflict detected. C: resolved - conflict detected but resolved. C: unresolved = conflict detected but not resolved."
+"minimum": 0.0,
+"type":
+"number",
+"maximum": 1.0,
+"description":
+inclusion."
+"Deterministic confidence score computed per SD
+"governanceBasis":
+"type":
+scoring rules. Formula: round (clamp(sum(positives) * sum(negatives), 9, 1) * consensus_multiplier, 2). Threshold: 0.70 for
+"description":
+"string",
+KDB ROLE INTERPRETATION:
+[7) FINAL DECISION:
+"7-part structured reason. Format: [1] GOVERNANCE ROLE; role per rule_id. [2] SOURCE BASIS:
+isIBO/isUBO, rules applied, confidence, transparencyCode."
+how role maps to IBO/UBO under applicable rules. [5] CURRENCY and QUALITY: temporal status and source quality- [G] SIGNING NARRATIVE:
+sourceClass and distribution. [3) ENTITY SCOPE: binding status and entity type. [4]
+"canonicalReasonTokens": (
+signatoryType and token weight.
+"type":
+"string", (
+ESEL=binding C=clear U=current T=0.70(met) MODE=ALL'_"
+"Machine-checkable reason tokens.
+Format: GOV= (basis) SRC=(tier) ESEL= (status) C=(conflict) U=[currency) T=0.70([met/not_met)) MODE=[ALL/CUR}'. Example: ' GOV=exec_body SRC=H1
+"temporalStatus":
+LLO
+"type":
+"enum":
+"string",
+"former"
+"current",
+"unknown"
+"countryProfileApplied":
+"type":
+"description":
+"string"
+code or null. "
+"countryoverrideNote":
+"type":
+"description":
+"string",
+},
+"Override explanation or null."
+"scopeTag": {
+"description":
+"type":
+"string",
+HiS:
+branch' or null."
+"currencyTag":
+"description":
+"type":
+"string",
+),
+"'U:
+low authority source' or null."
+"transparencyCode":
+"type":
+"enum":
+"string",
+"NOT_CONFIDENT",
+"CONFIDENT",
+"CONFLICT_VS"
+"DOC_INVALID",
+"COGNATE_NIS",
+"O STALE"
+"FORMER ONLY"
+"Q_CHANGING"
+1,
+"HKF_APPLIED"
+"coverageModel:
+mismatch concern. Q_STALE = outdated source (>3yr). CHANGING = registry in flux. FORMER_ONLY = all roles departed. MKF_APPLIED = executive body override used."
+"description": "Structured transparency code. CONFIDENT = high confidence. NOT_CONFIDENT = ambiguous. DOC_INVALID = source issue. CONFLICT_VS= source conflict. COGNATE_MIS = cognate name
+"type":
+"enum":
+"string",
+}.
+"negativeSignals": {
+"description: "Coverage mode. ALL = all persons/organisations emitted regardless of currency. Always ALL in current pipeline."
+"items" o
+"type":
+"array",
+"type:
+"string"
+},
+"controlsApplied": 1
+"description: "List of negative signals detected. Empty array ff none. Format: "former-only roles (-0.40)', 'single H4 source (-0.30)."
+"type":
+"items":
+"array",
+"type":
+"string"
+"description":
+aunluated m not annicahla!
+"Control rules checked or
+applied for this candidate. Format:
+for ta ried on than andidata formatt rica tried railer checked neer tr
+checked - not applicable', "NG1:
+18Z
+"qaFlags":
+evaluated - not applicable', Include rules checked or triggered. Omit rules structurally irrelevant to this candidate's entity type or country."
+checked - not auditor'. 'ET. LLC: applied',
+"items":
+"type":
+"array",
+"type": "string"
+"outOfBounds": {
+"description": "QA annotation flags for downstream audit and review. Each entry is a free-text flag from QA rules. Empty array when no issues detected."
+"description":
+"type":
+"object",
+"properties":/
+"isOutOfBounds";
+"Out-of-bounds assessment derived from ownership results.".
+"description":
+"type":
+"boolean",
+"string",
+"True if this person or organization is determined to be out of bounds for ownership candidacy based on ownership results."
+),
+"Canonical reason for 00B flag. Nult when isoutofBounds is false."
+"string",
+EVANT*
+COPE",
+"description":
+"OOB status category. set to null when isoutofBounds is false."
+"required":
+),
+"isOutOfBounds"
+"required":
+"¡temType",
+"id",
+"nameAsSource",
+"pageNumber",
+"parentName",
+"documentName",
+"isIBO",
+"isUBO",
+"actualOwnershipPercentage",
+"isUltimateParent",
+"accumulatedOwnership",
+"actualvotingRightsPercentage",
+"denominatorOwnership",
+"accumulatedVotingRights",
+"denominatorVotingRights",
+"confidencescore",
+"governanceBasis",
+"canonicalReasonTokens",
+"temporalstatus",
+"countryProfileApplied",
+"country verrideNote",
+"scopeTag",
+"'currencyTag";
+"coverageMode",
+"transparencyCode",
+"controlsApplied",
+"negativeSignals",
+"qaFlags",
+"outofBounds"
+"outofBounds": (
+"type":
+"description":
+"object",
+"nullable": true,
+"properties":
+"A summary and list of records that were identified but fall outside the defined scope of a Ownership Structure,
+"summary":
+"description":
+"type";
+"string",
+),
+documentName (mention the documentName in this summary), reason (if applicable) including the status",
+"nullable"; true
+"Start with the documentName and then mention over all summary of the out-of-bounds records (avoid count of records) including firstname, Last name or legalame (if available),
+"documents";
+"type":
+"nullable":
+"array",
+"items":
+"description":
+"type":
+"object",
+A list of document those were identified but fall outside the defined scope of a Ownership Structure.*,
+"properties":
+"fileName":
+"type":
+"description":
+"string",
+"nullable":
+false
+"A unique fileName.",
+"reason":
+"type":
+"description":
+"string",
+"nullable": false
+"A clear explanation of why file record is considered out of bounds.",
+"status":
+"type":
+"description":
+"string",
+"enum":
+"DOC_INVALID"
+"The status of the reason, indicating DOC_INVALID, DOCUMENT_NOT_RELEVANT.",
+1,
+"DOCUMENT_NOT_RELEVANT"
+"nullable": false
+"required":
+"fileName",
+"reason",
+"status"
+"records":
+"type":
+"nullable":
+"array",
+"description":
+true,
+383-
+"items": {
+"type";
+"A list of items that were identified but fall outside the defined scope of a Ownership Structure.".
+"properties": (
+"object",
+"id":
+"type": "integer",
+"'nullable":
+"description":
+false
+"A unique, auto generated incremental ID for this record.".
+"reason":
+"type":
+"description":
+"string",
+"nullable": false
+"A clear explanation of why this record is considered out of bounds.".
+"status": {
+"type":
+"description":
+"string",
+"enum":
+"The status of the reason, indicating NEED_REVIEW,COUNTRY_OUT_OF_SCOPE.'
+"NEED_REVIEW",
+1,
+"COUNTRY OUT OF SCOPE"
+"nullable": false
+"required": [
+"id",
+"reason",
+"status"
+"required": [
+"summary",
+"documents",
+"records"
+"qaFlags":
+"type": "object",
+"nullable": false,
+"description":
+"A summary and set of quality assurance and inference flags based on the document analysis.",
+"properties":
+"summary":
+"type";
+"description":
+"string"
+),
+"nullable", true
+"Start with the documentName and then mention over all summary of the da_flags records.
+"records":
+"type":
+"nullable":
+"array",
+"description":
+true,
+"items":
+"type":
+"object",
+"A List of quality assurance and inference flags reasons based on the document analysis."
+"properties"!
+"reason":
+"type":
+"nullable":
+"description":
+"string" clear pioneers tie rosen aty assurance a
+false
+"status":
+"type":
+"description":
+"string",
+),
+"nullable"; true
+"Start with the documentName and then mention over all summary of the qa_ flags records.,
+"records": {
+"type":
+true,
+"items"; 1
+"type":
+"A list of quality assurance and inference flags reasons based on the document analysis.
+"string",
+false
+"A clear explanation of why this reason has quality assurance and inference flags.
+"string",
+"The status of the record, indicating CONFIDENT or NOT_CONFIDENT.
+1,
+false
+"reason",
+"status"
+"required":
+"summary"
+"records"
+"required":
+"extracted_records",
+"outofBounds",
+"qaFlags"
