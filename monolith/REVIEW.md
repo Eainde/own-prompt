@@ -5,6 +5,51 @@ Split into `system.txt` / `user.txt` / `schema.json`. `system.txt` and `user.txt
 
 ---
 
+## LATEST (2026-07-27) — prompt v39 + schema revision
+
+The user supplied v39 of the prompt (`OWNERSHIP_EXTRACTOR_CLASSIFIER_V39 - KOS v8.0a aligned`)
+and a minor schema revision. Applied to the directory:
+- `source.md` = v39 prompt verbatim; `schema.source.txt` = the supplied schema raw (verbatim, garble kept).
+- `system.txt` = v39 split: `<role>` + `<rules>` (KERNEL invariants A–G, ORGCHART upward-default,
+  INPUT-VALIDATION, PROCESSING-ORDER, §1–§18) + `<section name="EXAMPLES">` (§20) + `<directive>`.
+- `user.txt` = `<task>` + the 10 input tags + `<instructions>` (§19 Final Ownership Review Summary + JSON-only).
+- `schema.json` = supplied revision, cleanly reconstructed.
+
+**What v39 adds vs v36:** Cross-Agent Invariants Kernel (no external knowledge / strict client
+anchor / documentary-evidence-only / zero data loss / determinism / output discipline / H1-H2-H3
+source language); 10 required inputs (was 2); 17-step processing order; Global-vs-Streamlined
+methodology; KOS/Local-Addenda overlay + jurisdiction threshold guide; dilution & domination;
+expanded entity-type logic (listed stop rule, MOS, Gov/SOE, Trust, Foundation, LP GP look-through,
+SPV); new roleCapacity taxonomy (Notional UBO / Control-Based / etc.); document reconciliation &
+conflict handling; Outbound Assessment; exception-only QA flags; completeness gate; eight-part
+reasoning; §19 Final Ownership Review Summary; §20 examples.
+
+**Schema revision applied (minor):** `parentName` → `linkedName`; `itemType` `PERSON` → `INDIVIDUAL`
+(`["INDIVIDUAL","ORGANIZATION"]`); `confidenceScore` formula `round(clamp(sum(positives) -
+sum(negatives),0,1) + consensus_multiplier, 2)` ("5D" scoring); descriptions reworded
+PERSON→INDIVIDUAL. OCR garble in the supplied source (`_CHANGING`, `•CP-XX*•`, `MANTIS: branch`,
+truncated `canonicalReasonTokens`, mangled `controlsApplied`) restored to clean forms in
+`schema.json`; the raw garble is preserved in `schema.source.txt`.
+
+**Persisting prompt↔schema gap (revision does NOT close it):** `schema.json` is still the CSM-style
+"Ownership Structure Candidates Schema" with a single `linkedName` link and a 7-part `governanceBasis`.
+It has no field for: Global/Streamlined methodology, Outbound Assessment, KOS/local overlay +
+thresholds, the roleCapacity taxonomy (Notional UBO / Control-Based), the **eight-part** reasoning
+(§18), the **§19 Final Ownership Review Summary**, H1/H2/H3 source classification, client-anchor
+validation status, dilution links (multi-path/convergence still collapses to one `linkedName`),
+listing-proof fields (exchange/ticker/ISIN), and cycle/loop representation. The title says
+"JSON ONLY" yet §18/§19 describe narrative/structured prose the schema cannot hold — unresolved.
+
+**Critic:** refreshed to v39 vocabulary with **full v39 criteria**; because the extractor schema
+is unchanged in structure, criteria targeting v39 concepts with no schema field are **advisory**
+until a v39-shaped schema exists.
+
+**Recommendation:** supply a v39-shaped ownership output schema (layer/edges with direct %, control,
+roleCapacity, listing proof, conflicts, outbound, eight-part reasoning, §19 summary). `example.json`
+stays stale until then (and is now staler due to the `parentName`→`linkedName` rename).
+
+---
+
 ## LATEST (2026-06-23) — prompt v36 + "Ownership Structure Candidates Schema"
 
 The user supplied a new canonical prompt (`ownership_prompt_36.txt`) and schema (`extracted_schema.txt`). Applied to the directory:

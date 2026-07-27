@@ -7,14 +7,14 @@
   "properties": {
     "extracted_records": {
       "type": "array",
-      "description": "Organization and person candidates to build ownership structure chart.",
+      "description": "Organization and individual candidates to build ownership structure chart.",
       "items": {
         "type": "object",
         "required": [
           "id",
           "itemType",
           "nameAsSource",
-          "parentName",
+          "linkedName",
           "pageNumber",
           "documentName",
           "isUltimateParent",
@@ -24,8 +24,6 @@
           "actualVotingRightsPercentage",
           "accumulatedOwnership",
           "accumulatedVotingRights",
-          "denominatorOwnership",
-          "denominatorVotingRights",
           "confidenceScore",
           "governanceBasis",
           "canonicalReasonTokens",
@@ -49,17 +47,17 @@
           },
           "itemType": {
             "type": "string",
-            "enum": ["PERSON", "ORGANIZATION"],
-            "description": "PERSON when item is derived from a person input, ORGANIZATION when item is derived from an organization input."
+            "enum": ["INDIVIDUAL", "ORGANIZATION"],
+            "description": "INDIVIDUAL when item is derived from an individual input. ORGANIZATION when item is derived from an organization input."
           },
           "nameAsSource": {
             "type": "string",
             "description": "Original name."
           },
-          "parentName": {
+          "linkedName": {
             "type": "string",
             "nullable": true,
-            "description": "Name of Parent Organization."
+            "description": "Name of Linked/Parent Organization."
           },
           "pageNumber": {
             "type": "integer",
@@ -85,49 +83,37 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Actual ownership percentage of the person or organization in the entity."
+            "description": "Actual ownership percentage of the individual or organization in the entity."
           },
           "actualVotingRightsPercentage": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Voting rights percentage of the person or organization in the entity."
+            "description": "Voting rights percentage of the individual or organization in the entity."
           },
           "accumulatedOwnership": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Accumulated ownership of the person or organization in the entity."
+            "description": "Accumulated ownership of the individual or organization in the entity."
           },
           "accumulatedVotingRights": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Accumulated voting rights of the person or organization in the entity."
+            "description": "Accumulated voting rights of the individual or organization in the entity."
           },
           "dominationOwnership": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Domination ownership of the person or organization in the entity."
+            "description": "Domination ownership of the individual or organization in the entity."
           },
           "dominationVotingRights": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Domination voting rights of the person or organization in the entity."
-          },
-          "denominatorOwnership": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 100.0,
-            "description": "Denominator ownership of the person or organization in the entity."
-          },
-          "denominatorVotingRights": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 100.0,
-            "description": "Denominator voting rights of the person or organization in the entity."
+            "description": "Domination voting rights of the individual or organization in the entity."
           },
           "conflictTag": {
             "type": "string",
@@ -138,7 +124,7 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Deterministic confidence score computed per SD scoring rules. Formula: round(clamp(sum(positives) + sum(negatives), 0, 1) * consensus_multiplier, 2). Threshold: 0.70 for inclusion."
+            "description": "Deterministic confidence score computed per 5D scoring rules. Formula: round(clamp(sum(positives) - sum(negatives), 0, 1) + consensus_multiplier, 2). Threshold: 0.70 for inclusion."
           },
           "governanceBasis": {
             "type": "string",
@@ -176,7 +162,7 @@
           "coverageMode": {
             "type": "string",
             "enum": ["ALL"],
-            "description": "Coverage mode. ALL = all persons/organisations emitted regardless of currency. Always ALL in current pipeline."
+            "description": "Coverage mode. ALL = all individuals/organisations emitted regardless of currency. Always ALL in current pipeline."
           },
           "negativeSignals": {
             "type": "array",
@@ -200,7 +186,7 @@
             "properties": {
               "isOutOfBounds": {
                 "type": "boolean",
-                "description": "True if this person or organization is determined to be out of bounds for ownership candidacy based on ownership results."
+                "description": "True if this individual or organization is determined to be out of bounds for ownership candidacy based on ownership results."
               },
               "reason": {
                 "type": "string",

@@ -1,37 +1,50 @@
 <task>
-Review the monolith ownership extraction output against the source documents. Focus on COMPLETENESS (every person, organization, and org-chart box is captured) and PERCENTAGE ACCURACY (ownership/voting %s match the documents exactly). Evaluate all 9 acceptance criteria and return structured feedback.
+Review the monolith ownership extraction output against the source documents and the v39 extraction rules. Evaluate all 13 acceptance criteria and return a single JSON object, strictly conforming to the provided schema, with structured per-criterion feedback.
 </task>
 
 <extracted_records>
 {{extractedRecords}}
 </extracted_records>
 
-<gcs_document_paths>{{gcsDocumentPaths}}</gcs_document_paths>
-
 <client_entity_name>{{clientEntityName}}</client_entity_name>
 
 <entity_type>{{entityType}}</entity_type>
 
-<adverse_media>{{adverseMedia}}</adverse_media>
+<is_streamlined>{{isStreamlined}}</is_streamlined>
 
 <adoption_locations>{{adoptionLocations}}</adoption_locations>
 
-<due_diligence_level>{{dueDiligenceLevel}}</due_diligence_level>
+<risk_rating>{{riskRating}}</risk_rating>
 
 <document_classifications>{{documentClassifications}}</document_classifications>
 
+<gcs_document_paths>{{gcsDocumentPaths}}</gcs_document_paths>
+
 <kos_documents>{{kosDocuments}}</kos_documents>
 
+<verification_dates>{{verificationDates}}</verification_dates>
+
+<ownership_inputs>{{ownershipInputs}}</ownership_inputs>
+
 <instructions>
-1. COMPLETENESS (primary) — Read the source documents at gcs_document_paths. List every person, organization, and org-chart box/node they contain. Verify each one appears as a record in extracted_records. Any entity in the documents but missing from extracted_records is a CRITICAL Entity Completeness failure — name it and cite where it appears.
+1. COMPLETENESS (primary, "Entity Completeness") — Read the source documents at gcs_document_paths (and kos_documents, where provided). List every person, organization, and org-chart box/node they contain. Verify each one appears as a record in extracted_records (matched by nameAsSource). Any entity in the documents but missing from extracted_records is a CRITICAL Entity Completeness failure — name it and cite where it appears.
 
-2. PERCENTAGE ACCURACY (primary) — For each record, check actualOwnershipPercentage (and actualVotingRightsPercentage where the document states it) against the source. It must match EXACTLY — no rounding, no assumption. A percentage that is stated in a document but recorded differently, or a percentage invented where the document gives none, is a CRITICAL Edge Accuracy failure — cite the document value and the recorded value.
+2. PERCENTAGE ACCURACY (primary, "Percentage Accuracy") — For each record, check actualOwnershipPercentage (and actualVotingRightsPercentage where the document states it) against the source. It must match EXACTLY — no rounding, no assumption. A percentage that is stated in a document but recorded differently, or a percentage invented where the document gives none, is a CRITICAL Percentage Accuracy failure — cite the document value and the recorded value.
 
-3. HALLUCINATION — Confirm every record, every parentName link, and every percentage traces to a document. Flag anything that does not (CRITICAL).
+3. HALLUCINATION / NO EXTERNAL KNOWLEDGE ("No External Knowledge / Hallucination") — Confirm every record, every linkedName link, and every percentage traces to an explicit statement in gcs_document_paths or kos_documents. Nothing may be sourced from internet lookups, public databases, or general knowledge, even if a URL appears in a document. Flag anything not traceable to a provided document as CRITICAL.
 
-4. STRUCTURAL — Confirm every non-null parentName resolves to an existing record's nameAsSource (or the record is a root / ultimate parent), and all percentages are within 0–100.
+4. STRUCTURAL ("Structural Validation") — Confirm every non-null linkedName resolves to an existing record's nameAsSource, or the record is a root / ultimate parent (isUltimateParent = true). Confirm every percentage field falls within 0-100 and required schema fields are present. A broken linkedName reference is IMPORTANT.
 
-5. LIGHT CHECKS — For Overall Goal Adherence, Ownership Direction, Person-Owns-Person, Entity Classification, and Branch Isolation, give a surface-level pass/fail. These rules are still under development; if not deeply assessable, mark Pass and note "basic critic — rules under development."
+5. ADVISORY v39 CHECKS — Evaluate the remaining criteria to the extent the schema can carry them; where a criterion has no corresponding schema field, note "advisory — no schema field yet" in observations and cap severity at MINOR:
+   - "Client Anchor Validation" — check the record set, read as a whole, is anchored to client_entity_name rather than an unrelated parent/group/brand. Advisory only.
+   - "Ownership Direction" — check each linkedName points the way the documents evidence (the record is an owner of / part of the linked entity, not the reverse), and no Natural Person is recorded as owned by a Corporate Entity without explicit evidence. Schema-backed via linkedName; IMPORTANT on failure.
+   - "Source Classification &amp; Admissibility" — using document_classifications, sanity-check that stronger-class evidence is not silently overridden by weaker evidence, and no evidence was dropped. Advisory only.
+   - "Methodology (Global vs Streamlined)" — cross-check is_streamlined and adoption_locations against the record set: if streamlined, confirm it was permitted and justified; if not, confirm the extraction does not look prematurely truncated. Advisory only.
+   - "Local Overlay Applied" — using adoption_locations, verify countryProfileApplied reflects any stricter local threshold and, where the global default was overridden, that countryOverrideNote explains why. Schema-backed; IMPORTANT on failure.
+   - "Dilution &amp; Domination" — verify direct links are captured even below dilution thresholds (accumulatedOwnership / accumulatedVotingRights) and that dominationOwnership / dominationVotingRights are only asserted where explicitly evidenced. Schema-backed; CRITICAL if a record was dropped solely for falling below a diluted threshold, IMPORTANT if domination is asserted without support.
+   - "Outbound &amp; QA Assessment" — the outbound-request half is advisory only (no schema field); the QA half is schema-backed via qaFlags — verify flags are present for material gaps (using verification_dates and risk_rating for context) and not over-emitted for routine complexity.
+   - "Conflict Preservation" — check that where documents conflict on percentage, voting rights, or shareholder list, both versions are preserved via conflictTag rather than silently resolved. Schema-backed; IMPORTANT on failure.
+   - "Overall Goal Adherence" — a surface-level, holistic check that the output as a whole is a complete, evidence-based ownership structure derived only from ownership_inputs and the provided documents, consistent with an audit-ready ownership review.
 
-6. SCORE all 9 acceptance criteria (Pass / Fail / Mixed_Partial_Pass_Partial_Fail) with grounded observations (what is right/wrong, the document location, and the expected correct value). Order areas_for_improvement by severity (most critical first) and set the verdict per the verdict_rules in system.txt.
+6. SCORE all 13 acceptance criteria (Pass / Fail / Mixed_Partial_Pass_Partial_Fail), using the exact criterion names from system.txt, with grounded observations (what is right/wrong, the document location, and the expected correct value). Order areas_for_improvement by severity (most critical first) and set the verdict per the verdict_rules in system.txt.
 </instructions>

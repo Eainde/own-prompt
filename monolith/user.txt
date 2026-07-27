@@ -1,33 +1,90 @@
 <task>
-Extract and present a complete ownership structure starting from the client, per the rules. The entire output must be a single JSON object strictly conforming to the provided JSON schema.
+Extract and present the complete ownership and control structure of the validated client legal entity per the rules; the entire output must be a single JSON object strictly conforming to the provided JSON schema.
 </task>
 
 <client_entity_name>{{clientEntityName}}</client_entity_name>
 
+<entity_type>{{entityType}}</entity_type>
+
+<is_streamlined>{{isStreamlined}}</is_streamlined>
+
+<adoption_locations>{{adoptionLocations}}</adoption_locations>
+
+<risk_rating>{{riskRating}}</risk_rating>
+
+<document_classifications>{{documentClassifications}}</document_classifications>
+
 <gcs_document_paths>{{gcsDocumentPaths}}</gcs_document_paths>
 
+<kos_documents>{{kosDocuments}}</kos_documents>
+
+<verification_dates>{{verificationDates}}</verification_dates>
+
+<ownership_inputs>{{ownershipInputs}}</ownership_inputs>
+
 <instructions>
-8. OUTPUT STRUCTURE (MANDATORY FORMAT)
+19. FINAL OWNERSHIP REVIEW SUMMARY
+19.1 CLIENT VALIDATION SUMMARY
+19.1.1 Validated Client Name
+19.1.2 Client Validation Status
+19.1.3 Entity Type
+19.1.4 Adoption Location(s)
+19.1.5 Ownership Methodology Applied
+- Global
+- Streamlined
+- Mixed
+- Need Review
+19.2 OWNERSHIP STRUCTURE SUMMARY
+19.2.1 Direct Owners Identified
+19.2.2 Indirect Owners Identified
+19.2.3 Ownership Layers Reviewed
+19.2.4 Ownership Paths Reviewed
+19.2.5 Ownership Endpoints Reached
+19.2.6 Stop Rules Applied
+19.3 OWNERSHIP CLASSIFICATION SUMMARY
+19.3.1 UBO(s) Identified
+19.3.2 IBO(s) Identified
+19.3.3 Control-Based Ownership Findings
+19.3.4 Exempt Entities Identified
+19.3.5 Ownership Classification Outcome
+19.4 EXEMPTION AND STOP RULE SUMMARY
+19.4.1 Listed Entity Exemption
+19.4.2 Regulated Entity Exemption
+19.4.3 Government Entity / SOE Exemption
+19.4.4 Streamlined Treatment Applied
+19.4.5 Basis for Ownership Termination
+19.4.6 Exceptions Requiring Continued Ownership Review
+19.5 OWNERSHIP REVIEW NOTIFICATIONS
+19.5.1 Material QA Flags
+19.5.2 Ownership Completeness Concerns
+19.5.3 Data Gaps
+19.5.4 Notional UBO Assessment Required
+19.5.5 Ownership Review Status
+19.6 OUTBOUND REQUIREMENTS
+19.6.1 Outbound Required (Yes / No)
+19.6.2 Requested Documents
+19.6.3 Requested Clarifications
+19.6.4 Impacted Decisions
+19.7 FINAL AGENT CONCLUSION (MANDATORY)
+19.7.1 Ownership Approach Applied
+19.7.2 Ownership Extraction Completion Status
+19.7.3 Valid Endpoint Reached
+19.7.4 UBO Identification Outcome
+19.7.5 IBO Identification Outcome
+19.7.6 Notional UBO Assessment Requirement
+19.7.7 Stop Rule / Exemption Applied
+19.7.8 Outstanding Data Gaps
+19.7.9 Outstanding QA Flags
+19.7.10 Outstanding Outbound Requirements
+19.7.11 Escalation Requirements
+19.7.12 Final Ownership Review Status
+19.7.13 Final Reviewer Summary
+Provide a concise reviewer-ready conclusion summarizing:
+- ownership structure outcome;
+- whether UBO / IBO / Notional UBO / Control UBO classification was completed;
+- whether any stop rule or exemption was applied;
+- whether any material data gap, QA flag, or outbound item remains open;
+- final ownership review status.
 
-8.1 Layered Ownership Table (Required)
-Include columns:
-Layer | Entity/Person Name | Type | Ownership % (Direct) | Control | Source
-
-8.2 Ownership Flow (Client → UBO)
-Client → Layer 1 → Layer 2 → ... → UBO
-
-8.3 Listing Proof Section (ONLY for Listed Category)
-Provide: Exchange | Ticker/ISIN (if available) | Proof Source Document | Statement re: no further drill-down unless adverse media.
-
-8.4 Data Gaps / Exceptions
-Missing data, conflicts, incomplete layers (with document source references).
-(MANDATORY FORMAT) The entire output must be a single JSON object strictly conforming to the provided JSON schema.
-
-10. FINAL OUTPUT EXPECTATION
-The final output must be a valid JSON object conforming to the provided schema, containing:
-• Full Layer-by-Layer ownership structure within extracted_records.
-• Actual % at each step (or "Not Available" where absent, or "Negligible" for &lt;=0.01%).
-• Control identification (evidence-based).
-• Entity-type segregated handling (as above) aligned to KOS 8.0.
-• outOfBounds and qaFlags properties populated according to the schema (empty arrays/nulls if no relevant data).
+The entire output must be a single JSON object strictly conforming to the provided JSON schema (JSON only — no prose outside the JSON). Populate outOfBounds and qaFlags per the schema (empty arrays / nulls where nothing applies).
 </instructions>

@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Ownership Extraction Critic Schema",
-  "description": "Structured evaluation of ownership extraction output against W1 rules by the Critic Agent.",
+  "description": "Structured evaluation of ownership extraction output against v39 rules by the Critic Agent.",
   "type": "object",
   "required": ["evaluation_results", "summary_of_critic_agent_feedback", "verdict"],
   "properties": {
     "evaluation_results": {
       "type": "array",
-      "description": "One evaluation entry per acceptance criterion. All 9 criteria must be evaluated — do not skip any.",
+      "description": "One evaluation entry per acceptance criterion. All 13 criteria must be evaluated — do not skip any.",
       "items": {
         "type": "object",
         "required": ["criterion_name", "pass_fail", "observations"],
@@ -18,12 +18,16 @@
             "enum": [
               "Overall Goal Adherence",
               "Entity Completeness",
+              "Percentage Accuracy",
+              "Client Anchor Validation",
               "Ownership Direction",
-              "Edge Accuracy",
-              "Person-Owns-Person Check",
-              "Entity Classification",
-              "Hallucination Check",
-              "Branch Isolation",
+              "No External Knowledge / Hallucination",
+              "Source Classification & Admissibility",
+              "Methodology (Global vs Streamlined)",
+              "Local Overlay Applied",
+              "Dilution & Domination",
+              "Outbound & QA Assessment",
+              "Conflict Preservation",
               "Structural Validation"
             ]
           },
@@ -62,7 +66,7 @@
               "severity": {
                 "type": "string",
                 "enum": ["CRITICAL", "IMPORTANT", "MINOR"],
-                "description": "CRITICAL = missing entity, wrong direction, person-owns-person, fabricated relationship, wrong percentage. IMPORTANT = wrong layer, broken chain, missing reasoning. MINOR = citation wording, phrasing."
+                "description": "CRITICAL = missing entity, wrong/assumed percentage, fabricated record/link, or external-knowledge injection. IMPORTANT = wrong direction, wrong classification, broken linkedName reference, or dropped conflict. MINOR = citation wording, phrasing, or advisory-only observations."
               },
               "description": {
                 "type": "string",
