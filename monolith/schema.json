@@ -3,8 +3,39 @@
   "title": "Ownership Structure Candidates Schema",
   "description": "Schema for ownership structure chart candidates with appropriate reasons.",
   "type": "object",
-  "required": ["extracted_records", "outOfBounds", "qaFlags", "outbound", "ownershipApproach"],
+  "required": ["clientAnchor", "extracted_records", "outOfBounds", "qaFlags", "outbound", "ownershipApproach"],
   "properties": {
+    "clientAnchor": {
+      "type": "object",
+      "required": ["providedName", "resolvedName", "clientRecordId", "validationStatus", "ownershipReviewStatus"],
+      "description": "Case-level identification of the entity the extraction was anchored to (prompt §4, §17). Answers 'which client, and was the anchor confirmed?' without hunting the layer-0 record.",
+      "properties": {
+        "providedName": {
+          "type": "string",
+          "description": "Client name exactly as supplied in the {{clientEntityName}} input, echoed verbatim for input-vs-output verification."
+        },
+        "resolvedName": {
+          "type": "string",
+          "nullable": true,
+          "description": "Client legal name as matched/normalized in the case documents (rule 3/4). Null if the anchor could not be confirmed."
+        },
+        "clientRecordId": {
+          "type": "integer",
+          "nullable": true,
+          "description": "The id of the layer-0 extracted_records entry for this client. Null if no client record could be established."
+        },
+        "validationStatus": {
+          "type": "string",
+          "enum": ["VALIDATED", "VALIDATED_WITH_NORMALIZATION", "CONFLICTING_CLIENT_NAME", "CLIENT_ANCHOR_NOT_CONFIRMED"],
+          "description": "Client anchor validation outcome (rule 4)."
+        },
+        "ownershipReviewStatus": {
+          "type": "string",
+          "enum": ["COMPLETE", "COMPLETE_WITH_QA_FLAGS", "INCOMPLETE_OUTBOUND_REQUIRED", "NEED_REVIEW", "DOC_INVALID"],
+          "description": "Case-level review completion status (rule 17)."
+        }
+      }
+    },
     "extracted_records": {
       "type": "array",
       "description": "Organization and individual candidates to build ownership structure chart.",
@@ -39,6 +70,7 @@
           "inclusiveThreshold",
           "drillDownRequired",
           "governanceBasis",
+          "conflictTag",
           "countryProfileApplied",
           "countryOverrideNote",
           "controlsApplied",
@@ -160,7 +192,7 @@
           "conflictTag": {
             "type": "string",
             "enum": ["C: clear", "C: resolved", "C: unresolved"],
-            "description": "Provide if conflict detected. C: clear = no conflict detected. C: resolved = conflict detected but resolved. C: unresolved = conflict detected but not resolved."
+            "description": "Always emitted (rule 14). C: clear = no conflict detected. C: resolved = conflict detected but resolved. C: unresolved = conflict detected but not resolved."
           },
           "listingProof": {
             "oneOf": [
@@ -202,10 +234,12 @@
           },
           "countryProfileApplied": {
             "type": "string",
+            "nullable": true,
             "description": "'CP-XX' code or null."
           },
           "countryOverrideNote": {
             "type": "string",
+            "nullable": true,
             "description": "Override explanation or null."
           },
           "coverageMode": {

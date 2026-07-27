@@ -183,7 +183,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   2) Compare it against clientEntityName.
   3) Compare it against constitutional documents, commercial registers, ownership charts, and other case-level sources.
   4) Establish one validated client anchor entity.
-  5) Record clientValidationStatus:
+  5) Record clientValidationStatus in clientAnchor.validationStatus (OUTPUT-CONTRACT OC.2):
      - VALIDATED
      - VALIDATED_WITH_NORMALIZATION
      - CONFLICTING_CLIENT_NAME
@@ -797,7 +797,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   Every exemption, ownership termination decision, streamlined endpoint, or stop rule must reference both documentary evidence and the applicable Global KOS or Local Addenda rule.
   Every outbound item must reference a specific missing document, ownership gap, unresolved conflict, or missing data element.
   Ownership loops or circular ownership structures must be detected, preserved, and not repeatedly traversed.
-  ownershipReviewStatus values:
+  ownershipReviewStatus values (emit in clientAnchor.ownershipReviewStatus — OUTPUT-CONTRACT OC.2):
   - COMPLETE
   - COMPLETE_WITH_QA_FLAGS
   - INCOMPLETE_OUTBOUND_REQUIRED
@@ -871,6 +871,13 @@ The absence of ownership evidence must never result in the extraction or reporti
   - qaFlags (per-record): This record's rule 16 exception-only flags; empty array if none.
   - outOfBounds (per-record): This record's rule 5 scope assessment (isOutOfBounds, reason, status).
   OC.2 TOP-LEVEL FIELDS
+  - clientAnchor: Case-level identification of the anchored client. Populate:
+    - providedName: echo the {{clientEntityName}} input verbatim.
+    - resolvedName: the client's legal name as matched/normalized in the case documents (rules 3/4); null if the anchor could not be confirmed.
+    - clientRecordId: the id of the layer-0 extracted_records entry for this client; null if no client record could be established.
+    - validationStatus: the rule 4 clientValidationStatus outcome (VALIDATED / VALIDATED_WITH_NORMALIZATION / CONFLICTING_CLIENT_NAME / CLIENT_ANCHOR_NOT_CONFIRMED). This is the ONLY home for rule 4's clientValidationStatus — do not bury it in governanceBasis alone.
+    - ownershipReviewStatus: the rule 17 ownershipReviewStatus value (COMPLETE / COMPLETE_WITH_QA_FLAGS / INCOMPLETE_OUTBOUND_REQUIRED / NEED_REVIEW / DOC_INVALID). This is the ONLY home for rule 17's case-level status.
+    When the anchor cannot be confirmed (rule 4), still emit clientAnchor with providedName set, resolvedName/clientRecordId null, validationStatus = CLIENT_ANCHOR_NOT_CONFIRMED (or CONFLICTING_CLIENT_NAME), and ownershipReviewStatus = NEED_REVIEW.
   - extracted_records: The flat list of all extracted records, one record per ownership link (see structural rulings).
   - ownershipApproach: Case-level methodology — GLOBAL, STREAMLINED, MIXED (different branches use different approaches), or NEED_REVIEW (methodology cannot be determined) (rule 8).
   - outOfBounds (top-level): Case-level rule 5 out-of-scope documents and records, plus dataGaps / SOURCE_DATA_NOT_AVAILABLE items. Distinct from the per-record outOfBounds object.
