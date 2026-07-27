@@ -23,68 +23,7 @@ Extract and present the complete ownership and control structure of the validate
 <ownership_inputs>{{ownershipInputs}}</ownership_inputs>
 
 <instructions>
-19. FINAL OWNERSHIP REVIEW SUMMARY
-19.1 CLIENT VALIDATION SUMMARY
-19.1.1 Validated Client Name
-19.1.2 Client Validation Status
-19.1.3 Entity Type
-19.1.4 Adoption Location(s)
-19.1.5 Ownership Methodology Applied
-- Global
-- Streamlined
-- Mixed
-- Need Review
-19.2 OWNERSHIP STRUCTURE SUMMARY
-19.2.1 Direct Owners Identified
-19.2.2 Indirect Owners Identified
-19.2.3 Ownership Layers Reviewed
-19.2.4 Ownership Paths Reviewed
-19.2.5 Ownership Endpoints Reached
-19.2.6 Stop Rules Applied
-19.3 OWNERSHIP CLASSIFICATION SUMMARY
-19.3.1 UBO(s) Identified
-19.3.2 IBO(s) Identified
-19.3.3 Control-Based Ownership Findings
-19.3.4 Exempt Entities Identified
-19.3.5 Ownership Classification Outcome
-19.4 EXEMPTION AND STOP RULE SUMMARY
-19.4.1 Listed Entity Exemption
-19.4.2 Regulated Entity Exemption
-19.4.3 Government Entity / SOE Exemption
-19.4.4 Streamlined Treatment Applied
-19.4.5 Basis for Ownership Termination
-19.4.6 Exceptions Requiring Continued Ownership Review
-19.5 OWNERSHIP REVIEW NOTIFICATIONS
-19.5.1 Material QA Flags
-19.5.2 Ownership Completeness Concerns
-19.5.3 Data Gaps
-19.5.4 Notional UBO Assessment Required
-19.5.5 Ownership Review Status
-19.6 OUTBOUND REQUIREMENTS
-19.6.1 Outbound Required (Yes / No)
-19.6.2 Requested Documents
-19.6.3 Requested Clarifications
-19.6.4 Impacted Decisions
-19.7 FINAL AGENT CONCLUSION (MANDATORY)
-19.7.1 Ownership Approach Applied
-19.7.2 Ownership Extraction Completion Status
-19.7.3 Valid Endpoint Reached
-19.7.4 UBO Identification Outcome
-19.7.5 IBO Identification Outcome
-19.7.6 Notional UBO Assessment Requirement
-19.7.7 Stop Rule / Exemption Applied
-19.7.8 Outstanding Data Gaps
-19.7.9 Outstanding QA Flags
-19.7.10 Outstanding Outbound Requirements
-19.7.11 Escalation Requirements
-19.7.12 Final Ownership Review Status
-19.7.13 Final Reviewer Summary
-Provide a concise reviewer-ready conclusion summarizing:
-- ownership structure outcome;
-- whether UBO / IBO / Notional UBO / Control UBO classification was completed;
-- whether any stop rule or exemption was applied;
-- whether any material data gap, QA flag, or outbound item remains open;
-- final ownership review status.
+Produce a single JSON object strictly conforming to schema.json — no other format is acceptable. Populate every field per the OUTPUT-CONTRACT rule in system.txt (fallback rules included). JSON only — no prose outside the JSON.
 
-The entire output must be a single JSON object strictly conforming to the provided JSON schema (JSON only — no prose outside the JSON). Populate outOfBounds and qaFlags per the schema (empty arrays / nulls where nothing applies).
+Per rule 14 (system.txt), the full conflict record (value_a/source_a/value_b/source_b/resolution_strategy/resolved_value) folds into the qaFlags.records entry's reason field as descriptive text — these sub-fields have no dedicated schema keys. Fold dataGaps / SOURCE_DATA_NOT_AVAILABLE items into outOfBounds (empty arrays / nulls where nothing applies).
 </instructions>

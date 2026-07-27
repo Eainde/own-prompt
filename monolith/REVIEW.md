@@ -5,6 +5,47 @@ Split into `system.txt` / `user.txt` / `schema.json`. `system.txt` and `user.txt
 
 ---
 
+## LATEST (2026-07-27) — prompt now backs the schema
+
+Following the v39 + schema revision below and the sync audit (`monolith/prompt-schema-sync-analysis.md`),
+the schema was curated and the prompt rewritten to close the gap in both directions. Design:
+`docs/superpowers/specs/2026-07-27-monolith-prompt-backs-schema-design.md`.
+
+**Schema curation:**
+- **Removed 9 CSM-only fields** (no prompt basis, orphan/required): `accumulatedOwnership`,
+  `accumulatedVotingRights`, `confidenceScore`, `canonicalReasonTokens`, `temporalStatus`,
+  `scopeTag`, `currencyTag`, `transparencyCode`, `negativeSignals`.
+- **Added 5 Tier-1 per-record fields:** `layer`, `relationshipType`, `roleCapacity`,
+  `sourceClass`, `evidenceSnippet`.
+- **Added 9 image-directed per-record fields:** `listingProof`, `dominationIndicator`,
+  `controlRights`, `ownershipVotingMismatch`, `controlBasedUBOAssessmentRequired`,
+  `localOverlayApplied`, `thresholdApplied`, `inclusiveThreshold`, `drillDownRequired`.
+- **Added 2 top-level fields:** `ownershipApproach`, `outbound` (block).
+- **`itemType` enum** changed `INDIVIDUAL/ORGANIZATION` → `Natural Person`/`Non Natural Person`.
+
+**Prompt:** gained an `OUTPUT-CONTRACT` rule in `system.txt` naming every FINAL schema field
+and its instruction — every property now has a documented source in the prompt. Remaining
+prompt outputs that don't get their own field are explicitly folded into an existing one: the
+full conflict record (value_a/source_a/value_b/source_b/resolution_strategy/resolved_value)
+→ `qaFlags`; `dataGaps`/`outboundSummary`/`SOURCE_DATA_NOT_AVAILABLE` → `outOfBounds`; the
+eight-part reasoning (§18) → the single `governanceBasis` string. The §19 Final Ownership
+Review Summary was subsequently **removed entirely** from the prompt (not needed): its
+cross-references in `system.txt` (KERNEL-F, processing-order step 17) and the `user.txt` block
+were deleted; `qaFlags.summary` / `outbound.summary` now carry only their native QA / outbound
+summaries.
+
+**Known limitation (accepted, not a bug):** `actualOwnershipPercentage` /
+`actualVotingRightsPercentage` stay numeric (0–100) per the locked decision, so a missing %
+cannot be written as the literal `"Not Available"` — it is emitted as `0` plus a
+`SOURCE_DATA_NOT_AVAILABLE` entry in `outOfBounds` and a `MISSING_PERCENTAGE` qaFlag to
+distinguish it from a real 0%.
+
+**`schema.json` now intentionally diverges from `schema.source.txt`** — the source file stays
+the raw supplied record; `schema.json` is a deliberately curated extension of it, documented
+here rather than a straight reconstruction.
+
+---
+
 ## LATEST (2026-07-27) — prompt v39 + schema revision
 
 The user supplied v39 of the prompt (`OWNERSHIP_EXTRACTOR_CLASSIFIER_V39 - KOS v8.0a aligned`)

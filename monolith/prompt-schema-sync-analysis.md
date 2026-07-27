@@ -152,3 +152,71 @@ So a bare "who appears, in which doc, at what %, UBO/IBO?" extraction is represe
 Until one is chosen, the model is forced to **both** drop most v39 outputs **and** fabricate ~13 required governance fields — which violates the prompt's own Kernel C (evidence-only) and Kernel E (determinism).
 
 _See also `monolith/REVIEW.md` (2026-07-27 section) for the higher-level version of this gap._
+
+---
+
+## Resolution (2026-07-27)
+
+The gaps identified above are resolved by
+`docs/superpowers/specs/2026-07-27-monolith-prompt-backs-schema-design.md`, implemented as a
+schema curation (Part A) + a prompt `OUTPUT-CONTRACT` rewrite (Part B) + a critic update
+(Part C). Recommendation **1** from §6 above ("build a v39-shaped ownership schema") was the
+path taken, scoped down per the user's field-by-field directive.
+
+**Orphan/required fields (§1, 14 total) — resolution:**
+
+| Field | Resolution |
+|---|---|
+| `accumulatedOwnership` / `accumulatedVotingRights` | **Dropped.** No prompt basis; the extractor captures direct links only. |
+| `confidenceScore` | **Dropped.** No 5D scoring model, no 0.70 threshold, contradicted Kernel D (zero-data-loss). |
+| `governanceBasis` | **Kept**, redefined as the eight-part (§18) reasoning folded into one string (was CSM 7-part). |
+| `canonicalReasonTokens` | **Dropped.** CSM token grammar (`GOV=`/`SRC=`/`ESEL=`), no ownership basis. |
+| `temporalStatus` | **Dropped.** CSM current/former role concept, no ownership-task equivalent. |
+| `countryProfileApplied` / `countryOverrideNote` | **Kept**, reinstructed as the adoption-location / Local-Addenda overlay note (§7/§13). |
+| `scopeTag` | **Dropped.** CSM tag grammar ("S: branch"); real content lives in `outOfBounds`. |
+| `currencyTag` | **Dropped.** CSM tag grammar ("U: low authority source"); no ownership equivalent retained. |
+| `transparencyCode` | **Dropped.** CSM enum (e.g. `MKF_APPLIED`), no ownership basis. |
+| `negativeSignals` | **Dropped.** Tied to the dropped `confidenceScore` scoring model. |
+| `controlsApplied` | **Kept**, reinstructed as ownership stop/control/exemption rules applied (listed-entity stop, gov exemption, notional-UBO fallback, MOS, local drill-down) rather than governance rules. |
+
+**Prompt outputs with no schema home (§3, ~15 items) — became real fields:**
+`layer`, `relationshipType`, `roleCapacity`, `sourceClass`, `evidenceSnippet` (Tier-1); plus
+`listingProof`, `dominationIndicator`, `controlRights`, `ownershipVotingMismatch`,
+`controlBasedUBOAssessmentRequired`, `localOverlayApplied`, `thresholdApplied`,
+`inclusiveThreshold`, `drillDownRequired` (per-record); and top-level `ownershipApproach` +
+`outbound`.
+
+**Prompt outputs folded into an existing field (no new field added):**
+- Full conflict record (value_a/source_a/value_b/source_b/resolution_strategy/resolved_value, §14) → `qaFlags`.
+- `dataGaps` / `outboundSummary` / `SOURCE_DATA_NOT_AVAILABLE` (Kernel A, §17) → `outOfBounds`.
+- Eight-part reasoning (§18) → the single `governanceBasis` string.
+- §19 Final Ownership Review Summary → `qaFlags.summary` + `outbound.summary`.
+
+**Contradictions (§4) — resolution:**
+- **C1** (8 vs 7-part): resolved — `governanceBasis` now documented as the eight-part string.
+- **C2** (confidenceScore threshold vs zero-data-loss): resolved by dropping `confidenceScore`.
+- **C3** (`"Not Available"` literal vs numeric field): **not resolved as a schema change** —
+  `actualOwnershipPercentage` / `actualVotingRightsPercentage` stay numeric per the locked
+  decision. Documented limitation: missing % emits `0` + `SOURCE_DATA_NOT_AVAILABLE` in
+  `outOfBounds` + a `MISSING_PERCENTAGE` qaFlag.
+- **C4** (multi-path collapse via single `linkedName`): resolved structurally, not by schema
+  shape — one record per ownership link (N owners → N records sharing `nameAsSource`).
+- **C5** (JSON-only vs narrative §18/§19): resolved — both fold into JSON string fields
+  (`governanceBasis`, `qaFlags.summary`, `outbound.summary`).
+- **C6** (`itemType` two-value collapse): resolved by renaming to `Natural Person` /
+  `Non Natural Person`, still two values — finer entity-kind detail is instead carried by
+  the new `relationshipType` and `roleCapacity` fields, not by expanding `itemType`.
+- **C7** (isUBO/isIBO boolean flattening): resolved by adding `roleCapacity` (full taxonomy)
+  alongside the existing booleans.
+- **C8** (CSM vocabulary mismatch): resolved by dropping the CSM-vocabulary fields (see table
+  above) and reinstructing the kept ones (`governanceBasis`, `controlsApplied`,
+  `countryProfileApplied`/`countryOverrideNote`) in ownership terms.
+- **C9** (`linkedName` direction undocumented): resolved — OUTPUT-CONTRACT states `linkedName`
+  = the owning parent, one layer up.
+- **C10** (unknown page not representable): resolved by prompt instruction — `pageNumber` is
+  always numeric; the §18 "unknown" allowance is overridden.
+- **C11** (conflict values not storable): resolved — full conflict record folds into `qaFlags`
+  (see fold list above), not just the existence flag.
+
+`schema.json` is now an intentionally curated, ownership-task-specific extension of the raw
+supplied schema; `schema.source.txt` remains the unmodified original for audit.

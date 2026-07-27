@@ -3,7 +3,7 @@
   "title": "Ownership Structure Candidates Schema",
   "description": "Schema for ownership structure chart candidates with appropriate reasons.",
   "type": "object",
-  "required": ["extracted_records", "outOfBounds", "qaFlags"],
+  "required": ["extracted_records", "outOfBounds", "qaFlags", "outbound", "ownershipApproach"],
   "properties": {
     "extracted_records": {
       "type": "array",
@@ -15,27 +15,34 @@
           "itemType",
           "nameAsSource",
           "linkedName",
+          "layer",
+          "relationshipType",
+          "roleCapacity",
           "pageNumber",
           "documentName",
+          "sourceClass",
+          "evidenceSnippet",
           "isUltimateParent",
           "isIBO",
           "isUBO",
           "actualOwnershipPercentage",
           "actualVotingRightsPercentage",
-          "accumulatedOwnership",
-          "accumulatedVotingRights",
-          "confidenceScore",
+          "dominationOwnership",
+          "dominationVotingRights",
+          "dominationIndicator",
+          "controlRights",
+          "ownershipVotingMismatch",
+          "controlBasedUBOAssessmentRequired",
+          "listingProof",
+          "localOverlayApplied",
+          "thresholdApplied",
+          "inclusiveThreshold",
+          "drillDownRequired",
           "governanceBasis",
-          "canonicalReasonTokens",
-          "temporalStatus",
           "countryProfileApplied",
           "countryOverrideNote",
-          "scopeTag",
-          "currencyTag",
-          "coverageMode",
-          "transparencyCode",
           "controlsApplied",
-          "negativeSignals",
+          "coverageMode",
           "qaFlags",
           "outOfBounds"
         ],
@@ -47,8 +54,8 @@
           },
           "itemType": {
             "type": "string",
-            "enum": ["INDIVIDUAL", "ORGANIZATION"],
-            "description": "INDIVIDUAL when item is derived from an individual input. ORGANIZATION when item is derived from an organization input."
+            "enum": ["Natural Person", "Non Natural Person"],
+            "description": "Natural Person for a natural person; Non Natural Person for any legal entity or arrangement (company, fund, trust, foundation, partnership, government body)."
           },
           "nameAsSource": {
             "type": "string",
@@ -59,6 +66,23 @@
             "nullable": true,
             "description": "Name of Linked/Parent Organization."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Ownership layer relative to the client: 0 = client, 1 = direct owner of the client, 2 = owner of a layer-1 entity, etc."
+          },
+          "relationshipType": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["shareholder", "parent", "member", "partner", "general partner", "limited partner", "trustee", "settlor", "beneficiary", "protector", "foundation council", "nominee shareholder", "voting controller", "contractual controller", "listed parent", "regulated parent", "government owner", "other"],
+            "description": "Documented relationship of this record to its linkedName parent. Null for the client (layer 0)."
+          },
+          "roleCapacity": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["Client", "Direct Owner", "Indirect Owner", "IBO", "UBO", "Control-Based IBO/UBO", "Notional UBO", "Possible Notional UBO", "General Partner", "Limited Partner", "Trustee", "Settlor", "Beneficiary", "Protector", "Foundation Controller", "Listed Parent", "Regulated Parent", "Government Owner", "Exempt Entity", "Non-Qualifying Owner", "Information Only", "Unknown / Needs Review"],
+            "description": "Classification outcome under applicable global/local rules and evidence."
+          },
           "pageNumber": {
             "type": "integer",
             "minimum": 1
@@ -66,6 +90,17 @@
           "documentName": {
             "type": "string",
             "description": "Name of the document from which this record was extracted."
+          },
+          "sourceClass": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["H1", "H2", "H3"],
+            "description": "Evidence strength of the controlling source (H1 primary, H2 supporting legal/constitutional, H3 supplementary)."
+          },
+          "evidenceSnippet": {
+            "type": "string",
+            "nullable": true,
+            "description": "Verbatim quote from the source document evidencing this link/percentage/direction. Null only when no textual evidence exists (record the gap in outOfBounds)."
           },
           "isUltimateParent": {
             "type": "boolean",
@@ -91,52 +126,79 @@
             "maximum": 100.0,
             "description": "Voting rights percentage of the individual or organization in the entity."
           },
-          "accumulatedOwnership": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 100.0,
-            "description": "Accumulated ownership of the individual or organization in the entity."
-          },
-          "accumulatedVotingRights": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 100.0,
-            "description": "Accumulated voting rights of the individual or organization in the entity."
-          },
           "dominationOwnership": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Domination ownership of the individual or organization in the entity."
+            "description": "Domination ownership of the individual or organization in the entity. Numeric percentage only."
           },
           "dominationVotingRights": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Domination voting rights of the individual or organization in the entity."
+            "description": "Domination voting rights of the individual or organization in the entity. Numeric percentage only."
+          },
+          "dominationIndicator": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["YES", "NO"],
+            "description": "Whether domination/control is evidenced for this record (§10). Null when not assessed."
+          },
+          "controlRights": {
+            "type": "string",
+            "nullable": true,
+            "description": "Documented control rights (board appointment, veto, GP/managing-member control, shareholder-agreement control, etc.); null if none."
+          },
+          "ownershipVotingMismatch": {
+            "type": "boolean",
+            "description": "True when economic ownership and voting rights diverge for this record (§10)."
+          },
+          "controlBasedUBOAssessmentRequired": {
+            "type": "boolean",
+            "description": "True when control evidence requires a control-based UBO assessment (§10/§12)."
           },
           "conflictTag": {
             "type": "string",
             "enum": ["C: clear", "C: resolved", "C: unresolved"],
             "description": "Provide if conflict detected. C: clear = no conflict detected. C: resolved = conflict detected but resolved. C: unresolved = conflict detected but not resolved."
           },
-          "confidenceScore": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 1.0,
-            "description": "Deterministic confidence score computed per 5D scoring rules. Formula: round(clamp(sum(positives) - sum(negatives), 0, 1) + consensus_multiplier, 2). Threshold: 0.70 for inclusion."
+          "listingProof": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "required": ["exchange", "sourceDocument"],
+                "properties": {
+                  "exchange": { "type": "string" },
+                  "ticker": { "type": "string", "nullable": true },
+                  "isin": { "type": "string", "nullable": true },
+                  "listedEntityName": { "type": "string", "nullable": true },
+                  "sourceDocument": { "type": "string" }
+                }
+              }
+            ],
+            "description": "Listing evidence when this record is a listed entity; null otherwise (prompt §11.2)."
+          },
+          "localOverlayApplied": {
+            "type": "boolean",
+            "description": "True when a Local Addendum overlay was applied to this record (§7/§13)."
+          },
+          "thresholdApplied": {
+            "type": "string",
+            "nullable": true,
+            "description": "The ownership threshold applied for classification (e.g. '25% or more', '10%'); null if none."
+          },
+          "inclusiveThreshold": {
+            "type": "boolean",
+            "description": "True when the applied threshold is inclusive ('equal to or more than', §13.1)."
+          },
+          "drillDownRequired": {
+            "type": "boolean",
+            "description": "True when local rules require drill-down beyond an otherwise-permitted stop (§13.3)."
           },
           "governanceBasis": {
             "type": "string",
-            "description": "7-part structured reason. Format: [1] GOVERNANCE ROLE: role per rule_id. [2] SOURCE BASIS: sourceClass and distribution. [3] ENTITY SCOPE: binding status and entity type. [4] KDB ROLE INTERPRETATION: how role maps to IBO/UBO under applicable rules. [5] CURRENCY and QUALITY: temporal status and source quality. [6] SIGNING NARRATIVE: signatoryType and token weight. [7] FINAL DECISION: isIBO/isUBO, rules applied, confidence, transparencyCode."
-          },
-          "canonicalReasonTokens": {
-            "type": "string",
-            "description": "Machine-checkable reason tokens. Format: 'GOV={basis} SRC={tier} ESEL={status} C={conflict} U={currency} T=0.70({met/not_met}) MODE={ALL/CUR}'. Example: 'GOV=exec_body SRC=H1 ESEL=binding C=clear U=current T=0.70(met) MODE=ALL'."
-          },
-          "temporalStatus": {
-            "type": "string",
-            "enum": ["current", "former", "unknown"]
+            "description": "The ownership reasoning for this record as a single structured string covering the eight aspects of rule 18: [0] narrative explanation, [1] ownership basis, [2] source basis, [3] entity scope, [4] local/global rule interpretation, [5] currency/quality, [6] conflict/gap/outbound analysis, [7] final decision summary."
           },
           "countryProfileApplied": {
             "type": "string",
@@ -146,28 +208,10 @@
             "type": "string",
             "description": "Override explanation or null."
           },
-          "scopeTag": {
-            "type": "string",
-            "description": "'S: branch' or null."
-          },
-          "currencyTag": {
-            "type": "string",
-            "description": "'U: low authority source' or null."
-          },
-          "transparencyCode": {
-            "type": "string",
-            "enum": ["CONFIDENT", "NOT_CONFIDENT", "DOC_INVALID", "CONFLICT_VS", "COGNATE_MIS", "Q_STALE", "Q_CHANGING", "FORMER_ONLY", "MKF_APPLIED"],
-            "description": "Structured transparency code. CONFIDENT = high confidence. NOT_CONFIDENT = ambiguous. DOC_INVALID = source issue. CONFLICT_VS = source conflict. COGNATE_MIS = cognate name mismatch concern. Q_STALE = outdated source (>3yr). Q_CHANGING = registry in flux. FORMER_ONLY = all roles departed. MKF_APPLIED = executive body override used."
-          },
           "coverageMode": {
             "type": "string",
             "enum": ["ALL"],
             "description": "Coverage mode. ALL = all individuals/organisations emitted regardless of currency. Always ALL in current pipeline."
-          },
-          "negativeSignals": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "List of negative signals detected. Empty array if none. Format: 'former-only roles (-0.40)', 'single H4 source (-0.30)'."
           },
           "controlsApplied": {
             "type": "array",
@@ -194,7 +238,7 @@
               },
               "status": {
                 "type": "string",
-                "enum": ["NEEDS_REVIEW", "DOC_INVALID", "COUNTRY_OUT_OF_SCOPE", "DOCUMENT_NOT_RELEVANT"],
+                "enum": ["NEED_REVIEW", "DOC_INVALID", "COUNTRY_OUT_OF_SCOPE", "DOCUMENT_NOT_RELEVANT"],
                 "description": "OOB status category. Set to null when isOutOfBounds is false."
               }
             }
@@ -263,7 +307,39 @@
             "required": ["reason", "status"],
             "properties": {
               "reason": { "type": "string", "description": "A clear explanation of why this reason has quality assurance and inference flags." },
-              "status": { "type": "string", "enum": ["CONFIDENT", "NOT_CONFIDENT"], "description": "The status of the record, indicating CONFIDENT or NOT_CONFIDENT." }
+              "status": { "type": "string", "enum": ["CONFIDENT", "NOT_CONFIDENT", "NEED_REVIEW", "DOC_INVALID"], "description": "The status of the record, per rule 16 QA Flag statuses: CONFIDENT, NOT_CONFIDENT, NEED_REVIEW, or DOC_INVALID." }
+            }
+          }
+        }
+      }
+    },
+    "ownershipApproach": {
+      "type": "string",
+      "enum": ["GLOBAL", "STREAMLINED", "MIXED", "NEED_REVIEW"],
+      "description": "Case-level methodology applied (prompt §8)."
+    },
+    "outbound": {
+      "type": "object",
+      "nullable": true,
+      "required": ["summary", "records"],
+      "description": "Case-level outbound requests for missing information (prompt §15). Distinct from outOfBounds (scope exclusion).",
+      "properties": {
+        "summary": { "type": "string", "nullable": true },
+        "records": {
+          "type": "array",
+          "nullable": true,
+          "items": {
+            "type": "object",
+            "required": ["outboundType", "priority", "reason"],
+            "properties": {
+              "outboundType": { "type": "string", "enum": ["CLIENT_OUTREACH", "RM_OUTREACH", "INTERNAL_DOCUMENT_REQUEST", "LOCAL_ADVISORY_REVIEW", "ACO_ESCALATION", "BLAFC_ESCALATION", "TRANSLATION_REQUEST", "NO_OUTBOUND_REQUIRED"] },
+              "priority": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"] },
+              "reason": { "type": "string" },
+              "requestedInformation": { "type": "string", "nullable": true },
+              "impactedDecision": { "type": "string", "nullable": true },
+              "relatedEntity": { "type": "string", "nullable": true },
+              "relatedDocument": { "type": "string", "nullable": true },
+              "proposedOutboundText": { "type": "string", "nullable": true }
             }
           }
         }
