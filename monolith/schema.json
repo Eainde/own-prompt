@@ -3,7 +3,7 @@
   "title": "Ownership Structure Candidates Schema",
   "description": "Schema for ownership structure chart candidates with appropriate reasons.",
   "type": "object",
-  "required": ["clientAnchor", "extracted_records", "outOfBounds", "qaFlags", "outbound", "ownershipApproach"],
+  "required": ["clientAnchor", "extracted_records", "outOfBounds", "qaFlags", "advisory", "ownershipApproach"],
   "properties": {
     "clientAnchor": {
       "type": "object",
@@ -31,7 +31,7 @@
         },
         "ownershipReviewStatus": {
           "type": "string",
-          "enum": ["COMPLETE", "COMPLETE_WITH_QA_FLAGS", "INCOMPLETE_OUTBOUND_REQUIRED", "NEED_REVIEW", "DOC_INVALID"],
+          "enum": ["COMPLETE", "COMPLETE_WITH_QA_FLAGS", "INCOMPLETE_ADVISORY_REQUIRED", "NEED_REVIEW", "DOC_INVALID"],
           "description": "Case-level review completion status (rule 17)."
         }
       }
@@ -230,7 +230,7 @@
           },
           "governanceBasis": {
             "type": "string",
-            "description": "The ownership reasoning for this record as a single structured string covering the eight aspects of rule 18: [0] narrative explanation, [1] ownership basis, [2] source basis, [3] entity scope, [4] local/global rule interpretation, [5] currency/quality, [6] conflict/gap/outbound analysis, [7] final decision summary."
+            "description": "The ownership reasoning for this record as a single structured string covering the eight aspects of rule 18: [0] narrative explanation, [1] ownership basis, [2] source basis, [3] entity scope, [4] local/global rule interpretation, [5] currency/quality, [6] conflict/gap/advisory analysis, [7] final decision summary."
           },
           "countryProfileApplied": {
             "type": "string",
@@ -352,11 +352,11 @@
       "enum": ["GLOBAL", "STREAMLINED", "MIXED", "NEED_REVIEW"],
       "description": "Case-level methodology applied (prompt §8)."
     },
-    "outbound": {
+    "advisory": {
       "type": "object",
       "nullable": true,
       "required": ["summary", "records"],
-      "description": "Case-level outbound requests for missing information (prompt §15). Distinct from outOfBounds (scope exclusion).",
+      "description": "Case-level advisory requests for missing information (prompt §15). Distinct from outOfBounds (scope exclusion).",
       "properties": {
         "summary": { "type": "string", "nullable": true },
         "records": {
@@ -364,16 +364,16 @@
           "nullable": true,
           "items": {
             "type": "object",
-            "required": ["outboundType", "priority", "reason"],
+            "required": ["advisoryType", "priority", "reason"],
             "properties": {
-              "outboundType": { "type": "string", "enum": ["CLIENT_OUTREACH", "RM_OUTREACH", "INTERNAL_DOCUMENT_REQUEST", "LOCAL_ADVISORY_REVIEW", "ACO_ESCALATION", "BLAFC_ESCALATION", "TRANSLATION_REQUEST", "NO_OUTBOUND_REQUIRED"] },
+              "advisoryType": { "type": "string", "enum": ["CLIENT_OUTREACH", "RM_OUTREACH", "INTERNAL_DOCUMENT_REQUEST", "LOCAL_ADVISORY_REVIEW", "ACO_ESCALATION", "BLAFC_ESCALATION", "TRANSLATION_REQUEST", "NO_ADVISORY_REQUIRED"] },
               "priority": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"] },
               "reason": { "type": "string" },
               "requestedInformation": { "type": "string", "nullable": true },
               "impactedDecision": { "type": "string", "nullable": true },
               "relatedEntity": { "type": "string", "nullable": true },
               "relatedDocument": { "type": "string", "nullable": true },
-              "proposedOutboundText": { "type": "string", "nullable": true }
+              "proposedAdvisoryText": { "type": "string", "nullable": true }
             }
           }
         }

@@ -3,7 +3,7 @@
 A **single-prompt** ownership extractor. It takes a validated client entity plus its
 case documents and returns one JSON object describing the entity's complete
 ownership & control structure — shareholders, layers, percentages, voting/control
-rights, UBO/IBO classification support, conflicts, data gaps, outbound requests and
+rights, UBO/IBO classification support, conflicts, data gaps, advisory requests and
 QA flags.
 
 It is the **one-call alternative** to the multi-agent wave pipeline (Chart Reader →
@@ -21,7 +21,7 @@ translation → name normalization → **client anchor validation** → scope bi
 source classification (H1/H2/H3) → local requirement selection → methodology
 (Global vs Streamlined) → layer-by-layer ownership extraction → control/voting/
 domination → entity-type logic → UBO/IBO decision support → conflict reconciliation
-→ outbound → QA flags → completeness validation.
+→ advisory → QA flags → completeness validation.
 
 Core principles: **evidence-only** (no external knowledge/inference), **client-anchored**,
 **zero data loss** (never drop a node for being below-threshold/0%/missing), **deterministic**,
@@ -58,7 +58,7 @@ The at-a-glance answer to "which entity was this run about". No record-hunting n
 - [x] **`clientAnchor.resolvedName`** — client legal name as matched in the docs (null if unconfirmed)
 - [ ] `clientAnchor.clientRecordId` — id of the layer-0 `extracted_records` entry (links anchor → graph)
 - [x] **`clientAnchor.validationStatus`** — `VALIDATED` · `VALIDATED_WITH_NORMALIZATION` · `CONFLICTING_CLIENT_NAME` · `CLIENT_ANCHOR_NOT_CONFIRMED`
-- [x] **`clientAnchor.ownershipReviewStatus`** — `COMPLETE` · `COMPLETE_WITH_QA_FLAGS` · `INCOMPLETE_OUTBOUND_REQUIRED` · `NEED_REVIEW` · `DOC_INVALID`
+- [x] **`clientAnchor.ownershipReviewStatus`** — `COMPLETE` · `COMPLETE_WITH_QA_FLAGS` · `INCOMPLETE_ADVISORY_REQUIRED` · `NEED_REVIEW` · `DOC_INVALID`
 
 ### 2. `ownershipApproach` (top-level)
 
@@ -135,22 +135,22 @@ Each owned node produces one record **per owner** (N owners → N records, same
 - [x] **`qaFlags.summary`** — starts with triggering documentName/trigger; concise
 - [x] **`qaFlags.records[]`** — `reason`, `status` (`CONFIDENT`/`NOT_CONFIDENT`/`NEED_REVIEW`/`DOC_INVALID`); unresolved rule-14 conflicts fold into `reason`
 
-### 6. `outbound` (top-level object) — requests for missing information
+### 6. `advisory` (top-level object) — requests for missing information
 
-- [x] **`outbound.summary`**
-- [x] **`outbound.records[]`**:
-  - [x] **`outboundType`** — `CLIENT_OUTREACH` · `RM_OUTREACH` · `INTERNAL_DOCUMENT_REQUEST` · `LOCAL_ADVISORY_REVIEW` · `ACO_ESCALATION` · `BLAFC_ESCALATION` · `TRANSLATION_REQUEST` · `NO_OUTBOUND_REQUIRED`
+- [x] **`advisory.summary`**
+- [x] **`advisory.records[]`**:
+  - [x] **`advisoryType`** — `CLIENT_OUTREACH` · `RM_OUTREACH` · `INTERNAL_DOCUMENT_REQUEST` · `LOCAL_ADVISORY_REVIEW` · `ACO_ESCALATION` · `BLAFC_ESCALATION` · `TRANSLATION_REQUEST` · `NO_ADVISORY_REQUIRED`
   - [x] **`priority`** — `HIGH` · `MEDIUM` · `LOW`
   - [x] **`reason`**
   - [ ] `requestedInformation`
   - [ ] `impactedDecision`
   - [ ] `relatedEntity`
   - [ ] `relatedDocument`
-  - [x] **`proposedOutboundText`** — ready-to-send outbound message
+  - [x] **`proposedAdvisoryText`** — ready-to-send advisory message
 
 ## Field-count summary
 
-- Top-level: **5** required objects/strings (`clientAnchor`, `extracted_records`, `outOfBounds`, `qaFlags`, `outbound`, `ownershipApproach`).
+- Top-level: **5** required objects/strings (`clientAnchor`, `extracted_records`, `outOfBounds`, `qaFlags`, `advisory`, `ownershipApproach`).
 - `clientAnchor`: **5** fields.
 - `extracted_records[]`: **35** fields (incl. nested `listingProof`, per-record `outOfBounds`).
 - Every schema field has a documented source in `system.txt` (OUTPUT-CONTRACT OC.1–OC.3); prompt ↔ schema are in sync.
