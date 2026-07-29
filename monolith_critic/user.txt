@@ -6,25 +6,27 @@ Review the monolith ownership extraction output against the source documents and
 {{extractedRecords}}
 </extracted_records>
 
+<gcs_document_path>{{gcsDocumentPath}}</gcs_document_path>
+
 <client_entity_name>{{clientEntityName}}</client_entity_name>
 
-<entity_type>{{entityType}}</entity_type>
-
-<is_streamlined>{{isStreamlined}}</is_streamlined>
+<client_name>{{clientEntityType}}</client_name>
 
 <adoption_locations>{{adoptionLocations}}</adoption_locations>
 
-<risk_rating>{{riskRating}}</risk_rating>
+<adverse_media>{{adverseMedia}}</adverse_media>
+
+<entity_type>{{entityType}}</entity_type>
+
+<due_diligence_level>{{dueDiligenceLevel}}</due_diligence_level>
 
 <document_classifications>{{documentClassifications}}</document_classifications>
-
-<gcs_document_paths>{{gcsDocumentPaths}}</gcs_document_paths>
 
 <kos_documents>{{kosDocuments}}</kos_documents>
 
 <verification_dates>{{verificationDates}}</verification_dates>
 
-<ownership_inputs>{{ownershipInputs}}</ownership_inputs>
+<is_streamlined>{{isStreamlined}}</is_streamlined>
 
 <instructions>
 1. COMPLETENESS (primary, "Entity Completeness") — Read the source documents at gcs_document_paths (and kos_documents, where provided). List every person, organization, and org-chart box/node they contain. Verify each one appears as a record in extracted_records (matched by nameAsSource). Any entity in the documents but missing from extracted_records is a CRITICAL Entity Completeness failure — name it and cite where it appears. Do not accept an omission on the grounds that diluted/indirect ownership falls below a threshold; every direct link must be preserved regardless of the diluted result.

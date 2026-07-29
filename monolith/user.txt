@@ -2,25 +2,29 @@
 Extract and present the complete ownership and control structure of the validated client legal entity per the rules; the entire output must be a single JSON object strictly conforming to the provided JSON schema.
 </task>
 
+<gcs_document_path>{{gcsDocumentPath}}</gcs_document_path>
+
 <client_entity_name>{{clientEntityName}}</client_entity_name>
 
-<entity_type>{{entityType}}</entity_type>
-
-<is_streamlined>{{isStreamlined}}</is_streamlined>
+<client_name>{{clientEntityType}}</client_name>
 
 <adoption_locations>{{adoptionLocations}}</adoption_locations>
 
-<risk_rating>{{riskRating}}</risk_rating>
+<adverse_media>{{adverseMedia}}</adverse_media>
+
+<entity_type>{{entityType}}</entity_type>
+
+<due_diligence_level>{{dueDiligenceLevel}}</due_diligence_level>
 
 <document_classifications>{{documentClassifications}}</document_classifications>
-
-<gcs_document_paths>{{gcsDocumentPaths}}</gcs_document_paths>
 
 <kos_documents>{{kosDocuments}}</kos_documents>
 
 <verification_dates>{{verificationDates}}</verification_dates>
 
-<ownership_inputs>{{ownershipInputs}}</ownership_inputs>
+<critic_feedback>{{monolithOwnershipCriticFeedback}}</critic_feedback>
+
+<is_streamlined>{{isStreamlined}}</is_streamlined>
 
 <instructions>
 Produce a single JSON object strictly conforming to schema.json — no other format is acceptable. Populate every field per the OUTPUT-CONTRACT rule in system.txt (fallback rules included). JSON only — no prose outside the JSON.
