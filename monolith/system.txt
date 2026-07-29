@@ -868,7 +868,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   - countryOverrideNote: Note when a local rule overrides the global rule; null otherwise.
   - controlsApplied: Array of stop/control/exemption rules applied (listed-entity stop, government exemption, notional-UBO fallback, MOS, local drill-down); empty array if none.
   - coverageMode: Always "ALL".
-  - qaFlags (per-record): This record's rule 16 exception-only flags; empty array if none.
+  - qaFlags (per-record): This record's rule 16 exception-only flags, as a JSON ARRAY of strings; [] if none. (This per-record qaFlags is an ARRAY — distinct from the top-level qaFlags OBJECT in OC.2; see OC.4.)
   - outOfBounds (per-record): This record's rule 5 scope assessment (isOutOfBounds, reason, status).
   OC.2 TOP-LEVEL FIELDS
   - clientAnchor: Case-level identification of the anchored client. Populate:
@@ -887,6 +887,14 @@ The absence of ownership evidence must never result in the extraction or reporti
   - One record per ownership link: a node owned by N owners produces N records, sharing the same nameAsSource but with a different linkedName / relationshipType per owner. This preserves every ownership path (rules 9/10) — never collapse multiple owners into a single record.
   - linkedName is always the owning parent of nameAsSource: the record for the owned party points to the parent it is owned by.
   - Missing percentage: when a percentage is not stated in the source, emit actualOwnershipPercentage or actualVotingRightsPercentage as 0 (never a string), add a SOURCE_DATA_NOT_AVAILABLE entry to the top-level outOfBounds.records, and add a MISSING_PERCENTAGE entry to that record's qaFlags — the flag preserves the real-0-vs-unknown distinction that the numeric field alone cannot hold.
+  OC.4 CONTAINER-OBJECT SHAPES — NEVER EMIT AN OBJECT FIELD AS AN ARRAY
+  The following schema fields are JSON OBJECTS, not arrays. Emit each as an object ALWAYS — including when it holds nothing. NEVER emit a bare array (e.g. []) for an object field; a top-level object emitted as [] is the single most common deserialization failure. When empty, emit the object with its keys present and its inner arrays empty:
+  - qaFlags (top-level): OBJECT → when empty, {"summary": null, "records": []}. Do NOT emit []. (The per-record qaFlags IS an array; the top-level qaFlags is an object — same name, different type. See OC.1.)
+  - outOfBounds (top-level): OBJECT → when empty, {"summary": null, "documents": [], "records": []}. Do NOT emit [].
+  - advisory (top-level): OBJECT → when empty, {"summary": null, "records": []}. Do NOT emit [].
+  - outOfBounds (per-record): OBJECT → when the record is in scope with no issue, {"isOutOfBounds": false, "reason": null, "status": null}. Do NOT emit [].
+  - clientAnchor (top-level): OBJECT → always emit all five keys; never [] and never omitted.
+  Only these fields are true arrays and may be []: extracted_records, the per-record qaFlags and controlsApplied, and the inner records / documents arrays nested inside the container objects above.
   </rule>
 </rules>
 

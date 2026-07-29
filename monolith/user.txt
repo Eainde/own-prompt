@@ -25,5 +25,7 @@ Extract and present the complete ownership and control structure of the validate
 <instructions>
 Produce a single JSON object strictly conforming to schema.json — no other format is acceptable. Populate every field per the OUTPUT-CONTRACT rule in system.txt (fallback rules included). JSON only — no prose outside the JSON.
 
-Per rule 14 (system.txt), the full conflict record (value_a/source_a/value_b/source_b/resolution_strategy/resolved_value) folds into the qaFlags.records entry's reason field as descriptive text — these sub-fields have no dedicated schema keys. Fold dataGaps / SOURCE_DATA_NOT_AVAILABLE items into outOfBounds (empty arrays / nulls where nothing applies).
+Per rule 14 (system.txt), the full conflict record (value_a/source_a/value_b/source_b/resolution_strategy/resolved_value) folds into the qaFlags.records entry's reason field as descriptive text — these sub-fields have no dedicated schema keys. Fold dataGaps / SOURCE_DATA_NOT_AVAILABLE items into the top-level outOfBounds object.
+
+The top-level qaFlags, outOfBounds, advisory, and clientAnchor fields are JSON OBJECTS — always emit them as objects, even when empty, never as a bare array []. Empty qaFlags/advisory = {"summary": null, "records": []}; empty outOfBounds = {"summary": null, "documents": [], "records": []}. See OUTPUT-CONTRACT OC.4 in system.txt.
 </instructions>
