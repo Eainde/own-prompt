@@ -538,6 +538,24 @@ The absence of ownership evidence must never result in the extraction or reporti
 
   <rule id="12" priority="HIGH" name="CLASSIFICATION DECISION SUPPORT">
   For each extracted node, determine roleCapacity using evidence and applicable rules.
+  12.1 GLOBAL IBO DEFINITION
+  An Indirect Beneficial Owner (IBO) is any Non-Natural Person (legal entity, company, partnership, trust, fund, foundation, government body, or other legal arrangement) that directly or indirectly owns the client entity through one or more ownership layers.
+  IBO thresholds (by dueDiligenceLevel):
+  - CDD: ownership interest greater than 25% (&gt; 25%).
+  - EDD: ownership interest greater than 25% (&gt; 25%).
+  Where the calculated ownership interest exceeds the applicable threshold, set isIBO = true and roleCapacity = "IBO" (unless a more specific role applies).
+  ALL intermediate ownership layers must be preserved even when an upstream owner ultimately falls below the threshold (Kernel D zero-data-loss).
+  12.2 GLOBAL UBO DEFINITION
+  An Ultimate Beneficial Owner (UBO) is a Natural Person who directly or indirectly owns or controls the client entity through one or more ownership layers.
+  UBO thresholds (by dueDiligenceLevel):
+  - CDD: ownership interest greater than 25% (&gt; 25%).
+  - EDD: ownership interest greater than 10% (&gt; 10%).
+  Where the calculated ownership OR control interest exceeds the applicable threshold, set isUBO = true and roleCapacity = "UBO" (unless a control-based classification applies).
+  UBO determination must consider BOTH:
+  - ownership-based qualification, and
+  - control-based qualification where control rights or domination indicators are evidenced (rule 10).
+  Do not exclude intermediate ownership layers solely because a downstream UBO threshold has been reached.
+  These are the GLOBAL defaults. Where an adoption location has a stricter or inclusive Local Addendum threshold, the local threshold prevails (rules 7, 13, 13.6) and drives isIBO / isUBO instead of these defaults.
   Allowed roleCapacity values:
   - Client
   - Direct Owner

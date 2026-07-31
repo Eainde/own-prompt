@@ -6,7 +6,7 @@ Extract and present the complete ownership and control structure of the validate
 
 <client_entity_name>{{clientEntityName}}</client_entity_name>
 
-<client_name>{{clientEntityType}}</client_name>
+<client_entity_type>{{clientEntityType}}</client_entity_type>
 
 <adoption_locations>{{adoptionLocations}}</adoption_locations>
 
