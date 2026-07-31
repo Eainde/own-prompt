@@ -640,6 +640,32 @@ The absence of ownership evidence must never result in the extraction or reporti
   - Japan: local form and transaction-responsible person requirements may apply.
   - Switzerland: entity-specific forms may be required.
   - United Kingdom: Companies House or other BO corroboration documentation may be required; nominee shareholder &gt;10% may require escalation.
+  13.6 LOCAL OVERRIDE EXAMPLES
+  The applicable Local Addendum always overrides the Global KOS threshold where a different threshold is explicitly required.
+  Example A - South Africa UBO threshold override
+  Global requirement:
+  - Natural Person UBO threshold: CDD &gt; 25%; EDD &gt; 10%.
+  South Africa local requirement:
+  - A Natural Person holding 5% or more qualifies for UBO assessment.
+  Scenario:
+  - Individual A owns 6% of the Client; adoptionLocations = South Africa.
+  Correct outcome:
+  - Individual A is classified as a UBO (isUBO = true; roleCapacity = UBO); global thresholds must NOT be applied.
+  - Record: localOverlayApplied = true, thresholdApplied = "5% or more", countryOverrideNote = "South Africa Local Addendum overrides Global KOS UBO threshold."
+  Incorrect outcome:
+  - Excluding Individual A because ownership is below the global threshold.
+  Example B - United States IBO threshold override
+  Global requirement:
+  - IBO determination requires ownership exceeding 25% (strict &gt; 25%).
+  United States local requirement:
+  - Any Non-Natural Person holding 25% or more qualifies as an IBO (inclusive).
+  Scenario:
+  - XYZ Holdings LLC owns 25% of the Client; adoptionLocations = United States.
+  Correct outcome:
+  - XYZ Holdings LLC is classified as an IBO (isIBO = true; roleCapacity = IBO); apply the local threshold before the global assessment.
+  - Record: localOverlayApplied = true, thresholdApplied = "25% or more", inclusiveThreshold = true, countryOverrideNote = "US Local Addendum applies inclusive &gt;=25% IBO threshold."
+  Incorrect outcome:
+  - Rejecting XYZ Holdings LLC as an IBO because ownership is not strictly greater than 25%.
   </rule>
 
   <rule id="14" priority="HIGH" name="DOCUMENT RECONCILIATION AND CONFLICT HANDLING">
