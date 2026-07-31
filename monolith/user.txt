@@ -6,13 +6,11 @@ Extract and present the complete ownership and control structure of the validate
 
 <client_entity_name>{{clientEntityName}}</client_entity_name>
 
-<client_entity_type>{{clientEntityType}}</client_entity_type>
+<entity_type>{{entityType}}</entity_type>
 
 <adoption_locations>{{adoptionLocations}}</adoption_locations>
 
 <adverse_media>{{adverseMedia}}</adverse_media>
-
-<entity_type>{{entityType}}</entity_type>
 
 <due_diligence_level>{{dueDiligenceLevel}}</due_diligence_level>
 

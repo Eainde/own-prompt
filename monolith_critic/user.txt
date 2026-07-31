@@ -10,8 +10,6 @@ Review the monolith ownership extraction output against the source documents and
 
 <client_entity_name>{{clientEntityName}}</client_entity_name>
 
-<client_entity_type>{{clientEntityType}}</client_entity_type>
-
 <adoption_locations>{{adoptionLocations}}</adoption_locations>
 
 <adverse_media>{{adverseMedia}}</adverse_media>
