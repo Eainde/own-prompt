@@ -556,6 +556,20 @@ The absence of ownership evidence must never result in the extraction or reporti
   - control-based qualification where control rights or domination indicators are evidenced (rule 10).
   Do not exclude intermediate ownership layers solely because a downstream UBO threshold has been reached.
   These are the GLOBAL defaults. Where an adoption location has a stricter or inclusive Local Addendum threshold, the local threshold prevails (rules 7, 13, 13.6) and drives isIBO / isUBO instead of these defaults.
+  12.3 DILUTION / CUMULATIVE OWNERSHIP EXAMPLE
+  Ownership is qualified CUMULATIVELY across all ownership layers: an owner's effective indirect interest is the product of the direct percentages along its path to the client. IBO / UBO thresholds (12.1 / 12.2) are tested against this cumulative interest, NOT against a single direct link's percentage.
+  Example:
+  - Natural Person A owns 80% of Holding Company B.
+  - Holding Company B owns 60% of Intermediate Company C.
+  - Intermediate Company C owns 50% of Client D.
+  Cumulative (diluted) ownership:
+  - Natural Person A: 80% × 60% × 50% = 24%.
+  - Holding Company B: 60% × 50% = 30%.
+  Results:
+  - Holding Company B (Non-Natural Person) has 30% cumulative ownership and qualifies as an IBO (&gt; 25%): isIBO = true, roleCapacity = "IBO".
+  - Natural Person A has 24% cumulative ownership: under CDD (&gt; 25%) NOT a UBO (isUBO = false); under EDD (&gt; 10%) qualifies as a UBO (isUBO = true, roleCapacity = "UBO"). Apply the outcome for the case's dueDiligenceLevel.
+  - The full ownership chain A → B → C → D must be preserved regardless of threshold outcomes (Kernel D / rule 10.1): one record per direct link, each with its DIRECT percentage in actualOwnershipPercentage (80 / 60 / 50).
+  Recording: actualOwnershipPercentage always holds the DIRECT percentage as stated; the cumulative/diluted figure drives isIBO / isUBO and is explained in governanceBasis (the schema carries no separate accumulated-ownership field).
   Allowed roleCapacity values:
   - Client
   - Direct Owner
