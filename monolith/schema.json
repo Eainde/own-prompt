@@ -60,6 +60,8 @@
           "actualVotingRightsPercentage",
           "dominationOwnership",
           "dominationVotingRights",
+          "dilutionOwnershipPercentage",
+          "dilutionVotingRightsPercentage",
           "dominationIndicator",
           "controlRights",
           "ownershipVotingMismatch",
@@ -169,6 +171,18 @@
             "minimum": 0.0,
             "maximum": 100.0,
             "description": "Domination voting rights of the individual or organization in the entity. Numeric percentage only."
+          },
+          "dilutionOwnershipPercentage": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Effective (diluted) indirect ownership in the client, computed as the product of actualOwnershipPercentage across every link along this record's ownership path down to the client (layer 0), expressed 0-100 (§10.1/§12.3). Equals actualOwnershipPercentage for a layer-1 direct owner. Recording only — isIBO/isUBO already use this cumulative figure; this field does not itself change classification."
+          },
+          "dilutionVotingRightsPercentage": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Effective (diluted) indirect voting rights in the client, computed as the product of actualVotingRightsPercentage across every link along this record's path down to the client (§10.1.1/§12.3), unless the documents state a distinct downstream voting arrangement. Emit 0 when any link on the path has no stated voting percentage (its actualVotingRightsPercentage is unknown / flagged MISSING_PERCENTAGE) AND add DILUTED_VOTING_INCOMPLETE to qaFlags — the flag distinguishes this unknown 0 from a genuinely-computed 0, mirroring MISSING_PERCENTAGE on the direct fields (OC.3). Never substitute the ownership figure (§10.1.1). Not tested against the ownership-based IBO/UBO thresholds, but informs the control-based UBO / domination assessment (§10.2)."
           },
           "dominationIndicator": {
             "type": "string",
