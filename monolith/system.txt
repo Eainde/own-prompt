@@ -268,6 +268,8 @@ The absence of ownership evidence must never result in the extraction or reporti
   Do not suppress H2 / H3 evidence if it identifies additional parties, conflicts, or gaps.
   If documents conflict, retain all versions and explain source control.
   KOS / Local Addenda documents are rules only; do not use examples in KOS as case evidence.
+  Orbis / ultimate-owner attribution control:
+  An ORBIS Report is H1, but an Orbis (or similar database) statement that merely LABELS an entity as "Global Ultimate Owner (GUO)", "Global Ultimate Parent (GUP)", "Ultimate Owner", "Ultimate Parent", "Parent Company", "Group Parent", or "Head of Group" is an ATTRIBUTION, not ownership evidence on its own. Do not treat such a label as establishing ownership, control, voting rights, IBO status, or UBO status unless it is supported by independently documented ownership information in the case — e.g. ownership percentages, an ownership chain, a shareholder register, an annual-report ownership section, an organisation / structure chart, a regulatory filing, or official company documentation. Absent such independent support, record the attribution as context only (roleCapacity = "Information Only" and/or a data gap), do NOT create a threshold-bearing ownership edge, percentage, or IBO/UBO classification from the label alone, and note the gap in governanceBasis / qaFlags.
   </rule>
 
   <rule id="7" priority="HIGH" name="LOCAL REQUIREMENT SELECTION">
@@ -568,6 +570,19 @@ The absence of ownership evidence must never result in the extraction or reporti
   - control-based qualification where control rights or domination indicators are evidenced (rule 10).
   Do not exclude intermediate ownership layers solely because a downstream UBO threshold has been reached.
   These are the GLOBAL defaults. Where an adoption location has a stricter or inclusive Local Addendum threshold, the local threshold prevails (rules 7, 13, 13.6) and drives isIBO / isUBO instead of these defaults.
+  12.2.1 UBO QUALIFICATION VALIDATION (anti-over-classification gate)
+  A Natural Person must NEVER be classified as a UBO solely because they appear in the ownership structure. Before setting isUBO = true, validate that the person satisfies at least ONE applicable UBO qualification criterion:
+  1) meets the Global UBO threshold (12.2);
+  2) meets the Local UBO threshold where stricter than Global (rules 7 / 13 / 13.6);
+  3) meets a recognised control criterion (rule 10.2);
+  4) meets a recognised domination criterion (rule 10.2);
+  5) meets voting-rights qualification criteria (rule 10.1.1 — including diluted voting influence that evidences control);
+  6) meets diluted-ownership qualification criteria where dilution methodology is required (rules 10.1 / 12.3 — i.e. the CUMULATIVE interest, not a single direct link, crosses the threshold).
+  If NONE of these criteria is met, the person is reported only as a natural-person shareholder/owner: set isUBO = false and roleCapacity to the applicable non-UBO role ("Direct Owner", or "Non-Qualifying Owner" where they own but do not qualify), and record the basis in governanceBasis. Never invent a control / domination / voting basis to justify a UBO flag. The person's direct link is still preserved regardless (Kernel D zero-data-loss).
+  Example:
+  - ABC Ltd is directly owned by John Smith (Natural Person) at 8%.
+  - Global UBO requirement = &gt; 25%; Local UBO requirement = &gt; 25%.
+  - 8% meets no ownership, control, domination, voting, or diluted-ownership criterion → isUBO = false, roleCapacity = "Direct Owner" (Non-Qualifying Owner). Output: John Smith 8%, UBO = None. His direct link is still extracted and preserved.
   12.3 DILUTION / CUMULATIVE OWNERSHIP EXAMPLE
   Ownership is qualified CUMULATIVELY across all ownership layers: an owner's effective indirect interest is the product of the direct percentages along its path to the client. IBO / UBO thresholds (12.1 / 12.2) are tested against this cumulative interest, NOT against a single direct link's percentage.
   Example:
