@@ -72,12 +72,42 @@ Six top-level fields, all required: `clientAnchor`, `extracted_records`, `outOfB
 - `governanceBasis` carries rule 18's full eight-part reasoning as ONE structured string,
   never as separate fields.
 
+## Field vocabulary and numbering
+
+The prompts name concepts in working language; **only `schema.json` names may be emitted.** Rule
+`FIELD-VOCABULARY` (CRITICAL, placed before rules 1 and 9 so it is read first) is the single
+authority mapping one to the other:
+
+- **Renames** — `ownerName` → `linkedName`, `ownedEntityName` → `nameAsSource`,
+  `directOwnershipPercentage` → `actualOwnershipPercentage`, `pageOrSection` → `pageNumber`, …
+- **Fold-ins** (no dedicated key) — `dataGaps` → `outOfBounds.records`; `documentConflicts` and
+  each rule 14 conflict record → `qaFlags.records[].reason` as text; `stopRuleApplied` →
+  `controlsApplied[]`; `outOfBoundsDocuments` → `outOfBounds.documents`.
+- **Working state, never emitted** — the rule 1 document inventory (13 of its 15 attributes have
+  no schema home), the §9.0 entity inventory, `qualifyingInterest`, `confidenceStatus`. Emitting
+  any of these as a schema key is a contract violation and fails deserialization.
+
+⚠️ **Direction hazard, called out in the rule itself**: rule 9 lists `ownerName` first and
+`ownedEntityName` second, but the emitted record is the reverse — `nameAsSource` is the OWNED
+subject and `linkedName` points at its OWNER. Mapping them positionally inverts every ownership
+edge. Every record must read "nameAsSource is owned by linkedName".
+
+**Step vs rule numbering**: `PROCESSING-ORDER`'s steps 1–12 map to rules 1–12, then diverge —
+step 13 = rule 14, … step 16 = rule 17. Rule 13 (local threshold guide) and rule 18 (reasoning
+format) are not steps; `FIELD-VOCABULARY`, `KERNEL`, `ORGCHART` and `INPUT-VALIDATION` bind at
+every step.
+
 ## Key accuracy rules (non-obvious)
 
 - **Rule 9.1 check 2 — "Total Ownership" is indirect**: any percentage reported under a
   "Total Ownership" heading is an AGGREGATE interest held through one or more intermediate
   entities. Report it as Indirect Ownership only; never record it as a direct link percentage
   in `actualOwnershipPercentage`. The critic re-checks this under Percentage Accuracy.
+- **ORGCHART — an ambiguous chart is a hypothesis, not evidence**: read the chart upward as the
+  working hypothesis, but chart position NEVER by itself supports an emitted link. Where the
+  hypothesis cannot be confirmed from documentary evidence, §9.1 check 5 governs and ORGCHART
+  yields to it: flag `OWNERSHIP_DIRECTION_REVIEW_REQUIRED` and leave the direction unresolved.
+  Emitting a presumed edge from position alone is barred by KERNEL C.
 - **Rule 9.1 direction validation**: ownership direction must never be inferred from visual
   placement, SmartArt layout, OCR order, PDF rendering sequence or chart proximity. Where a
   Natural Person and a Corporate Entity are linked, the person is the owner unless evidence
@@ -87,9 +117,56 @@ Six top-level fields, all required: `clientAnchor`, `extracted_records`, `outOfB
   such as "Global Ultimate Owner (GUO)", "Ultimate Parent" or "Head of Group" is an
   ATTRIBUTION, not ownership evidence. Absent independent ownership documentation, record it as
   `roleCapacity = "Information Only"` and/or a data gap — never a threshold-bearing edge.
+- **Rule 9.0 — inventory before links**: extraction is two-pass. Enumerate every party in every
+  document first, then build links only between inventoried parties. A party absent from the
+  inventory must not appear in `extracted_records`; an inventoried party with no link is recorded
+  as a `qaFlags.records` entry (reason naming the party, status `NEED_REVIEW`) — **not**
+  `outOfBounds`, whose `records` entries require an integer `id` an unlinked party cannot supply. This is the completeness guarantee for *which parties get found*.
+- **Rule 9.3 — per-target sum check**: for each `linkedName` target, sum the direct percentages
+  **counting each distinct HOLDER once** — rule 14 legitimately retains several records for one
+  link, and those versions are one holder, so sum the controlling version only and never add them
+  together. The total should reach ≈100% (±5%). Below 95% means a shareholder was likely missed → re-scan, then
+  `INCOMPLETE_SHAREHOLDER_SET` plus a data gap, never an invented shareholder. Above 105% means
+  double-counting or cross-assignment (commonly a "Total Ownership" aggregate wrongly recorded as
+  a direct link) → `OWNERSHIP_PERCENTAGE_CONFLICT`. Exempt: targets whose shareholders carry
+  unknown percentages, or sources that positively state they are partial/extracted/illustrative
+  (silence is not an exemption). A sum materially below 100% is positive evidence of an
+  omission — the check that catches what re-reading alone does not.
+- **Rule 12.0 — `roleCapacity` precedence ladder**: 22 rungs, first match wins, no weighing and no
+  skipping. `Direct Owner`/`Indirect Owner` (rungs 20/21) are threshold failures;
+  `Non-Qualifying Owner` (rung 22) is reserved for links that aren't beneficially
+  ownership-bearing, never a threshold-failure outcome. Assumption A1 in the spec — confirm with
+  the KOS text owner.
+- **Rule 12.4 — arithmetic contract**: thresholds test `qualifyingInterest` (cumulative product on
+  GLOBAL, deemed inherited position on STREAMLINED), never a single direct link. Compare
+  unrounded, report rounded half-up to 2dp, never round intermediates. Write the operands before
+  the result (`DilutionChain=[80 × 60 × 50 = 24.00]`) so the figure is recomputable; in rule 18's
+  `[1]` line the trace tokens must precede Classification/Conclusion, and `Classification` carries
+  the ladder's `roleCapacity` value verbatim rather than a separate vocabulary.
+- **Rule 12.4 — STREAMLINED, ≤50%, and control-based IBO**: "non-dominating" governs whether an
+  owner **inherits an upstream** position, never whether a direct owner holds its own. A layer-1
+  streamlined owner IS threshold-tested on its own percentage even below 50% (§8.3.2's worked
+  example turns on this — DEF Ltd is an IBO at 30%). Only at **layer 2+** does a ≤50% owner have no
+  inherited `qualifyingInterest`: it then emits `QualifyingInterest = "n-a"`,
+  `dilutionOwnershipPercentage = 0` and `NO_INHERITED_POSITION` — a defined outcome, never
+  `MISSING_PERCENTAGE`. Separately, a **Non-Natural Person** may qualify as an IBO on rule 10.2's
+  evidenced control/domination bases below the ownership threshold (ladder rung 10), mirroring
+  §12.2.1 criteria 3/4/5 for natural persons; the basis must be named in `governanceBasis`.
+- **Canonical record order**: `id` is assigned after sorting by layer → linkedName →
+  nameAsSource → relationshipType → documentName → pageNumber, NFC-normalized and case-folded
+  (raw-value tie-break on linkedName/nameAsSource first). A FINAL TIE-BREAK on the canonical JSON
+  serialization (id excluded, keys sorted, code-point order) makes the order total, so `id`
+  assignment is never ambiguous — mirrored by `tests/consistency.py`'s `sort_key()`. Records no
+  longer appear in document order.
+- **No assertion without a quote (`evidenceSnippet`)**: any record asserting a non-zero direct
+  ownership/voting percentage or a `linkedName` needs a non-null verbatim `evidenceSnippet` and a
+  numeric `pageNumber`. `evidenceSnippet` may be null only when ALL THREE hold: `linkedName` is
+  also null, AND no percentage is asserted, AND the record carries a
+  MISSING_PERCENTAGE/SOURCE_DATA_NOT_AVAILABLE gap. A party that cannot be quoted must not be
+  asserted.
 - **Rule 8.3 — Streamlined means Domination ONLY (KOS 8.0a)**: when `isStreamlined = TRUE`, never
   multiply percentages across layers and never compute a cumulative indirect figure. A holder of
-  &gt;50% (ownership, voting, or control by other means) dominates and INHERITS the dominated
+  >50% (ownership, voting, or control by other means) dominates and INHERITS the dominated
   entity's full position in the client — 55% of an entity holding 70% of the client makes you a
   UBO at a deemed 70%, not 38.5%. A holder of 50% or less inherits nothing and that branch stops.
   `dilutionOwnershipPercentage` carries the deemed inherited position, not a product. Rules 10.1
@@ -101,7 +178,7 @@ Six top-level fields, all required: `clientAnchor`, `extracted_records`, `outOfB
   printed.
 - **Rule 6 — ORBIS "MO" is not a percentage**: "MO" / "Majority Owned" / "Majority Control" /
   "Majority-Owned Subsidiary" / "Majority Shareholder" with no stated figure evidences only
-  &gt;50%. Never infer 51%, never upgrade to 100% (that is 9.2's job, and only for sole/entire
+  >50%. Never infer 51%, never upgrade to 100% (that is 9.2's job, and only for sole/entire
   ownership wordings). Emit 0 + `MISSING_PERCENTAGE` + `SOURCE_DATA_NOT_AVAILABLE`, flag
   `ORBIS_MO_PERCENTAGE_NOT_DISCLOSED`, and raise an advisory for the exact percentage.
 - **Rules 10.1 / 12.3 — dilution (GLOBAL pathway only)**: capture every direct link at its DIRECT percentage in
@@ -146,8 +223,21 @@ Six top-level fields, all required: `clientAnchor`, `extracted_records`, `outOfB
   schema enum exactly (14, in order); the "Total Ownership" rule is present in both prompts
 - `conftest.py` — `load_schema` / `load_prompt` / `load_example` helpers plus a custom
   `Draft7Validator` that accepts `null` for `"type": "string"` fields (project convention)
+- `consistency.py` — run-to-run variance harness. Normalises away record order and free wording,
+  then buckets variance into **parties / links / numbers / classification / derived / toplevel**
+  (all six count toward `substantive_agreement`) plus `narrative` (reported, never counted).
+  Calibrated in both directions: records group under the 3-part link key and the whole group is
+  compared, so a changed `pageNumber` surfaces as a difference rather than dropping the record
+  from comparison; free prose (`summary`, advisory text) is excluded while `reason` is reduced to
+  its `UPPER_SNAKE` token signature so flag identity survives; unordered arrays are sorted before
+  comparison. Run over N saved outputs of the same case:
+  `venv/bin/python tests/consistency.py runs/case42/*.json`. Exit code 0 = substantive agreement.
+- `test_consistency.py` — tests the harness against synthetic fixtures with known answers
 
 Run with `venv/bin/pytest tests/ -v`.
+
+**`tests/` is gitignored repo-wide** (`.gitignore`) — `git add` of any file under `tests/` needs
+`-f`, or it silently stays untracked. Has surprised every implementer on this plan.
 
 **Known defect (xfail, strict)**: `monolith/example.json` is stale — it still uses the pre-v39
 nested `owners` record shape (`owner_id`, `gp_lp_role`, `direction_proof`, `cycle_path`) and does
