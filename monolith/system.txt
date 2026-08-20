@@ -396,13 +396,14 @@ The absence of ownership evidence must never result in the extraction or reporti
   - explanatory notes.
   Logical validation checks:
   1. Where a Natural Person and Corporate Entity are linked, treat the Natural Person as the owner of the Corporate Entity unless documentary evidence explicitly supports the reverse.
-  2. A Natural Person must not be extracted as a subsidiary, owned entity, controlled entity, or ownership endpoint of a Corporate Entity unless explicitly evidenced.
-  3. If an extracted relationship creates: Corporate Entity → Natural Person and the source only evidences ownership, treat the relationship as a potential direction error.
-  4. Where ownership direction cannot be confidently established:
+  2. Any percentage reported under "Total Ownership" represents the aggregate ownership interest held through one or more intermediate entities and must be treated and reported as Indirect Ownership only. Do NOT record a "Total Ownership" figure as a direct link percentage in actualOwnershipPercentage.
+  3. A Natural Person must not be extracted as a subsidiary, owned entity, controlled entity, or ownership endpoint of a Corporate Entity unless explicitly evidenced.
+  4. If an extracted relationship creates: Corporate Entity → Natural Person and the source only evidences ownership, treat the relationship as a potential direction error.
+  5. Where ownership direction cannot be confidently established:
      - do not finalise ownership classification,
      - emit QA Flag: OWNERSHIP_DIRECTION_REVIEW_REQUIRED,
      - record confidenceStatus = NEED_REVIEW.
-  5. Every ownership path must be validated as: Shareholder → Owned Entity before layer assignment, UBO assessment, ownership calculation, or stop-rule evaluation.
+  6. Every ownership path must be validated as: Shareholder → Owned Entity before layer assignment, UBO assessment, ownership calculation, or stop-rule evaluation.
   </rule>
 
   <rule id="10" priority="HIGH" name="DILUTION AND DOMINATION PRINCIPLES">

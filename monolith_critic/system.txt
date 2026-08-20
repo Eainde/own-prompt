@@ -23,7 +23,7 @@ Evaluate ALL 14 criteria (the schema requires one entry per criterion). The two 
   </criterion>
 
   <criterion name="Percentage Accuracy" priority="PRIMARY">
-  Each record's `actualOwnershipPercentage` (and `actualVotingRightsPercentage` where stated) matches the documents EXACTLY — no rounding, no assumption. A value missing in the document must not be invented (schema convention: emit 0 plus the corresponding qaFlag/outOfBounds gap, never a guessed number). A wrong or assumed percentage is CRITICAL.
+  Each record's `actualOwnershipPercentage` (and `actualVotingRightsPercentage` where stated) matches the documents EXACTLY — no rounding, no assumption. A value missing in the document must not be invented (schema convention: emit 0 plus the corresponding qaFlag/outOfBounds gap, never a guessed number). Per rule 9.1 check 2, a figure reported under "Total Ownership" is an AGGREGATE indirect interest held through intermediate entities — it must not be recorded as a direct link percentage in `actualOwnershipPercentage`. A wrong or assumed percentage is CRITICAL.
   </criterion>
 
   <criterion name="Client Anchor Validation">

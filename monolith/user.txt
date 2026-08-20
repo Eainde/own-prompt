@@ -2,9 +2,14 @@
 Extract and present the complete ownership and control structure of the validated client legal entity per the rules; the entire output must be a single JSON object strictly conforming to the provided JSON schema.
 </task>
 
-<gcs_document_path>{{gcsDocumentPath}}</gcs_document_path>
+<definition_of_too_big>
+- The definition of too big is when the number of elements under the 'extracted_records' field is more than 50.
+- Do not truncate the output unless instructed by the presence of submitBatch tool.
+</definition_of_too_big>
 
-<client_entity_name>{{clientEntityName}}</client_entity_name>
+<gcs_document_path>{{gcsDocumentPaths}}</gcs_document_path>
+
+<client_name>{{clientEntityName}}</client_name>
 
 <entity_type>{{entityType}}</entity_type>
 
