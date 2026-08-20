@@ -1,103 +1,143 @@
 # CLAUDE.md
 
-This repo stores the KYC ownership extraction prompts for the pipeline (Agents 1–4 are LLM agents in this repo; Agents 5–6 and Wave 5 are downstream). Each LLM agent has three files:
+This repo stores the **monolith** KYC ownership extraction prompt and its critic. Both are
+single-call LLM agents. Each has three files:
 
 - `system.txt` — role statement + XML-structured rules
 - `user.txt` — task instruction with `{{camelCase}}` placeholders
 - `schema.json` — Draft-07 JSON Schema the model must conform to
 
-## Wave pipeline
+The multi-agent wave pipeline (Chart Reader → W1 → W1 Critic → W2 → W3 → W4) that this repo
+used to carry has been removed — it is no longer in use. Only the two agents below remain.
 
-- **Chart Reader** (`chart_reader/`, W1 prerequisite): takes GCS document path → outputs a literal visual description of the ownership chart(s): `entities` (with vertical/horizontal position + type_hint + associated_label) and `arrows` (with from/to/label_percentage/evidence/direction_confidence). Pure visual description, no interpretation, no graph construction. Runs BEFORE W1 in production to break the vision-hallucination loop: production saw both extractor AND critic misread the same chart and validate each other; chart_reader produces a single shared ground truth that both W1 and the W1 Critic consume as authoritative (W1.R12). Template vars: `{{gcsDocumentPath}}`. Output is passed as `{{chartStructure}}` to both extractor and critic. Key rules: **CR.R9** — a bracket connecting multiple shareholders to one company MUST be emitted as ONE arrow PER shareholder (never a single "group" arrow). Group arrows force the extractor to guess assignments → guaranteed branch contamination. **CR.R10** — before output, run per-target sum check: each target's incoming arrow percentages should ≈100% (±5%). Sums off (e.g., 70% or 130%) signal missed or cross-assigned shareholders → iterate the chart_reader output until consistent. If chart_reader is not run (empty chartStructure), both fall back to direct PDF reading.
-- **Wave 1 / Agent 1** (`ownership_extraction/`): takes GCS document path + chart_structure (from Chart Reader) + critic feedback → extracts a per-document FLAT directed ownership graph of ALL relationships in the document (both directions; no target, no layer, no ownership_chain). Fuses two sources: chart-sourced edges (backed by chart_structure per W1.R12) and text-sourced edges (non-chart prose, cited by quote). Each edge carries `source_type` (`chart_structure` | `document_text`). `entity_type_category` is per-node. No `{{clientEntityName}}`; target-grounding and layer assignment are handled downstream by Agent 5.
-- **Wave 1 Critic / Agent 2** (`ownership_extraction_critic/`): takes W1 extraction output + GCS doc path + chart_structure → validates against W1 rules (R1–R12, R13). 9 acceptance criteria (removed "Layer Assignment" and "Ownership Chain Integrity"); 7-step evaluation workflow plus `<chart_structure_authority>` preflight check. Verifies chart-sourced edges against chart_structure entries; verifies text-sourced edges against cited text quotes. No target/subsidiary checks. No `{{clientEntityName}}`. Outputs per-criterion pass/fail + severity-ranked corrections + verdict (PASS/ACCEPT_WITH_NOTES/RETRY).
-- **Wave 2 / Agent 3** (`name_normalization/`): takes all Wave 1 JSON outputs → normalizes entity and person names; adds `normalizedName`, `dedupKey`, `asciiDedupKey` to every node; carries per-node `entity_type_category` and edge `source_type` forward; one-in-one-out, no merging
-- **Wave 3 / Agent 4 (Merge + Comparison)** (`merge_comparison/`): takes all Wave 2 normalized outputs → builds a composite graph; namespaces node ids as `<source_doc_id>::<slug>`; records `source_document` on every node and edge; tags candidate-duplicate groups in `overlaps`; flags cross-document % disagreements in `potential_conflicts`. DOES NOT MERGE OR RESOLVE — carries cycles and conflicts forward unresolved (`resolution_strategy` may be `"deferred"`).
-- **Wave 4 / Agent 5** (`organisation_chart/`): takes Wave 3 composite graph → converts to nested ownership tree; schema v0 pending internal system spec. Dual-run architecture: deterministic Java code (`OrganisationChartBuilder`) runs alongside the LLM agent, controlled by `w4.primary-strategy` flag (`llm`/`code`). `W4DualRunService` orchestrates both, `W4OutputComparator` diffs results asynchronously.
-- **Agent 4 — Conflict Detection** (not yet in this repo): takes Wave 3 composite graph → resolves cross-document cycle detection and conflict resolution via source priority; produces `detected_at: "W3"` cycle entries and resolved conflict records.
-- **Agent 5 — Grounding** (not yet in this repo): takes client legal name + merged graph → anchors the target entity, builds the upward ownership chain, assigns `layer` and `ownership_chain` to nodes. W1.R6, W1.R8, and W1.R11 (target-not-found halt, upward-only extraction, target authority) are all implemented here, not in W1.
-- **Wave 5** (internal system, not in this repo): takes Wave 4 tree → identifies IBOs and UBOs
+## Agents
+
+- **Monolith** (`monolith/`): takes a validated client entity name plus its case documents and
+  returns ONE JSON object describing the complete ownership & control structure — shareholders,
+  layers, percentages, voting/control rights, UBO/IBO classification support, conflicts, data
+  gaps, advisory requests and QA flags. Executes 16 mandatory gates in a fixed `PROCESSING-ORDER`
+  (document inventory → translation → name normalization → client anchor validation → scope
+  binding → source classification H1/H2/H3 → local requirement selection → methodology
+  Global-vs-Streamlined → layer-by-layer extraction → control/voting/domination → entity-type
+  logic → UBO/IBO decision support → conflict reconciliation → advisory → QA flags →
+  completeness validation). Rules are numbered 1–18 plus KERNEL, ORGCHART, INPUT-VALIDATION,
+  PROCESSING-ORDER and OUTPUT-CONTRACT.
+- **Monolith Critic** (`monolith_critic/`): takes the monolith's `extracted_records` output plus
+  the same case inputs and scores it against **14 acceptance criteria** (all schema-backed —
+  there is no advisory-only criterion). Outputs per-criterion pass/fail + observations, a
+  severity-ranked `areas_for_improvement`, and a verdict (`PASS` / `ACCEPT_WITH_NOTES` /
+  `RETRY`). A `RETRY` feeds back into the extractor via `{{monolithOwnershipCriticFeedback}}`.
+
+Core principles: **evidence-only** (no external knowledge or inference), **client-anchored**,
+**zero data loss** (never drop a node for being below-threshold / 0% / missing), **deterministic**,
+**fail-closed** (record a gap + QA flag rather than guess).
 
 ## Prompt standard
 
 Prompts follow the csm-prompts XML standard:
 
-- `system.txt`: plain-text role sentence, then `<role>`, `<rules>` (with `<rule id="..." priority="..." name="...">`), optional `<section name="...">`, `<directive>`
+- `system.txt`: plain-text role sentence, then `<role>`, `<rules>` (with
+  `<rule id="..." priority="..." name="...">`), optional `<section name="...">`, `<directive>`
 - `user.txt`: `<task>`, one tag per input variable, `<instructions>` with numbered steps
 - Template variables: `{{camelCase}}` double-brace syntax
-- Nullable fields in schema: `"type": "string"` (not `["string", "null"]`); `listing_proof` uses `oneOf: [null, object]`
+- Nullable fields in schema: `"type": "string"` (not `["string", "null"]`)
 
-## Graph model (all waves)
+## Template variables
 
-Every wave outputs four top-level arrays: `nodes` (entity identity), `edges` (ownership relationships), `cycles` (detected back-edges), `conflicts` (% disagreements). W4 converts edges to a nested `ownership_tree` but carries `cycles` and `conflicts` through unchanged.
+**Monolith** (`monolith/user.txt`): `{{gcsDocumentPaths}}` (plural), `{{clientEntityName}}`,
+`{{entityType}}`, `{{adoptionLocations}}`, `{{adverseMedia}}`, `{{dueDiligenceLevel}}`,
+`{{documentClassifications}}`, `{{kosDocuments}}`, `{{verificationDates}}`,
+`{{monolithOwnershipCriticFeedback}}`, `{{isStreamlined}}`.
 
-- **Nodes**: `id`, `name`, `type`, `entity_type_category` (per-node, W1 onward), `listing_proof`, `data_gaps`, `exceptions` — no `parent_id`, no `ownership_percentage_direct`. `layer` and `ownership_chain` are absent until the Grounding agent (Agent 5) assigns them.
-- **Edges**: `owner`, `owned`, `ownership_percentage_direct`, `control`, `source`, `source_type` (`chart_structure` | `document_text`, W1 onward)
-- **Cycles**: `cycle_path` (array of ids), `detected_at` (`"W1"` or `"W3"`), `source`
-- **Conflicts**: `owner`, `owned`, `conflict_description`, `value_a`, `source_a`, `value_b`, `source_b`, `resolution_strategy` (`use_higher`/`use_lower`/`use_most_recent`/`manual`/`deferred`), `resolved_value`. Conflicts are carried forward unresolved through W3 (`resolution_strategy: "deferred"`); resolved by Agent 4.
-- **W3 additions**: `overlaps` (candidate-duplicate node groups with namespaced ids `<source_doc_id>::<slug>`) and `potential_conflicts` (cross-document % disagreements, unresolved).
+**Critic** (`monolith_critic/user.txt`): the same case inputs minus the feedback loop, plus
+`{{extractedRecords}}` (the extractor's output). Note the critic uses `{{gcsDocumentPath}}`
+**singular** while the monolith uses `{{gcsDocumentPaths}}` **plural** — this mismatch is
+asserted in the tests so it stays visible.
 
-## Template variable usage
+## Output shape (monolith/schema.json)
 
-Variables match the Java agent spec (`OwnershipAgentsSpecification`):
+Six top-level fields, all required: `clientAnchor`, `extracted_records`, `outOfBounds`,
+`qaFlags`, `ownershipApproach`, `advisory`.
 
-- **Chart Reader**: `{{gcsDocumentPath}}` → output: `chartStructure` (entities + arrows + spatial layout). Runs once per document, output cached and passed to both extractor and critic.
-- **Wave 1**: `{{gcsDocumentPath}}`, `{{chartStructure}}` (from Chart Reader), `{{criticFeedback}}` → output: `extractedRecords`. No `{{clientEntityName}}` — W1 is ungrounded. Critic feedback loop: Java agent runs Chart Reader → extraction → critic → if RETRY, re-runs extraction with critic's areas_for_improvement injected via `{{criticFeedback}}` (empty string on first run). chart_structure is stable across retries (Chart Reader is deterministic for the same document).
-- **Wave 1 Critic**: `{{extractionOutput}}`, `{{gcsDocumentPath}}`, `{{chartStructure}}` (same as extractor) → output: verdict + evaluation_results + areas_for_improvement. No `{{clientEntityName}}`.
-- **Wave 2**: `{{extractedRecords}}` → output: `normalisedEntities`
-- **Wave 3**: `{{normalisedEntities}}` → output: `mergedEntities`
-- **Wave 4**: `{{mergedEntities}}`, `{{clientEntityName}}` → output: `organisationChart`
-
-XML tags in user.txt use snake_case of the agent output variable (e.g. `<extracted_records>`, `<normalised_entities>`, `<merged_entities>`). Waves 1–3 are intentionally blind to client identity — they process graph structure uniformly. Target anchoring happens in Agent 5 (Grounding).
-
-## Test harness
-
-`tests/` contains pytest suites (`test_schemas.py`, `test_prompt_invariants.py`, `test_topologies.py`, `test_branch_validator.py`) and JSON fixtures (`fixtures/w1_valid.json` through `w4_valid.json`). `test_prompt_invariants.py` asserts the W1/critic prompts stay de-grounded (no `{{clientEntityName}}`, no removed rule ids `W1.R6/R8/R11`). `conftest.py` provides a custom `Draft7Validator` that accepts `null` for `"type": "string"` fields (project convention). Run with `venv/bin/pytest tests/ -v`.
-
-## Topology test suite
-
-`tests/topologies/` contains 6 PDF ownership chart test cases with golden expected JSON outputs, targeting specific structural patterns that trip up the LLM:
-
-- **T1** (`t1_simple_chain`): linear 4-node chain, 100% at each level
-- **T2** (`t2_wide_fan`): 5 direct owners at 20% each (flat fan)
-- **T3** (`t3_diamond`): shared parent (Omega Corp) owns both branches
-- **T4** (`t4_shared_person`): same person (Khan Rashid) owns shares in 2 different holdings — primary bug case for cross-branch contamination
-- **T5** (`t5_mid_chart`): entity in the middle of a hierarchy with entities both above AND below. Extraction is now ungrounded (no target, both directions), so the golden includes the downward edges too — they are NOT excluded (subsidiary exclusion is an Agent 5 / Grounding concern)
-- **T6** (`t6_deep_asymmetric`): one branch 5 levels deep, another 1 level
-
-`tests/branch_validator.py` provides `validate_branches(actual, expected=None)` with target-INDEPENDENT structural checks only: edge/id consistency (no dangling owner/owned endpoints), person-owns-person (W1.R9), shared-entity handling (one node, separate edges), cross-branch contamination (by edge-set comparison). The old target-relative checks (chain consistency, direction-vs-target, subsidiary leakage) were REMOVED — they are Grounding-stage (Agent 5) concerns. Returns `BranchError(check_name, message, severity)` list. `tests/test_topologies.py` validates all golden fixtures against the W1 schema + branch validator; `tests/test_branch_validator.py` unit-tests the checks. `tests/topologies/generate_pdfs.py` regenerates all 6 PDFs deterministically.
-
-## Batch accumulator (large outputs)
-
-Waves 1–3 use `BatchAccumulatorTool` (shared Spring bean) when `nodes` > 200. The LLM calls `submitBatch(json, "nodes")` per batch; each batch is valid schema JSON with corresponding edges/cycles/conflicts. After the last batch the LLM returns a text summary; the `BatchMergerOutputGuardrail` replaces it with the merged JSON.
-
-- `BatchAccumulatorTool.java` at repo root is a standalone reference copy.
-- Renumbering is auto-detected: numeric/`id-N` IDs get renumbered; slug-based IDs (ownership agents) are preserved.
-- W4 (nested tree) does not use batching — it uses a code-only builder instead.
-
-## W4 code-only tree builder (reference stubs)
-
-W4's transformation is purely mechanical (W4.R6: no data invention), so a deterministic Java implementation replaces LLM output generation. Four reference Java files at repo root (alongside `BatchAccumulatorTool.java`):
-
-- `OrganisationChartBuilder.java` — core algorithm: pre-indexes W3 graph, recursively builds nested tree using `LinkedHashSet` ancestry for O(1) cycle detection
-- `W4DualRunService.java` — orchestrator: runs LLM + code concurrently via `CompletableFuture`, picks primary by `w4.primary-strategy` flag, falls back to shadow on failure
-- `W4OutputComparator.java` — recursive tree diff with normalization (% formatting, children ordering, null/empty equivalence)
-- `W4ComparisonResult.java` — result record: `MATCH`, `MISMATCH`, `LLM_FAILED`, `CODE_FAILED`
-
-Design spec: `docs/superpowers/specs/2026-06-04-w4-code-only-tree-builder-design.md`
-Implementation plan: `docs/superpowers/plans/2026-06-04-w4-code-only-tree-builder.md`
+- **`extracted_records`** is the only top-level ARRAY — one record per ownership LINK, so a node
+  owned by N owners produces N records sharing `nameAsSource` but differing in
+  `linkedName` / `relationshipType`. Never collapse multiple owners into one record.
+- **OC.4 container shapes**: `clientAnchor`, `outOfBounds`, `qaFlags` and `advisory` are JSON
+  OBJECTS and must be emitted as objects even when empty — a top-level object emitted as `[]`
+  is the single most common deserialization failure. Empty `qaFlags`/`advisory` =
+  `{"summary": null, "records": []}`; empty `outOfBounds` =
+  `{"summary": null, "documents": [], "records": []}`.
+- Same name, different type: the **per-record** `qaFlags` IS an array; the **top-level**
+  `qaFlags` is an object.
+- `governanceBasis` carries rule 18's full eight-part reasoning as ONE structured string,
+  never as separate fields.
 
 ## Key accuracy rules (non-obvious)
 
-- **W1.R7**: Structural DFS cycle detection — during flat-graph extraction, maintain a traversal ancestry path. Before expanding entity X's neighbours, check if X's id is already in the path. If yes, record in `cycles` with `detected_at: "W1"` and stop. No target reference — purely structural.
-- **W1.R9**: No person-owns-person edges — a Natural Person cannot be "owned" by another Natural Person. Multiple persons with percentages near each other in a diagram are peer shareholders of the same corporate entity. Extraction uses a two-pass workflow: entity inventory first (scan all entities before creating edges), then relationship mapping. Validation cross-checks inventory completeness and rejects person→person edges.
-- **W1.R10**: Branch isolation — process each holding's shareholders independently. A person appearing in multiple branches gets ONE node but SEPARATE edges to each holding. The entity inventory step includes branch mapping (grouping shareholders by their holding company) before creating nodes.
-- **W1.R12**: Chart_structure is authoritative for chart-sourced edges — when `{{chartStructure}}` is non-empty, W1 must back every chart-sourced node and edge against a chart_structure entry; edges' `direction_proof` must quote the arrow's `evidence` string verbatim ("From chart_structure arrow: '<evidence>'"). Direction is determined by arrow `from`→`to`. Arrows with `direction_confidence == "UNKNOWN"` produce no edge (record in `data_gaps`); `LOW` produces an edge with a `data_gaps` warning. Non-chart text contributes additional text-sourced edges (`source_type: "document_text"`) cited by verbatim quote. The critic verifies chart-sourced edges against chart_structure and text-sourced edges against cited text — neither re-reads the chart visually. Target-grounding (W1.R6, W1.R8, W1.R11) moved to Agent 5 (Grounding).
-  - **CR.R12 bracket_members commitment**: every arrow carries a required `bracket_members` array listing all co-bracket shareholder names. All arrows pointing to the same target must have identical bracket_members; bracket_members must equal the set of `from` values for that target and match `sum_check.per_target_sums[target].shareholder_count`. Placeholders ("and N others", "...", "etc.") forbidden. The extractor verifies these invariants and refuses to create edges for targets with bracket_members inconsistencies. The critic re-verifies. This catches compensating-error contamination invisible to sum_check alone (one column +X% offset by adjacent column -X% from misassigned shareholders — both sums ≈100% but assignments wrong).
-  - **Group-arrow rejection**: arrows where `arrow.from` is a collective noun ("group of individuals", "cluster", etc.) violate CR.R9. W1 must NOT decompose these by inference; affected shareholders get nodes but no edges, and `data_gaps` cites the CR.R9 failure. Critic flags this as a chart_reader bug and recommends re-run.
-  - **Mechanical branch isolation (W1.R10 + W1.R12)**: For each holding H, valid shareholders = `{arrow.from where arrow.to == H}`. Extractor derives branch assignments by strict arrow filtering, NEVER by horizontal_position, surname matching, or visual proximity. Critic verifies set equality and per-holding sum ≈100%.
-- **W1.R13**: Chart-vs-text reconciliation — for each edge present in both sources: if % values differ by ≤2%, take the text value; if >2% (material), create a `conflicts` entry with `resolution_strategy: "deferred"` and do NOT emit an edge with an invented resolved value. Union on existence: an edge in only one source is kept as-is with its `source_type` noted.
-- **W3.R1 step 3**: Similarity-based entity matching is conservative by default. False separate (same entity as two nodes) is recoverable; false merge (two entities collapsed) is not. Default to keeping separate.
-- **W3.R7**: Cross-document cycle detection moved to Agent 4 (Conflict Detection) — W3 (Merge + Comparison) does not run DFS or add `detected_at: "W3"` entries itself; it outputs the composite graph with namespaced ids for Agent 4 to traverse.
-- **W3.R8**: Dropped — W3 no longer merges nodes, so ownership_chain remapping does not apply. `ownership_chain` is not present until Agent 5 (Grounding).
-- **Conflict resolution**: W1 may emit `resolution_strategy: "deferred"` for material chart-vs-text % disagreements. W3 carries all conflicts forward unresolved. Agent 4 performs final resolution (`use_higher`/`use_lower`/`use_most_recent`/`manual`). Agent 5 (and ultimately Wave 5) consumes `resolved_value`; raw `value_a`/`value_b` are preserved for audit.
+- **Rule 9.1 check 2 — "Total Ownership" is indirect**: any percentage reported under a
+  "Total Ownership" heading is an AGGREGATE interest held through one or more intermediate
+  entities. Report it as Indirect Ownership only; never record it as a direct link percentage
+  in `actualOwnershipPercentage`. The critic re-checks this under Percentage Accuracy.
+- **Rule 9.1 direction validation**: ownership direction must never be inferred from visual
+  placement, SmartArt layout, OCR order, PDF rendering sequence or chart proximity. Where a
+  Natural Person and a Corporate Entity are linked, the person is the owner unless evidence
+  says otherwise. Undeterminable direction → `OWNERSHIP_DIRECTION_REVIEW_REQUIRED` +
+  `confidenceStatus = NEED_REVIEW`, and do not finalise classification.
+- **Rule 6 — ORBIS attribution control**: an ORBIS Report is H1 evidence, but a database label
+  such as "Global Ultimate Owner (GUO)", "Ultimate Parent" or "Head of Group" is an
+  ATTRIBUTION, not ownership evidence. Absent independent ownership documentation, record it as
+  `roleCapacity = "Information Only"` and/or a data gap — never a threshold-bearing edge.
+- **Rules 10.1 / 12.3 — dilution**: capture every direct link at its DIRECT percentage in
+  `actualOwnershipPercentage`, and additionally record the computed product along the path in
+  `dilutionOwnershipPercentage`. IBO/UBO thresholds are tested against CUMULATIVE (diluted)
+  ownership, not a single direct link.
+- **Rule 10.1.1 — voting dilutes separately**: never substitute ownership % for voting %. When
+  any link on the path lacks a stated voting %, emit `dilutionVotingRightsPercentage = 0` with a
+  `DILUTED_VOTING_INCOMPLETE` qaFlag — the flag is what distinguishes unknown from a genuine 0.
+- **Missing percentages**: percentage fields are numeric. Missing → emit `0`, add
+  `MISSING_PERCENTAGE` to that record's `qaFlags`, plus a `SOURCE_DATA_NOT_AVAILABLE` entry in
+  the top-level `outOfBounds.records`. Same unknown-vs-real-0 principle as above.
+- **Rules 7 / 13 — local overlay beats global**: apply the Local Addendum threshold BEFORE the
+  global test (e.g. South Africa 5%+ for UBO, US inclusive ≥25% for IBO). Multiple adoption
+  locations → apply the stricter one. Missing local rules → data gap + QA flag.
+- **Rule 11.2 — listed entity stop rule**: only when entityType is Listed Entity AND listing
+  evidence is present, validated and bound to the client anchor AND the applicable rules permit
+  it. Then do not drill down, do not determine UBO/IBO, and set
+  `ownershipReviewStatus = COMPLETE`.
+- **Rule 11.1.1 — notional UBO**: where no natural person is found at threshold, do NOT classify
+  anyone as Notional UBO. Emit `NOTIONAL_UBO_ASSESSMENT_REQUIRED` and identify the Senior Most
+  CSM by designation only.
+- **Rule 16 — QA flags are exception-only**: emit only when an issue materially affects decision
+  correctness, ownership completeness, audit reliability, or the ability to apply local rules /
+  classify. Normal complexity that is fully explained in the reasoning gets no flag.
+
+## Batching (large outputs)
+
+`monolith/user.txt` declares a `<definition_of_too_big>` block: more than **50** elements under
+`extracted_records`. The LLM must not truncate unless the `submitBatch` tool is present.
+(The old pipeline agents used a 200-`nodes` threshold — different field, different number.)
+
+## Test harness
+
+`tests/` contains pytest suites covering the two remaining agents:
+
+- `test_monolith_schema.py` — both schemas are valid Draft-07; monolith top-level field set;
+  OC.4 container fields typed as objects; critic verdict enum
+- `test_monolith_prompts.py` — template-variable sets for both `user.txt` files; the
+  `<definition_of_too_big>` batch threshold; every schema record property is named in
+  `system.txt` (prompt-backs-schema invariant); critic `<criterion name="...">` list matches the
+  schema enum exactly (14, in order); the "Total Ownership" rule is present in both prompts
+- `conftest.py` — `load_schema` / `load_prompt` / `load_example` helpers plus a custom
+  `Draft7Validator` that accepts `null` for `"type": "string"` fields (project convention)
+
+Run with `venv/bin/pytest tests/ -v`.
+
+**Known defect (xfail, strict)**: `monolith/example.json` is stale — it still uses the pre-v39
+nested `owners` record shape (`owner_id`, `gp_lp_role`, `direction_proof`, `cycle_path`) and does
+not validate against the current flat record schema. Regenerate or delete it, then drop the
+`xfail` marker on `test_example_records_conform_to_record_schema`.
+
+## Docs
+
+`docs/superpowers/specs/` and `docs/superpowers/plans/` retain the monolith design history
+(single-prompt design, single-parent-schema, critic design, prompt-backs-schema, v39 update).
