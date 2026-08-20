@@ -376,6 +376,22 @@ nested `owners` record shape (`owner_id`, `gp_lp_role`, `direction_proof`, `cycl
 not validate against the current flat record schema. Regenerate or delete it, then drop the
 `xfail` marker on `test_example_records_conform_to_record_schema`.
 
+## Database deployment
+
+`DATABASE.md` is the contract for getting these prompts into Oracle
+(`KYC_DATA_OWNER.AI_CHAT_PROMPT`) — **read it before touching any `insert_prompt.sql`.**
+Short version: the prompts are executed through a Java `PreparedStatement` that takes ONE
+statement, so each `<agent>/insert_prompt.sql` is a single `INSERT ... SELECT` with no
+PL/SQL, no comments and no trailing semicolon. `system.txt` → `SYSTEM_INSTRUCTION`,
+`user.txt` → `CW_PROMPT_TEXT`, `schema.json` → `CW_RESPONSE_SCHEMA`; every other column is
+inherited from the previous `PROMPT_VERSION` (a prompt change is always a NEW version row,
+never an in-place update). Two hazards drive the whole design: Oracle's **4000-BYTE**
+literal cap (not 32767 — that is PL/SQL only), handled by `TO_CLOB(..)||TO_CLOB(..)`; and
+`&` `;` `:` `?`, which the client consumes before Oracle sees them (`:word` is a named
+bind) — handled by encoding each as a sentinel char and restoring it with one `TRANSLATE`
+per piece. The `.sql` files are GENERATED: edit prompts, then run
+`python3 tools/gen_insert_sql.py`, never hand-edit the SQL.
+
 ## Docs
 
 `docs/superpowers/specs/` and `docs/superpowers/plans/` retain the monolith design history
