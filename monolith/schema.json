@@ -84,7 +84,7 @@
           "id": {
             "type": "integer",
             "minimum": 1,
-            "description": "Sequential integer, 1-based, in document reading order."
+            "description": "Sequential 1-based integer assigned AFTER sorting extracted_records into CANONICAL RECORD ORDER (prompt OC.1). NEVER assigned in document reading order \u2014 with multiple documents that order is undefined and two identical runs would differ on every line."
           },
           "itemType": {
             "type": "string",
@@ -93,12 +93,12 @@
           },
           "nameAsSource": {
             "type": "string",
-            "description": "Original name."
+            "description": "Name of this record's party exactly as stated in the source document. This party is the OWNER in the link; the entity it owns is named in linkedName."
           },
           "linkedName": {
             "type": "string",
             "nullable": true,
-            "description": "Name of Linked/Parent Organization."
+            "description": "The entity this record's party owns \u2014 one layer closer to the client (layer \u2212 1). Read each record as 'nameAsSource is a [relationshipType] of linkedName'. Null only for the layer-0 client record."
           },
           "layer": {
             "type": "integer",
@@ -138,7 +138,7 @@
           },
           "isUltimateParent": {
             "type": "boolean",
-            "description": "True if this record is the ultimate parent of the ownership structure."
+            "description": "True if this record is the top of its ownership path (no evidenced owner above it). An ultimate parent still carries a linkedName \u2014 the entity below it; only the layer-0 client has a null linkedName."
           },
           "isIBO": {
             "type": "boolean",

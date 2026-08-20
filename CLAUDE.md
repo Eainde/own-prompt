@@ -21,16 +21,76 @@ used to carry has been removed — it is no longer in use. Only the two agents b
   Global-vs-Streamlined → layer-by-layer extraction → control/voting/domination → entity-type
   logic → UBO/IBO decision support → conflict reconciliation → advisory → QA flags →
   completeness validation). Rules are numbered 1–18 plus KERNEL, ORGCHART, INPUT-VALIDATION,
-  PROCESSING-ORDER and OUTPUT-CONTRACT.
+  PROCESSING-ORDER, CRITIC-FEEDBACK and OUTPUT-CONTRACT.
 - **Monolith Critic** (`monolith_critic/`): takes the monolith's `extracted_records` output plus
-  the same case inputs and scores it against **14 acceptance criteria** (all schema-backed —
+  the same case inputs and scores it against **17 acceptance criteria** (all schema-backed —
   there is no advisory-only criterion). Outputs per-criterion pass/fail + observations, a
   severity-ranked `areas_for_improvement`, and a verdict (`PASS` / `ACCEPT_WITH_NOTES` /
   `RETRY`). A `RETRY` feeds back into the extractor via `{{monolithOwnershipCriticFeedback}}`.
+  **The critic never sees `monolith/system.txt`.** Its `<reference>` block R1–R8 therefore
+  reproduces every extractor rule it is asked to apply — the direction contract, the 22-rung
+  `roleCapacity` ladder, rule 10.2's closed list of control bases, the `relationshipType` enum,
+  rule 18's eight-part format, the QA-flag names, the working-state names that must never be
+  emitted, and the OC.4 container shapes. A rule cited by number and not reproduced there is a
+  check nobody can perform; `tests/test_monolith_prompts.py` pins each block.
 
 Core principles: **evidence-only** (no external knowledge or inference), **client-anchored**,
 **zero data loss** (never drop a node for being below-threshold / 0% / missing), **deterministic**,
 **fail-closed** (record a gap + QA flag rather than guess).
+
+### The critic's 17 criteria (order is contract — `test_critic_criteria_names_match_schema_enum`)
+
+ 1. **Overall Goal Adherence**
+ 2. **Entity Completeness**  _(PRIMARY)_
+ 3. **Percentage Accuracy**  _(PRIMARY)_
+ 4. **Client Anchor Validation**
+ 5. **Ownership Direction**
+ 6. **Non-Ownership Information Suppressed**
+ 7. **No External Knowledge / Hallucination**
+ 8. **Document Handling & Scope**
+ 9. **Source Classification & Admissibility**
+10. **Methodology (Global vs Streamlined)**
+11. **Local Overlay Applied**
+12. **Entity-Type Specific Logic**
+13. **IBO / UBO Classification Accuracy**
+14. **Domination & Control Indicators**
+15. **Advisory & QA Assessment**
+16. **Conflict Preservation**
+17. **Structural Validation**
+
+The `<criterion name="...">` list in `monolith_critic/system.txt` must equal the schema enum
+exactly, **in this order** — adding or reordering one means editing prompt, schema and test
+together.
+
+## The RETRY loop (rule `CRITIC-FEEDBACK`, CF.0–CF.7)
+
+`{{monolithOwnershipCriticFeedback}}` is populated only on a retry. The rule turns on one fact
+that shapes everything else: **the extractor is never given its previous output** — only the
+critic's findings. So:
+
+- **CF.1 re-extract, never patch.** A feedback-shaped patch would emit only the records a
+  finding named and silently drop every other one.
+- **CF.2 feedback is not evidence.** The critic is not a case document; a finding's assertions
+  never satisfy KERNEL C. A finding may only send you back to re-read a document, and the
+  correction cites the *document*. A party created to satisfy a finding is a fabricated party —
+  the exact failure the critic exists to catch, now caused by the critic.
+- **CF.3 resolve by identity, never by `id`.** ids are reassigned every run from canonical
+  order, so an id inside a finding addresses the *previous* run's numbering.
+- **CF.5 dispute, don't ignore.** Where the documents don't support a finding, keep the
+  evidenced extraction and record `CRITIC_FINDING_DISPUTED` in `qaFlags.records` + the basis in
+  `governanceBasis` part [6]. Silently ignoring guarantees the identical RETRY; silently
+  adopting fabricates.
+- **CF.6 every dispute raises an advisory in the same run.** Termination can't depend on
+  counting rounds — the extractor can't see them — so the advisory is what routes a genuine
+  disagreement to a human instead of to another retry. Flipping position because a finding
+  repeated would make output depend on how many times it was reviewed (KERNEL E breach).
+
+The critic knows about this: a `CRITIC_FINDING_DISPUTED` entry is judged **on the evidence**,
+not scored as an ignored finding, and a dispute with no matching advisory is IMPORTANT.
+
+**Orchestration note (outside the prompts):** because every dispute carries an advisory, the
+caller can terminate the loop on `advisory.records` containing a dispute rather than on a retry
+counter. Nothing in either prompt caps the number of rounds.
 
 ## Prompt standard
 
@@ -60,8 +120,9 @@ Six top-level fields, all required: `clientAnchor`, `extracted_records`, `outOfB
 `qaFlags`, `ownershipApproach`, `advisory`.
 
 - **`extracted_records`** is the only top-level ARRAY — one record per ownership LINK, so a node
-  owned by N owners produces N records sharing `nameAsSource` but differing in
-  `linkedName` / `relationshipType`. Never collapse multiple owners into one record.
+  owned by N owners produces N records sharing `linkedName` (the owned node) but differing in
+  `nameAsSource` / `relationshipType`. Never collapse multiple owners into one record.
+  Conversely one party owning M entities produces M records sharing `nameAsSource`.
 - **OC.4 container shapes**: `clientAnchor`, `outOfBounds`, `qaFlags` and `advisory` are JSON
   OBJECTS and must be emitted as objects even when empty — a top-level object emitted as `[]`
   is the single most common deserialization failure. Empty `qaFlags`/`advisory` =
@@ -71,6 +132,25 @@ Six top-level fields, all required: `clientAnchor`, `extracted_records`, `outOfB
   `qaFlags` is an object.
 - `governanceBasis` carries rule 18's full eight-part reasoning as ONE structured string,
   never as separate fields.
+- **Gap tokens are reasons, never statuses.** `outOfBounds.records.status` accepts only
+  `NEED_REVIEW` / `COUNTRY_OUT_OF_SCOPE`, and `outOfBounds.documents.status` only `DOC_INVALID` /
+  `DOCUMENT_NOT_RELEVANT`. "Add a `SOURCE_DATA_NOT_AVAILABLE` entry" therefore means: required
+  integer `id` of the owning record, the token at the START of `reason`, `status = NEED_REVIEW`.
+  A gap with no owning record cannot go here at all (the `id` is required) — it belongs in
+  `qaFlags.records`, same as §9.0's unlinked party.
+- **Rule 16's category list is the flag vocabulary** — every flag any rule orders must appear in
+  it, spelled identically. Three did not (`OWNERSHIP_DIRECTION_REVIEW_REQUIRED`,
+  `DILUTED_VOTING_INCOMPLETE`, `NOTIONAL_UBO_ASSESSMENT_REQUIRED`, the last also duplicated as
+  `NOTIONAL_UBO_REQUIRED`); `tests/test_monolith_prompts.py` now pins this both ways.
+- **`id` ordering**: canonical order, never document reading order. The schema description used
+  to say the exact opposite of OC.1 — it is the last thing a model reads before emitting.
+- **`documentClassifications` is the PROVIDER's label, not the answer.** Rule 6 classifies from
+  the document. Derive, then compare: on divergence the document controls and the divergence is
+  recorded in `governanceBasis` part [2]. The critic scores the derivation, not the label — a
+  correct derivation that contradicts `documentClassifications` is a Pass.
+- **"NO OWNERSHIP EVIDENCE IDENTIFIED IN THE REVIEWED DOCUMENTATION."** is emitted as
+  `qaFlags.summary` (plus a matching record, client anchor only, `ownershipReviewStatus =
+  NEED_REVIEW`) — never as bare prose, which the JSON-only directive forbids.
 
 ## Field vocabulary and numbering
 
@@ -78,7 +158,7 @@ The prompts name concepts in working language; **only `schema.json` names may be
 `FIELD-VOCABULARY` (CRITICAL, placed before rules 1 and 9 so it is read first) is the single
 authority mapping one to the other:
 
-- **Renames** — `ownerName` → `linkedName`, `ownedEntityName` → `nameAsSource`,
+- **Renames** — `ownerName` → `nameAsSource`, `ownedEntityName` → `linkedName`,
   `directOwnershipPercentage` → `actualOwnershipPercentage`, `pageOrSection` → `pageNumber`, …
 - **Fold-ins** (no dedicated key) — `dataGaps` → `outOfBounds.records`; `documentConflicts` and
   each rule 14 conflict record → `qaFlags.records[].reason` as text; `stopRuleApplied` →
@@ -87,15 +167,28 @@ authority mapping one to the other:
   no schema home), the §9.0 entity inventory, `qualifyingInterest`, `confidenceStatus`. Emitting
   any of these as a schema key is a contract violation and fails deserialization.
 
-⚠️ **Direction hazard, called out in the rule itself**: rule 9 lists `ownerName` first and
-`ownedEntityName` second, but the emitted record is the reverse — `nameAsSource` is the OWNED
-subject and `linkedName` points at its OWNER. Mapping them positionally inverts every ownership
-edge. Every record must read "nameAsSource is owned by linkedName".
+⚠️ **Direction contract (settled 2026-08-20, on the schema reading)**: `nameAsSource` is the
+record's SUBJECT and the **OWNER**; `linkedName` is the entity that subject **owns**, one layer
+CLOSER to the client. Every record reads **"nameAsSource is a [relationshipType] of
+linkedName"**. Rule 9 lists `ownerName` first and `ownedEntityName` second and the record keeps
+that order, so the mapping is **positional** — the earlier prompt inverted it, and three other
+rules break when it is inverted: §9.3 sums records **by `linkedName`** to total one target's
+shareholders, OC.1 sets a record's `layer` = its `linkedName` record's `layer` + 1 (an owner is
+one layer *further* from the client), and §12.3 multiplies along the `linkedName` chain **down
+to** the client. `linkedName` is null **only** on the layer-0 client; an evidenced ultimate
+parent still names the entity below it and is marked by `isUltimateParent` instead. Before this
+was settled, `monolith/system.txt`, `monolith_critic/user.txt` and `schema.json` each stated it
+differently — whichever way the extractor emitted, some check fired. It is now stated in **five**
+places that must move together: `monolith/system.txt` (FIELD-VOCABULARY A, rule 9, OC.1/OC.3),
+`monolith/schema.json` (`nameAsSource` / `linkedName` / `isUltimateParent` descriptions),
+`monolith/README.md`, and both critic files (R1). `tests/consistency.py` renders edges the same
+way (`nameAsSource --relationshipType--> linkedName`).
 
 **Step vs rule numbering**: `PROCESSING-ORDER`'s steps 1–12 map to rules 1–12, then diverge —
 step 13 = rule 14, … step 16 = rule 17. Rule 13 (local threshold guide) and rule 18 (reasoning
-format) are not steps; `FIELD-VOCABULARY`, `KERNEL`, `ORGCHART` and `INPUT-VALIDATION` bind at
-every step.
+format) are not steps; `FIELD-VOCABULARY`, `KERNEL`, `ORGCHART`, `INPUT-VALIDATION` and
+`CRITIC-FEEDBACK` bind at every step. `CRITIC-FEEDBACK` is read before step 1 on a retry — it
+changes what must be got right, never which steps run.
 
 ## Key accuracy rules (non-obvious)
 
@@ -162,8 +255,9 @@ every step.
   ownership/voting percentage or a `linkedName` needs a non-null verbatim `evidenceSnippet` and a
   numeric `pageNumber`. `evidenceSnippet` may be null only when ALL THREE hold: `linkedName` is
   also null, AND no percentage is asserted, AND the record carries a
-  MISSING_PERCENTAGE/SOURCE_DATA_NOT_AVAILABLE gap. A party that cannot be quoted must not be
-  asserted.
+  MISSING_PERCENTAGE/SOURCE_DATA_NOT_AVAILABLE gap. Under the settled direction contract a null
+  `linkedName` identifies exactly one record — the layer-0 client — so in practice that is the
+  only record permitted a null quote. A party that cannot be quoted must not be asserted.
 - **Rule 8.3 — Streamlined means Domination ONLY (KOS 8.0a)**: when `isStreamlined = TRUE`, never
   multiply percentages across layers and never compute a cumulative indirect figure. A holder of
   >50% (ownership, voting, or control by other means) dominates and INHERITS the dominated
@@ -190,26 +284,55 @@ every step.
   `DILUTED_VOTING_INCOMPLETE` qaFlag — the flag is what distinguishes unknown from a genuine 0.
 - **Missing percentages**: percentage fields are numeric. Missing → emit `0`, add
   `MISSING_PERCENTAGE` to that record's `qaFlags`, plus a `SOURCE_DATA_NOT_AVAILABLE` entry in
-  the top-level `outOfBounds.records`. Same unknown-vs-real-0 principle as above.
+  the top-level `outOfBounds.records` — see "Gap tokens are reasons, never statuses" above for
+  that entry's required shape. Same unknown-vs-real-0 principle as above.
 - **Rules 7 / 13 — local overlay beats global**: apply the Local Addendum threshold BEFORE the
   global test (e.g. South Africa 5%+ for UBO, US inclusive ≥25% for IBO). Multiple adoption
   locations → apply the stricter one. Missing local rules → data gap + QA flag.
 - **Rule 11.2 — listed entity stop rule**: only when entityType is Listed Entity AND listing
   evidence is present, validated and bound to the client anchor AND the applicable rules permit
   it. Then do not drill down, do not determine UBO/IBO, and set
-  `ownershipReviewStatus = COMPLETE`.
+  `ownershipReviewStatus = COMPLETE`. **Client-listed ≠ mid-chain**: the boxed stop rule fires
+  only where the listed entity IS the client and halts UBO/IBO determination entirely, so
+  `isIBO`/`isUBO` false across the set is then CORRECT; a mid-chain listed parent takes ladder
+  rung 4's label via §11.1 and inherits none of that halt. Both prompts carry the distinction —
+  without it the critic scores a correct client-listed stop as the ladder zeroing the booleans.
 - **Rule 11.1.1 — notional UBO**: where no natural person is found at threshold, do NOT classify
-  anyone as Notional UBO. Emit `NOTIONAL_UBO_ASSESSMENT_REQUIRED` and identify the Senior Most
-  CSM by designation only.
+  anyone as Notional UBO. Emit `NOTIONAL_UBO_ASSESSMENT_REQUIRED`, identify the Senior Most CSM
+  by designation only, and take ladder rung 12 "Possible Notional UBO". Rung 11 "Notional UBO"
+  is reachable ONLY where a Local Addendum expressly requires the affirmative classification, in
+  which case `countryOverrideNote` must name it. (Rule 16 previously spelled this flag
+  `NOTIONAL_UBO_REQUIRED` as well — the duplicate is gone; `NOTIONAL_UBO_ASSESSMENT_REQUIRED` is
+  the only spelling.)
 - **Rule 16 — QA flags are exception-only**: emit only when an issue materially affects decision
   correctness, ownership completeness, audit reliability, or the ability to apply local rules /
   classify. Normal complexity that is fully explained in the reasoning gets no flag.
+- **Rule 16 — picking a flag where a rule does not name one**: ~9 rules say "add a QA flag"
+  without naming which, and a free choice across a 40-item list is run-to-run variance. Rule 16
+  now carries a **binding mapping** for each of those sites (rule 1 → `DOCUMENT_INSTANCE_NOT_REVIEWED`,
+  rule 2 → `DOCUMENT_TRANSLATION_REQUIRED`, rule 4 → `CLIENT_ANCHOR_NOT_CONFIRMED`,
+  rule 5 → `INCOMPLETE_OWNERSHIP_CHAIN`, rule 7 → `LOCAL_RULE_MISSING`, INPUT-VALIDATION →
+  `MISSING_MANDATORY_INPUT`, …) plus the general rule: most specific category wins, never invent
+  a name. `DOCUMENT_INSTANCE_NOT_REVIEWED` was **added** — rule 1's condition matched no existing
+  category, and a silent mis-mapping is worse than a new name. Confirm with the KOS text owner.
+- **`conflictTag` is REQUIRED on every record** (schema `required` + "Always emitted"). `"C: clear"`
+  is a positive assertion that this record's evidence does not conflict — not a default.
+
+## Known open questions (not decided in-repo)
+
+- **`countryProfileApplied` has no vocabulary.** Schema says `'CP-XX' code`; no rule defines the
+  codes, so neither agent can populate or check it against anything.
+- **`{{gcsDocumentPath}}` is singular for the critic, plural for the extractor.** Both PRIMARY
+  criteria assume a full document sweep; if the caller passes one path they silently degrade.
 
 ## Batching (large outputs)
 
 `monolith/user.txt` declares a `<definition_of_too_big>` block: more than **50** elements under
 `extracted_records`. The LLM must not truncate unless the `submitBatch` tool is present.
 (The old pipeline agents used a 200-`nodes` threshold — different field, different number.)
+The **critic carries a matching batching guard**: a partial batch (ids not 1..N contiguous, or a
+set truncated mid-structure) is scored `Mixed_Partial_Pass_Partial_Fail`, never a CRITICAL
+missing-entity finding. Without it the critic RETRYs every batch but the last.
 
 ## Test harness
 
@@ -220,7 +343,16 @@ every step.
 - `test_monolith_prompts.py` — template-variable sets for both `user.txt` files; the
   `<definition_of_too_big>` batch threshold; every schema record property is named in
   `system.txt` (prompt-backs-schema invariant); critic `<criterion name="...">` list matches the
-  schema enum exactly (14, in order); the "Total Ownership" rule is present in both prompts
+  schema enum exactly (17, in order); the "Total Ownership" rule is present in both prompts; the
+  direction contract is consistent across both prompts and the schema; each critic `<reference>`
+  block R1–R8 is present, with the 22 ladder rungs and the `relationshipType` enum checked
+  against the schema enums themselves; every `CRITIC-FEEDBACK` clause CF.0–CF.7; rule 16
+  enumerates every flag another rule mandates (checked both ways, against the critic too); gap
+  tokens are reasons and never statuses; `id` ordering reads the same in prompt and schema; the
+  provider's `documentClassifications` is reconciled rather than obeyed; the batching guard; that
+  no record may rest on a governance role alone; criterion names spelled identically in both
+  critic files (`&` not `&amp;`, or the enum is violated); every `<reference>` block R1–R8 is
+  actually cited; and CLAUDE.md itself lists every criterion in schema order and names every rule
 - `conftest.py` — `load_schema` / `load_prompt` / `load_example` helpers plus a custom
   `Draft7Validator` that accepts `null` for `"type": "string"` fields (project convention)
 - `consistency.py` — run-to-run variance harness. Normalises away record order and free wording,

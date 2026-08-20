@@ -67,13 +67,15 @@ The at-a-glance answer to "which entity was this run about". No record-hunting n
 ### 3. `extracted_records[]` — one record per ownership link
 
 Each owned node produces one record **per owner** (N owners → N records, same
-`nameAsSource`, different `linkedName`). The client is the record with `layer == 0`.
+`linkedName`, different `nameAsSource`). Every record reads "`nameAsSource` is a
+`[relationshipType]` of `linkedName`" — the subject is the OWNER and `linkedName` is the entity
+it owns, one layer closer to the client. The client is the record with `layer == 0`.
 
 **Identity & position**
 - [x] **`id`** — sequential 1-based, document reading order
 - [x] **`itemType`** — `Natural Person` · `Non Natural Person`
 - [x] **`nameAsSource`** — name exactly as stated in the source
-- [x] **`linkedName`** — the owning parent (one layer up); null for client & evidenced ultimate parents
+- [x] **`linkedName`** — the entity this record's party owns (one layer closer to the client); null ONLY for the layer-0 client — an evidenced ultimate parent still names the entity below it and is marked by `isUltimateParent`
 - [x] **`layer`** — 0 = client, +1 per step toward owners
 - [x] **`relationshipType`** — `shareholder`/`parent`/`member`/`partner`/`general partner`/`limited partner`/`trustee`/`settlor`/`beneficiary`/`protector`/`foundation council`/`nominee shareholder`/`voting controller`/`contractual controller`/`listed parent`/`regulated parent`/`government owner`/`other` (null for client)
 - [x] **`roleCapacity`** — `Client`/`Direct Owner`/`Indirect Owner`/`IBO`/`UBO`/`Control-Based IBO/UBO`/`Notional UBO`/`Possible Notional UBO`/`General Partner`/`Limited Partner`/`Trustee`/`Settlor`/`Beneficiary`/`Protector`/`Foundation Controller`/`Listed Parent`/`Regulated Parent`/`Government Owner`/`Exempt Entity`/`Non-Qualifying Owner`/`Information Only`/`Unknown / Needs Review`

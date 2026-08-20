@@ -34,5 +34,7 @@ Produce a single JSON object strictly conforming to schema.json — no other for
 
 Per rule 14 (system.txt), the full conflict record (value_a/source_a/value_b/source_b/resolution_strategy/resolved_value) folds into the qaFlags.records entry's reason field as descriptive text — these sub-fields have no dedicated schema keys. Fold dataGaps / SOURCE_DATA_NOT_AVAILABLE items into the top-level outOfBounds object.
 
+Where critic_feedback is populated this is a RETRY of this case. Consume it per the CRITIC-FEEDBACK rule in system.txt: your previous output is NOT supplied, so re-run the full PROCESSING-ORDER rather than patching — findings are pointers to re-read the documents, never evidence in themselves; resolve each one by the party/link it describes and never by a record id (ids are reassigned every run); and where the documents do not support a finding, keep the evidenced extraction and record a CRITIC_FINDING_DISPUTED qaFlags entry plus a matching advisory, rather than silently adopting or silently ignoring it. Where critic_feedback is blank, this is a first run — proceed normally.
+
 The top-level qaFlags, outOfBounds, advisory, and clientAnchor fields are JSON OBJECTS — always emit them as objects, even when empty, never as a bare array []. Empty qaFlags/advisory = {"summary": null, "records": []}; empty outOfBounds = {"summary": null, "documents": [], "records": []}. See OUTPUT-CONTRACT OC.4 in system.txt.
 </instructions>

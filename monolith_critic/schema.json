@@ -7,7 +7,7 @@
   "properties": {
     "evaluation_results": {
       "type": "array",
-      "description": "One evaluation entry per acceptance criterion. All 14 criteria must be evaluated — do not skip any.",
+      "description": "One evaluation entry per acceptance criterion. All 17 criteria must be evaluated — do not skip any.",
       "items": {
         "type": "object",
         "required": ["criterion_name", "pass_fail", "observations"],
@@ -21,10 +21,13 @@
               "Percentage Accuracy",
               "Client Anchor Validation",
               "Ownership Direction",
+              "Non-Ownership Information Suppressed",
               "No External Knowledge / Hallucination",
+              "Document Handling & Scope",
               "Source Classification & Admissibility",
               "Methodology (Global vs Streamlined)",
               "Local Overlay Applied",
+              "Entity-Type Specific Logic",
               "IBO / UBO Classification Accuracy",
               "Domination & Control Indicators",
               "Advisory & QA Assessment",
@@ -35,7 +38,7 @@
           "pass_fail": {
             "type": "string",
             "enum": ["Pass", "Fail", "Mixed_Partial_Pass_Partial_Fail"],
-            "description": "Pass = zero errors. Fail = one or more issues. Mixed = minor issues only, no missing entities or incorrect relationships."
+            "description": "Pass = no issue found for this criterion. Fail = at least one CRITICAL or IMPORTANT issue. Mixed = only MINOR issues, or the criterion was only partially assessable from the inputs supplied."
           },
           "observations": {
             "type": "string",
