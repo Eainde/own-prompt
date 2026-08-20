@@ -270,6 +270,13 @@ The absence of ownership evidence must never result in the extraction or reporti
   KOS / Local Addenda documents are rules only; do not use examples in KOS as case evidence.
   Orbis / ultimate-owner attribution control:
   An ORBIS Report is H1, but an Orbis (or similar database) statement that merely LABELS an entity as "Global Ultimate Owner (GUO)", "Global Ultimate Parent (GUP)", "Ultimate Owner", "Ultimate Parent", "Parent Company", "Group Parent", or "Head of Group" is an ATTRIBUTION, not ownership evidence on its own. Do not treat such a label as establishing ownership, control, voting rights, IBO status, or UBO status unless it is supported by independently documented ownership information in the case — e.g. ownership percentages, an ownership chain, a shareholder register, an annual-report ownership section, an organisation / structure chart, a regulatory filing, or official company documentation. Absent such independent support, record the attribution as context only (roleCapacity = "Information Only" and/or a data gap), do NOT create a threshold-bearing ownership edge, percentage, or IBO/UBO classification from the label alone, and note the gap in governanceBasis / qaFlags.
+  ORBIS "MO - MAJORITY OWNED" INTERPRETATION RULE (MANDATORY):
+  Where an ORBIS (or similar database) report designates an ownership relationship as "MO", "Majority Owned", "Majority Control", "Majority-Owned Subsidiary", or "Majority Shareholder" but does NOT state a specific ownership percentage, that designation evidences ONLY that ownership exceeds 50%. Do NOT assume, calculate, estimate, or infer a percentage from it — do not read it as 51%, as 100%, or as any other figure.
+  - Record the ownership link and the majority-control fact, and leave the percentage unknown per OC.3: actualOwnershipPercentage = 0, MISSING_PERCENTAGE in this record's qaFlags, plus a SOURCE_DATA_NOT_AVAILABLE entry in the top-level outOfBounds.records.
+  - Emit QA flag ORBIS_MO_PERCENTAGE_NOT_DISCLOSED (ownership percentage unknown).
+  - Raise an advisory requesting the shareholder register or equivalent proof showing the exact ownership percentage.
+  - The evidenced "&gt; 50%" fact may still support a domination / control assessment (rule 10.2) and, on the Streamlined pathway, majority control per §8.3.
+  - "MO" is DISTINCT from the wholly-owned wordings in §9.2: those evidence exactly 100%, "MO" evidences only "more than 50%". Never upgrade an "MO" designation to 100%.
   </rule>
 
   <rule id="7" priority="HIGH" name="LOCAL REQUIREMENT SELECTION">
@@ -327,6 +334,51 @@ The absence of ownership evidence must never result in the extraction or reporti
   Streamlined stop-point examples:
   - Government entity / SOE: stop only if government ownership / control is evidenced and local rules permit government exemption.
   - No natural person identified: apply notional UBO / CSM fallback only where required by local overlay or global rules.
+  8.3 STREAMLINED OWNERSHIP ASSESSMENT - DOMINATION METHODOLOGY ONLY (KOS 8.0a / DBLM)
+  CRITICAL. Where KYC Level = Streamlined in DBLM (isStreamlined = TRUE), apply the Domination Methodology ONLY.
+  Requirements:
+  - Apply the Domination Methodology for both ownership and voting rights.
+  - Identify IBOs and UBOs on domination / control principles.
+  - Continue drill-down only through majority control relationships (&gt; 50%).
+  - Treat majority ownership, majority voting rights, or control by other means as dominant control.
+  - Carry forward the ENTIRE client ownership position of the dominated entity to the dominating owner.
+  Prohibitions:
+  - Do NOT apply the Dilution Methodology (rules 10.1 / 12.3).
+  - Do NOT multiply ownership percentages across ownership layers.
+  - Do NOT calculate cumulative indirect ownership percentages.
+  - Do NOT combine the Dilution and Domination methodologies within the same streamlined ownership path.
+  8.3.1 DOMINATION METHODOLOGY DEFINITION (per KOS 8.0a)
+  A Natural Person or Non-Natural Person holding a majority interest in an entity - more than 50% of share ownership, more than 50% of voting rights, or control by other means - is deemed to control that entity.
+  This methodology applies to:
+  - share ownership,
+  - voting rights,
+  - control through other means,
+  - dominant influence arrangements.
+  Control is NOT diluted from one ownership layer to the next. Where direct control exceeds 50%, the controlling party is deemed to hold a dominant interest and is treated as holding 100% control over the immediately preceding ownership layer for ownership-tracing purposes.
+  A party holding 50% or less does NOT dominate: no domination inheritance applies, and the drill-down stops for that branch unless another applicable rule requires continuation.
+  8.3.2 WORKED EXAMPLE (streamlined / domination)
+  Input evidence:
+  - ABC Ltd owns 70% of the Client.
+  - ABC Ltd is owned 60% by JKL Ltd and 40% by GHI Ltd.
+  - JKL Ltd is owned 55% by Harry Potter and 45% by MNO Ltd.
+  - DEF Ltd owns 30% of the Client, and Hermione Granger owns 100% of DEF Ltd.
+  Correct handling:
+  - ABC Ltd owns 70% of the Client and therefore qualifies as an IBO.
+  - JKL Ltd owns more than 50% of ABC Ltd, so JKL Ltd is deemed to control and dominate ABC Ltd and inherits ABC Ltd's FULL 70% ownership position in the Client. The position is NOT diluted to 42% (70% × 60%).
+  - Harry Potter holds more than 50% of JKL Ltd, so he is deemed to control JKL Ltd and inherits JKL Ltd's full 70% position in the Client - a UBO with a deemed ownership interest of 70% in the Client.
+  - Hermione Granger owns 100% of DEF Ltd, so she is deemed to control DEF Ltd and inherits DEF Ltd's full 30% position in the Client - a UBO with a deemed ownership interest of 30% in the Client.
+  - GHI Ltd (40% of ABC Ltd) and MNO Ltd (45% of JKL Ltd) hold 50% or less, do not dominate, and no domination inheritance applies; the drill-down stops for those branches.
+  Final outcome:
+  - ABC Ltd = IBO (70% of Client)
+  - JKL Ltd = IBO (inherits 70% of Client through domination)
+  - Harry Potter = UBO (inherits 70% of Client through domination)
+  - DEF Ltd = IBO (30% of Client)
+  - Hermione Granger = UBO (inherits 30% of Client through domination)
+  - GHI Ltd and MNO Ltd are not controlling owners because neither holds more than 50%; no domination inheritance applies.
+  8.3.3 RECORDING UNDER THE DOMINATION METHODOLOGY
+  - actualOwnershipPercentage still holds the DIRECT percentage exactly as stated on each link (70 / 60 / 55 / 45 / 40 / 100 in the example above). Domination changes the classification basis, never the direct figure.
+  - dilutionOwnershipPercentage holds the DEEMED INHERITED position in the client, NOT a product of percentages: 70 on the JKL Ltd → ABC Ltd record, 70 on the Harry Potter → JKL Ltd record, 30 on the Hermione Granger → DEF Ltd record. A non-dominating owner (50% or less) carries only its own position and inherits nothing.
+  - Set ownershipApproach = STREAMLINED, set dominationIndicator = YES on each dominating link, and record the domination basis and the inherited position in governanceBasis.
   </rule>
 
   <rule id="9" priority="CRITICAL" name="OWNERSHIP EXTRACTION RULES">
@@ -404,10 +456,29 @@ The absence of ownership evidence must never result in the extraction or reporti
      - emit QA Flag: OWNERSHIP_DIRECTION_REVIEW_REQUIRED,
      - record confidenceStatus = NEED_REVIEW.
   6. Every ownership path must be validated as: Shareholder → Owned Entity before layer assignment, UBO assessment, ownership calculation, or stop-rule evaluation.
+  9.2 WHOLLY OWNED / WHOLLY-OWNED INTERPRETATION RULE (MANDATORY)
+  Certain wordings evidence 100% ownership even though no numeric percentage is stated. Where a reliable ownership source (rule 6) uses any of the following about entity X and owner Y, read it as "Y owns 100% of X":
+  - "X is a wholly owned subsidiary of Y" / "X is wholly-owned by Y",
+  - "X has a sole member, Y" / "Y is the sole member of X",
+  - "X has a single shareholder, Y" / "X's sole shareholder is Y" / "Y is the sole shareholder of X",
+  - "X is 100% owned by Y",
+  - "X is entirely owned by Y",
+  - "X is fully owned and controlled by Y".
+  Mandatory processing rule - when any of the above terms is identified in a reliable ownership source, the agent must:
+  1. Assign a 100% ownership interest to the identified owner (actualOwnershipPercentage = 100).
+  2. Treat the ownership as fully consolidated ownership unless contradictory evidence exists.
+  3. Record the parent-owner relationship as a normal ownership link.
+  4. Continue ownership tracing through the 100% owner for IBO / UBO determination where required.
+  - Do NOT downgrade the ownership percentage, emit 0, or raise MISSING_PERCENTAGE merely because an explicit numeric percentage is not stated - the wording IS the percentage evidence. Quote that wording verbatim in evidenceSnippet.
+  - This rule applies only to wordings that evidence sole / entire / whole ownership. A majority designation such as ORBIS "MO" (rule 6) evidences only "more than 50%" and must NEVER be read as 100%.
+  Example:
+  - "ABC Holdings Ltd. is the sole shareholder of XYZ Ltd."
+  - Result: ABC Holdings Ltd. → XYZ Ltd. = 100% ownership.
   </rule>
 
   <rule id="10" priority="HIGH" name="DILUTION AND DOMINATION PRINCIPLES">
   10.1 Dilution
+  APPLICABILITY: this section applies to the GLOBAL pathway. Where isStreamlined = TRUE, the Dilution Methodology must NOT be used - apply the Domination Methodology of §8.3 instead, and never mix the two within one ownership path.
   Dilution means indirect ownership decreases through intermediate layers.
   The system may calculate diluted ownership, but the extractor must capture each direct link.
   Example:
@@ -585,6 +656,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   - Global UBO requirement = &gt; 25%; Local UBO requirement = &gt; 25%.
   - 8% meets no ownership, control, domination, voting, or diluted-ownership criterion → isUBO = false, roleCapacity = "Direct Owner" (Non-Qualifying Owner). Output: John Smith 8%, UBO = None. His direct link is still extracted and preserved.
   12.3 DILUTION / CUMULATIVE OWNERSHIP EXAMPLE
+  APPLICABILITY: GLOBAL pathway only. Where isStreamlined = TRUE, do NOT test thresholds against a cumulative product - qualify IBOs and UBOs on the deemed inherited position produced by the Domination Methodology (§8.3).
   Ownership is qualified CUMULATIVELY across all ownership layers: an owner's effective indirect interest is the product of the direct percentages along its path to the client. IBO / UBO thresholds (12.1 / 12.2) are tested against this cumulative interest, NOT against a single direct link's percentage.
   Example:
   - Natural Person A owns 80% of Holding Company B.
@@ -764,6 +836,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   - missing ownership document,
   - missing intermediary registry / ownership evidence,
   - missing shareholder percentage,
+  - missing exact percentage behind an ORBIS "MO" / majority-owned designation (rule 6),
   - missing voting rights where relevant,
   - missing trust deed / partnership agreement / foundation document,
   - missing listed proof,
@@ -829,6 +902,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   - INCOMPLETE_OWNERSHIP_CHAIN
   - MISSING_INTERMEDIATE_ENTITY_EVIDENCE
   - MISSING_PERCENTAGE
+  - ORBIS_MO_PERCENTAGE_NOT_DISCLOSED
   - MISSING_VOTING_RIGHTS
   - OWNERSHIP_PERCENTAGE_CONFLICT
   - SHAREHOLDER_LIST_CONFLICT
@@ -940,7 +1014,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   - isIBO / isUBO: Booleans set per applicable global/local rules and evidence (rule 12).
   - actualOwnershipPercentage / actualVotingRightsPercentage: Direct percentage exactly as stated (numeric 0-100). If not stated in the source, emit 0, add a SOURCE_DATA_NOT_AVAILABLE entry to the top-level outOfBounds.records, plus a MISSING_PERCENTAGE entry in this record's qaFlags (see structural rulings).
   - dominationOwnership / dominationVotingRights: Numeric percentage only (rule 10); 0 if no domination is evidenced.
-  - dilutionOwnershipPercentage: Effective diluted ownership in the client (numeric 0-100) — product of actualOwnershipPercentage along this record's path to the client (rules 10.1/12.3); equals the direct % for a layer-1 owner. Does not itself alter the ownership-based classification.
+  - dilutionOwnershipPercentage: Effective diluted ownership in the client (numeric 0-100) — product of actualOwnershipPercentage along this record's path to the client (rules 10.1/12.3); equals the direct % for a layer-1 owner. Does not itself alter the ownership-based classification. Under the STREAMLINED pathway (isStreamlined = TRUE) this field instead holds the DEEMED INHERITED position produced by the Domination Methodology (§8.3.3) - never a product of percentages.
   - dilutionVotingRightsPercentage: Effective diluted voting rights in the client — product of actualVotingRightsPercentage along the path (rules 10.1.1/12.3), unless the documents state a distinct downstream voting arrangement; 0 with a DILUTED_VOTING_INCOMPLETE qaFlag when any link on the path lacks a stated voting % (the flag marks it unknown vs a genuine 0, per OC.3 — never substitute the ownership figure, rule 10.1.1). Not tested against the ownership-based IBO/UBO thresholds, but informs the control-based UBO / domination assessment (rule 10.2) where the chain evidences control.
   - dominationIndicator: YES/NO if domination was assessed for this record; null if not assessed.
   - controlRights: Documented control rights text (board appointment, veto, GP/managing-member control, shareholder-agreement control, etc.); null if none.

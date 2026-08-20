@@ -87,7 +87,24 @@ Six top-level fields, all required: `clientAnchor`, `extracted_records`, `outOfB
   such as "Global Ultimate Owner (GUO)", "Ultimate Parent" or "Head of Group" is an
   ATTRIBUTION, not ownership evidence. Absent independent ownership documentation, record it as
   `roleCapacity = "Information Only"` and/or a data gap — never a threshold-bearing edge.
-- **Rules 10.1 / 12.3 — dilution**: capture every direct link at its DIRECT percentage in
+- **Rule 8.3 — Streamlined means Domination ONLY (KOS 8.0a)**: when `isStreamlined = TRUE`, never
+  multiply percentages across layers and never compute a cumulative indirect figure. A holder of
+  &gt;50% (ownership, voting, or control by other means) dominates and INHERITS the dominated
+  entity's full position in the client — 55% of an entity holding 70% of the client makes you a
+  UBO at a deemed 70%, not 38.5%. A holder of 50% or less inherits nothing and that branch stops.
+  `dilutionOwnershipPercentage` carries the deemed inherited position, not a product. Rules 10.1
+  and 12.3 carry GLOBAL-only applicability guards so the two methodologies never mix in one path.
+- **Rule 9.2 — wholly-owned wordings ARE percentage evidence**: "wholly owned subsidiary of",
+  "sole member", "single shareholder", "sole shareholder", "entirely owned by", "fully owned and
+  controlled by" each mean exactly 100%. Assign `actualOwnershipPercentage = 100` and quote the
+  wording in `evidenceSnippet` — do NOT emit 0 + `MISSING_PERCENTAGE` just because no number is
+  printed.
+- **Rule 6 — ORBIS "MO" is not a percentage**: "MO" / "Majority Owned" / "Majority Control" /
+  "Majority-Owned Subsidiary" / "Majority Shareholder" with no stated figure evidences only
+  &gt;50%. Never infer 51%, never upgrade to 100% (that is 9.2's job, and only for sole/entire
+  ownership wordings). Emit 0 + `MISSING_PERCENTAGE` + `SOURCE_DATA_NOT_AVAILABLE`, flag
+  `ORBIS_MO_PERCENTAGE_NOT_DISCLOSED`, and raise an advisory for the exact percentage.
+- **Rules 10.1 / 12.3 — dilution (GLOBAL pathway only)**: capture every direct link at its DIRECT percentage in
   `actualOwnershipPercentage`, and additionally record the computed product along the path in
   `dilutionOwnershipPercentage`. IBO/UBO thresholds are tested against CUMULATIVE (diluted)
   ownership, not a single direct link.
