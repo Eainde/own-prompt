@@ -88,9 +88,12 @@ it owns, one layer closer to the client. The client is the record with `layer ==
 **Ownership & voting**
 - [x] **`actualOwnershipPercentage`** — direct % as stated (0 if missing → see `qaFlags`)
 - [x] **`actualVotingRightsPercentage`** — direct voting % as stated (0 if missing)
-- [ ] `dominationOwnership` — domination ownership %, 0 if none (rule 10)
-- [ ] `dominationVotingRights` — domination voting %, 0 if none (rule 10)
-- [x] **`dominationIndicator`** — `YES`/`NO`; null if not assessed
+- [x] **`dominationOwnership`** — the DIRECT `actualOwnershipPercentage` where domination rests on
+  majority share ownership (§10.2.0 D1), else 0. Never the deemed inherited position (§10.2.1)
+- [x] **`dominationVotingRights`** — the DIRECT `actualVotingRightsPercentage` where domination rests
+  on majority voting (§10.2.0 D2), else 0
+- [x] **`dominationIndicator`** — `YES`/`NO` per §10.2.0's mandatory ladder, both pathways;
+  null ONLY on the layer-0 client
 - [x] **`controlRights`** — documented control rights text (board appointment, veto, GP control…); null if none
 - [x] **`ownershipVotingMismatch`** — economic vs voting divergence
 - [ ] `controlBasedUBOAssessmentRequired` — control evidence needs a control-based UBO assessment

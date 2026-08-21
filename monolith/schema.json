@@ -142,11 +142,11 @@
           },
           "isIBO": {
             "type": "boolean",
-            "description": "IBO is true if an IBO of the organisation else false."
+            "description": "True where this record's party is an Indirect Beneficial Owner of the client (§12.1). Type invariant: only a Non Natural Person may be true. Set true where qualifyingInterest exceeds the applicable IBO threshold — the cumulative diluted product on GLOBAL, the deemed inherited position on STREAMLINED (§12.3/§12.4), or a stricter/inclusive local threshold (§7/§13) — OR where a control-based qualification is evidenced under §12.4, which sets it true BELOW the ownership threshold. Never tested against a single direct link except at layer 1, where the two coincide."
           },
           "isUBO": {
             "type": "boolean",
-            "description": "UBO is true if an UBO of the organisation else false."
+            "description": "True where this record's party is an Ultimate Beneficial Owner of the client (§12.2). Type invariant: only a Natural Person may be true. Set true where at least ONE §12.2.1 qualification criterion is met — global threshold, stricter local threshold, evidenced control (D3), evidenced domination (D1/D2), voting rights, or cumulative diluted ownership. §12.2.1 is a gate in both directions: never true merely for appearing in the structure, and never false where an evidenced criterion is met."
           },
           "actualOwnershipPercentage": {
             "type": "number",
@@ -164,31 +164,31 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Domination ownership of the individual or organization in the entity. Numeric percentage only."
+            "description": "The DIRECT ownership figure on this link that the domination determination rests on (§10.2.0/§10.2.1): equals actualOwnershipPercentage where the documents evidence more than 50% of share ownership on this link (ladder rung D1), otherwise 0. NOT a residual 'control over and above the shareholding' figure - a 100% shareholder carries 100 here, not 0. NEVER the deemed inherited position, which belongs in dilutionOwnershipPercentage (§8.3.3). 0 alongside dominationIndicator = YES is valid ONLY where the determination rests on a control basis (D3), and controlRights must then name that basis."
           },
           "dominationVotingRights": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Domination voting rights of the individual or organization in the entity. Numeric percentage only."
+            "description": "The DIRECT voting figure on this link that the domination determination rests on (§10.2.0/§10.2.1): equals actualVotingRightsPercentage where the documents evidence more than 50% of voting rights on this link (ladder rung D2), otherwise 0. NEVER the deemed inherited position and never a diluted product. 0 alongside dominationIndicator = YES is valid where the determination rests on majority share ownership (D1) or on a control basis (D3)."
           },
           "dilutionOwnershipPercentage": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Effective (diluted) indirect ownership in the client, computed as the product of actualOwnershipPercentage across every link along this record's ownership path down to the client (layer 0), expressed 0-100 (§10.1/§12.3). Equals actualOwnershipPercentage for a layer-1 direct owner. Recording only — isIBO/isUBO already use this cumulative figure; this field does not itself change classification."
+            "description": "Effective (diluted) indirect ownership in the client, computed as the product of actualOwnershipPercentage across every link along this record's ownership path down to the client (layer 0), expressed 0-100 (§10.1/§12.3). Equals actualOwnershipPercentage for a layer-1 direct owner. Recording only — isIBO/isUBO already use this cumulative figure; this field does not itself change classification. STREAMLINED OVERRIDE (isStreamlined = TRUE, §8.3/§8.3.3): on the streamlined pathway this field instead carries the DEEMED INHERITED position produced by the Domination Methodology and is NEVER a product of percentages — a dominating owner inherits the dominated entity's full position in the client (55% of an entity holding 70% of the client gives 70, not 38.5), and a non-dominating owner at layer 2 or deeper carries 0 with NO_INHERITED_POSITION."
           },
           "dilutionVotingRightsPercentage": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Effective (diluted) indirect voting rights in the client, computed as the product of actualVotingRightsPercentage across every link along this record's path down to the client (§10.1.1/§12.3), unless the documents state a distinct downstream voting arrangement. Emit 0 when any link on the path has no stated voting percentage (its actualVotingRightsPercentage is unknown / flagged MISSING_PERCENTAGE) AND add DILUTED_VOTING_INCOMPLETE to qaFlags — the flag distinguishes this unknown 0 from a genuinely-computed 0, mirroring MISSING_PERCENTAGE on the direct fields (OC.3). Never substitute the ownership figure (§10.1.1). Not tested against the ownership-based IBO/UBO thresholds, but informs the control-based UBO / domination assessment (§10.2)."
+            "description": "Effective (diluted) indirect voting rights in the client, computed as the product of actualVotingRightsPercentage across every link along this record's path down to the client (§10.1.1/§12.3), unless the documents state a distinct downstream voting arrangement. Emit 0 when any link on the path has no stated voting percentage (its actualVotingRightsPercentage is unknown / flagged MISSING_PERCENTAGE) AND add DILUTED_VOTING_INCOMPLETE to qaFlags — the flag distinguishes this unknown 0 from a genuinely-computed 0, mirroring MISSING_PERCENTAGE on the direct fields (OC.3). Never substitute the ownership figure (§10.1.1). Not tested against the ownership-based IBO/UBO thresholds, but informs the control-based UBO / domination assessment (§10.2). STREAMLINED OVERRIDE (isStreamlined = TRUE, §8.3/§8.3.3): the Domination Methodology governs voting as well as ownership, so on the streamlined pathway this field carries the deemed inherited voting position and is never a product."
           },
           "dominationIndicator": {
             "type": "string",
             "nullable": true,
             "enum": ["YES", "NO"],
-            "description": "Whether domination/control is evidenced for this record (§10). Null when not assessed."
+            "description": "Whether domination/control is evidenced for this record, determined by §10.2.0's mandatory ladder (D1 majority share ownership / D2 majority voting rights / D3 evidenced control basis / D4 none) on BOTH the GLOBAL and STREAMLINED pathways. Null ONLY on the layer-0 client record, which asserts no link; every record carrying a linkedName carries YES or NO. 'Not assessed' is not an available outcome."
           },
           "controlRights": {
             "type": "string",

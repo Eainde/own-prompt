@@ -225,6 +225,54 @@ changes what must be got right, never which steps run.
   unknown percentages, or sources that positively state they are partial/extracted/illustrative
   (silence is not an exemption). A sum materially below 100% is positive evidence of an
   omission — the check that catches what re-reading alone does not.
+- **Rules 10.2.0 / 10.2.1 — domination is a determination, not an observation** (settled 2026-08-21,
+  from a run-to-run flip on a live case). The same record — a 100% direct shareholder — came back
+  with `dominationOwnership` = 100 on one run and 0 on the next, `dominationIndicator` = YES on both,
+  the 0 moving in lockstep with `controlRights` going null. Both readings survived the prompt:
+  §10.2 defined domination as control *"even without majority economic ownership"* while OC.1 said
+  only *"0 if no domination is evidenced"*, so a plain majority shareholder had no **separate**
+  control basis and 0 was defensible. Three things now close it. **§10.2.0** is a mandatory ladder
+  run on EVERY record on BOTH pathways — D1 majority share ownership (including ORBIS "MO" and
+  §9.2's wholly-owned wordings, which carry no figure) → D2 majority voting rights → D3 an evidenced
+  basis from §10.2's closed list → D4 none — first match wins; `dominationIndicator` is null ONLY on
+  the layer-0 client, and "not assessed" is gone as an outcome. **§8.3.1's majority test and §10.2's
+  control indicators are two ROUTES to one determination**, not two concepts, so `majority share
+  ownership (more than 50%)` joins §10.2's closed list and critic R3 — without it a D1 domination
+  scored as an invented criterion. The determination is pathway-independent; only the CONSEQUENCE
+  differs (GLOBAL feeds §12.2.1 / §12.4's control-based routes; STREAMLINED additionally drives
+  §8.3 inheritance and drill-down). **§10.2.1** defines the two percentage fields, which previously
+  had no computation rule anywhere: `dominationOwnership` = this record's `actualOwnershipPercentage`
+  on a D1 basis, `dominationVotingRights` = its `actualVotingRightsPercentage` on a D2 basis, both 0
+  on a D3-only basis (where `controlRights` must then name it) — and **never** the deemed inherited
+  position, which stays in `dilutionOwnershipPercentage`. `dominationIndicator = YES` with both
+  fields 0 *and* `controlRights` null is invalid: it asserts domination with no basis anywhere in
+  the record. Rule 18 part [1] carries `DominationBasis=`. Two assumptions to confirm with the KOS
+  text owner: the direct-figure semantics, and assessing on both pathways.
+- **The control-based route is an obligation, not a permission.** §12.2.1 criteria 3/4 and §12.4's
+  CONTROL-BASED IBO paragraph were both phrased "may still qualify"; where §10.2.0 returns YES the
+  qualification IS met and `isUBO`/`isIBO` follows. Ladder precedence still assigns the LABEL — rung
+  8/9 win on first match where a threshold is also met, and rung 10 "Control-Based IBO/UBO" is the
+  residual case — or every streamlined UBO would flip to rung 10. §12.2.1's criteria 3 and 4 now
+  partition §10.2.0's ladder (3 = D3 control, 4 = D1/D2 majority) instead of both pointing at one
+  undifferentiated list, and §12.4 CITES §10.2's list rather than restating it — the restatement had
+  silently dropped `trustee / protector control` while saying "do not invent criteria beyond those
+  rule 10.2 already lists".
+- **`CRITIC-FEEDBACK` CF.5a — retraction is the third barred response.** CF.5 barred ignoring a
+  finding and CF.2 barred fabricating to satisfy one; neither covered *withdrawing* an evidenced
+  value so a finding has nothing to bite on. Zeroing a percentage, dropping YES to NO, or emitting a
+  field at its default rather than its computed value is the same KERNEL E breach as adopting an
+  unevidenced assertion — the answer would change because the output was reviewed.
+- **The critic could not see any of this.** Criterion 14 named `dominationOwnership` /
+  `dominationVotingRights` as "schema-backed" and gave no test for them, and policed only
+  over-assertion — so zeroing the fields strictly REDUCED the finding count. It now scores in both
+  directions (a >50% link recorded NO is a missed domination; CRITICAL where it changed
+  `isIBO`/`isUBO` or truncated a streamlined branch) and carries the three concrete field findings.
+  Criterion 14 also demanded `dilutionOwnershipPercentage` = the product with no streamlined
+  carve-out while criterion 10 demanded the deemed inherited position — with "score each defect
+  ONCE", a correct streamlined run passed or failed depending on which criterion was reached first.
+  The carve-out is now in criterion 14, in `critic/user.txt`, and in the schema descriptions of both
+  `dilution*Percentage` fields (the schema had said "the product … across every link", full stop —
+  and the schema is what is bound at emission time).
 - **Rule 12.0 — `roleCapacity` precedence ladder**: 22 rungs, first match wins, no weighing and no
   skipping. `Direct Owner`/`Indirect Owner` (rungs 20/21) are threshold failures;
   `Non-Qualifying Owner` (rung 22) is reserved for links that aren't beneficially
@@ -270,6 +318,21 @@ changes what must be got right, never which steps run.
   controlled by" each mean exactly 100%. Assign `actualOwnershipPercentage = 100` and quote the
   wording in `evidenceSnippet` — do NOT emit 0 + `MISSING_PERCENTAGE` just because no number is
   printed.
+- **Rule 9.2.1 — "WO" is the abbreviated form of the same evidence.** Registry and database
+  extracts often print the relationship as a two-letter CODE and nothing else, so the code is the
+  only statement of the percentage on the page. `WO` / `W.O.` / `WO (Wholly Owned)` evidences
+  **exactly 100%**, identical in force to §9.2's sentences: `actualOwnershipPercentage = 100`, no
+  `MISSING_PERCENTAGE`, no `SOURCE_DATA_NOT_AVAILABLE`, no advisory, and specifically **not**
+  `ORBIS_MO_PERCENTAGE_NOT_DISCLOSED` — nothing is missing. It is a §10.2.0 **D1** basis with
+  `dominationOwnership = 100` (the figure is KNOWN here, unlike MO where it stays 0), and a WO
+  target's §9.3 sum is 100 by definition rather than exempt. **WO and MO are the hazard pair**:
+  MO evidences only ">50%" undisclosed (rule 6), WO evidences exactly 100%; reading WO as MO
+  discards a known 100 and logs a false gap, reading MO as WO invents a figure. Because "WO" is
+  two letters, §9.2.1 requires it be RESOLVED — legend, relationship column, or adjacent heading,
+  for that owner-subsidiary pair — never pattern-matched; an unresolved code fails closed to
+  0 + `MISSING_PERCENTAGE` + the gap + D4, and the critic is told not to score that fail-closed
+  output as a missed 100. No other two-letter code is interpreted by inference. Both critic files
+  carry the carve-out, or a correct WO-derived 100 returns as a CRITICAL invented percentage.
 - **Rule 6 — ORBIS "MO" is not a percentage**: "MO" / "Majority Owned" / "Majority Control" /
   "Majority-Owned Subsidiary" / "Majority Shareholder" with no stated figure evidences only
   >50%. Never infer 51%, never upgrade to 100% (that is 9.2's job, and only for sole/entire

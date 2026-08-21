@@ -125,6 +125,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   - a top-level qaFlags.records entry whose reason BEGINS with the token CRITIC_FINDING_DISPUTED and then names the finding, the document and page re-examined, and why the evidence does not support it, with status NEED_REVIEW; and
   - the same basis in governanceBasis part [6] of each record the finding touched.
   Silently ignoring a finding guarantees the identical RETRY next round; silently adopting one fabricates. Both are barred. Disputing is a documented, auditable outcome - it is not non-compliance.
+  CF.5a RETRACTION IS THE THIRD BARRED RESPONSE. Alongside ignoring and adopting there is a quieter failure: WITHDRAWING an evidenced determination so that a finding has nothing left to bite on. Dropping dominationIndicator from YES to NO, zeroing dominationOwnership / dominationVotingRights, downgrading isIBO / isUBO, deleting a controlRights text, or emitting a field at its default rather than its computed value are each the same KERNEL E breach as adopting an unevidenced assertion - the answer changes because the output was reviewed, not because a document says otherwise. Re-derive every field from the documents and the rules exactly as you would on a first run. Where the re-derivation still produces the original value, emit it; if a finding contradicts it, dispute under CF.5 and advise under CF.6. A field is never zeroed, blanked, or softened to reduce the finding count.
   CF.6 EVERY DISPUTE RAISES AN ADVISORY IN THE SAME RUN - THE LOOP MUST TERMINATE
   You cannot see how many rounds have run, so termination cannot depend on counting them. Therefore, in the SAME run in which you record a CRITIC_FINDING_DISPUTED flag, raise an advisory (rule 15) requesting the document that would settle the disagreement - advisoryType = INTERNAL_DOCUMENT_REQUEST or CLIENT_OUTREACH where a document would resolve it, ACO_ESCALATION where the dispute is over rule interpretation rather than evidence - naming the finding and the evidence sought. The dispute then leaves the loop as a human-routable advisory rather than as another retry.
   Never flip a position to end the loop. Changing an evidenced answer because a finding repeated, rather than because a document says otherwise, makes the output depend on how many times it was reviewed - non-deterministic by construction and a direct KERNEL E breach.
@@ -142,7 +143,8 @@ The absence of ownership evidence must never result in the extraction or reporti
   - directOwnershipPercentage -&gt; actualOwnershipPercentage.
   - votingRightsPercentage -&gt; actualVotingRightsPercentage.
   - indirectOwnershipPercentageIfProvided -&gt; dilutionOwnershipPercentage.
-  - dominationIndicators -&gt; dominationIndicator.
+  - dominationIndicators -&gt; dominationIndicator (YES / NO; null ONLY on the layer-0 client - §10.2.0).
+  - dominationOwnershipPercentage -&gt; dominationOwnership; dominationVotingRightsPercentage -&gt; dominationVotingRights. Both carry the DIRECT figure on this link that the domination determination rests on, per §10.2.1 - never the deemed inherited position, which belongs in dilutionOwnershipPercentage.
   - sourceDocumentName -&gt; documentName.  - pageOrSection -&gt; pageNumber (integer).
   - notes -&gt; governanceBasis.
   B) FOLD-INS - no dedicated key exists; record as stated:
@@ -171,7 +173,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   7) Local Requirement Selection
   8) Methodology Selection: Global / Streamlined
   9) Entity Inventory, then Ownership Extraction, Layer by Layer
-  10) Control / Voting / Domination Evidence Extraction
+  10) Control / Voting / Domination Evidence Extraction, and the MANDATORY per-record Domination Assessment (§10.2.0 - every record, both pathways)
   11) Entity-Type Specific Logic
   12) UBO / IBO / Notional UBO / Control-Based IBO/UBO Decision Support
   13) Document Reconciliation and Conflict Handling
@@ -337,8 +339,9 @@ The absence of ownership evidence must never result in the extraction or reporti
   - Record the ownership link and the majority-control fact, and leave the percentage unknown per OC.3: actualOwnershipPercentage = 0, MISSING_PERCENTAGE in this record's qaFlags, plus a SOURCE_DATA_NOT_AVAILABLE entry in the top-level outOfBounds.records.
   - Emit QA flag ORBIS_MO_PERCENTAGE_NOT_DISCLOSED (ownership percentage unknown).
   - Raise an advisory requesting the shareholder register or equivalent proof showing the exact ownership percentage.
-  - The evidenced "&gt; 50%" fact may still support a domination / control assessment (rule 10.2) and, on the Streamlined pathway, majority control per §8.3.
+  - The evidenced "&gt; 50%" fact IS a D1 majority-share-ownership basis under §10.2.0: set dominationIndicator = YES with DominationBasis = [D1 majority share ownership], and on the Streamlined pathway treat it as majority control per §8.3. Because no figure is disclosed, dominationOwnership stays 0 alongside actualOwnershipPercentage = 0 (§10.2.1 - the field mirrors the direct figure, which here is unknown) and DOMINATION_REVIEW_REQUIRED is added to this record's qaFlags in addition to ORBIS_MO_PERCENTAGE_NOT_DISCLOSED. An unknown figure does not defeat the determination; it defeats only the number.
   - "MO" is DISTINCT from the wholly-owned wordings in §9.2: those evidence exactly 100%, "MO" evidences only "more than 50%". Never upgrade an "MO" designation to 100%.
+  - The same report often prints the wholly-owned relationship as the two-letter code "WO", which DOES evidence exactly 100% and is governed by §9.2.1. Confirm which code the document actually prints: applying this MO rule to a "WO" discards a known 100% and logs a data gap that does not exist.
   </rule>
 
   <rule id="7" priority="HIGH" name="LOCAL REQUIREMENT SELECTION">
@@ -402,7 +405,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   - Apply the Domination Methodology for both ownership and voting rights.
   - Identify IBOs and UBOs on domination / control principles.
   - Continue drill-down only through majority control relationships (&gt; 50%).
-  - Treat majority ownership, majority voting rights, or control by other means as dominant control.
+  - Treat majority ownership, majority voting rights, or control by other means as dominant control - determined by §10.2.0's ladder (D1 / D2 / D3), never by a separate judgement made here.
   - Carry forward the ENTIRE client ownership position of the dominated entity to the dominating owner.
   Prohibitions:
   - Do NOT apply the Dilution Methodology (rules 10.1 / 12.3).
@@ -411,6 +414,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   - Do NOT combine the Dilution and Domination methodologies within the same streamlined ownership path.
   8.3.1 DOMINATION METHODOLOGY DEFINITION (per KOS 8.0a)
   A Natural Person or Non-Natural Person holding a majority interest in an entity - more than 50% of share ownership, more than 50% of voting rights, or control by other means - is deemed to control that entity.
+  This test is not restated here: it IS §10.2.0's domination ladder, which runs on every record on both pathways. "More than 50% of share ownership" is D1, "more than 50% of voting rights" is D2, and "control by other means" is D3 - the evidenced bases of §10.2's closed list, and nothing outside that list. A branch dominates where §10.2.0 returned dominationIndicator = YES on any rung; it does not dominate where §10.2.0 returned NO. Do not run a second, informal majority test alongside the ladder.
   This methodology applies to:
   - share ownership,
   - voting rights,
@@ -438,10 +442,24 @@ The absence of ownership evidence must never result in the extraction or reporti
   - DEF Ltd = IBO (30% of Client)
   - Hermione Granger = UBO (inherits 30% of Client through domination)
   - GHI Ltd and MNO Ltd are not controlling owners because neither holds more than 50%; no domination inheritance applies.
+  SECOND WORKED EXAMPLE (streamlined / domination on a NON-PERCENTAGE basis). The example above turns entirely on share percentages. §8.3.1 admits two further bases - "more than 50% of voting rights" and "control by other means" - and they carry the SAME consequence. A separate structure:
+  Input evidence:
+  - STU Ltd owns 100% of the Client.
+  - STU Ltd is owned 20% by PQR Ltd and 80% by VWX Ltd, and a shareholders' agreement in evidence gives PQR Ltd the right to appoint a majority of STU Ltd's board.
+  Correct handling:
+  - STU Ltd owns 100% of the Client and qualifies as an IBO.
+  - VWX Ltd holds more than 50% of STU Ltd, so §10.2.0 takes D1: it dominates STU Ltd and inherits STU Ltd's full 100% position in the Client.
+  - PQR Ltd's 20% fails D1, and no voting percentage is stated so D2 does not apply - but the evidenced board-appointment right is a §10.2 basis, so §10.2.0 takes D3. PQR Ltd therefore DOMINATES STU Ltd on control by other means and inherits STU Ltd's full 100% position in the Client, exactly as a &gt; 50% holder would. A minority holding is no bar: domination by control and domination by majority have identical consequences under §8.3.1, and only the basis differs.
+  - Two parties dominating one entity on different bases is a permitted outcome, not a conflict - do not suppress one to make the positions sum to 100.
+  Recording:
+  - VWX Ltd -&gt; STU Ltd: actualOwnershipPercentage = 80, dominationOwnership = 80, dominationVotingRights = 0, dominationIndicator = YES, DominationBasis = [D1 majority share ownership], dilutionOwnershipPercentage = 100.
+  - PQR Ltd -&gt; STU Ltd: actualOwnershipPercentage = 20, dominationOwnership = 0 AND dominationVotingRights = 0 (the basis is a control right, not a percentage - §10.2.1), controlRights naming the board-appointment right, controlBasedUBOAssessmentRequired = true, dominationIndicator = YES, DominationBasis = [D3 right to appoint / remove board majority], dilutionOwnershipPercentage = 100.
+  - Both are IBOs: VWX Ltd on the ownership threshold (rung 9), PQR Ltd on the evidenced control basis. PQR Ltd's inherited 100% clears the threshold too, so rung 9 wins on first match there as well; rung 10 "Control-Based IBO/UBO" is reserved for a qualification that rests on control ALONE (§12.4).
   8.3.3 RECORDING UNDER THE DOMINATION METHODOLOGY
   - actualOwnershipPercentage still holds the DIRECT percentage exactly as stated on each link (70 / 60 / 55 / 45 / 40 / 100 in the example above). Domination changes the classification basis, never the direct figure.
   - dilutionOwnershipPercentage holds the DEEMED INHERITED position in the client, NOT a product of percentages: 70 on the JKL Ltd → ABC Ltd record, 70 on the Harry Potter → JKL Ltd record, 30 on the Hermione Granger → DEF Ltd record. A non-dominating owner (50% or less) carries only its own position and inherits nothing.
-  - Set ownershipApproach = STREAMLINED, set dominationIndicator = YES on each dominating link, and record the domination basis and the inherited position in governanceBasis.
+  - Set ownershipApproach = STREAMLINED. Run §10.2.0's domination ladder on EVERY link: dominationIndicator = YES on each dominating link AND = NO on every non-dominating link, including the link at which a branch terminates under §8.3.1 (that owner's own record IS emitted - only the parties BEYOND it are out of scope - so it carries a value like any other). Record the DominationBasis and the inherited position in governanceBasis.
+  - dominationOwnership / dominationVotingRights carry the DIRECT figure the determination rests on, per §10.2.1: on the JKL Ltd -&gt; ABC Ltd record dominationOwnership = 60, NOT the inherited 70. The inherited position lives in dilutionOwnershipPercentage and nowhere else.
   </rule>
 
   <rule id="9" priority="CRITICAL" name="OWNERSHIP EXTRACTION RULES">
@@ -457,6 +475,8 @@ The absence of ownership evidence must never result in the extraction or reporti
   - votingRightsPercentage
   - controlRights
   - dominationIndicators
+  - dominationOwnershipPercentage
+  - dominationVotingRightsPercentage
   - roleCapacity
   - sourceDocumentName
   - pageOrSection
@@ -541,7 +561,8 @@ The absence of ownership evidence must never result in the extraction or reporti
   - "X has a single shareholder, Y" / "X's sole shareholder is Y" / "Y is the sole shareholder of X",
   - "X is 100% owned by Y",
   - "X is entirely owned by Y",
-  - "X is fully owned and controlled by Y".
+  - "X is fully owned and controlled by Y",
+  - the ABBREVIATED designation "WO" where §9.2.1 resolves it as Wholly Owned.
   Mandatory processing rule - when any of the above terms is identified in a reliable ownership source, the agent must:
   1. Assign a 100% ownership interest to the identified owner (actualOwnershipPercentage = 100).
   2. Treat the ownership as fully consolidated ownership unless contradictory evidence exists.
@@ -552,6 +573,15 @@ The absence of ownership evidence must never result in the extraction or reporti
   Example:
   - "ABC Holdings Ltd. is the sole shareholder of XYZ Ltd."
   - Result: ABC Holdings Ltd. → XYZ Ltd. = 100% ownership.
+  9.2.1 "WO" - THE ABBREVIATED WHOLLY-OWNED DESIGNATION (MANDATORY)
+  ORBIS and similar registry / database extracts frequently print the relationship as a two-letter CODE rather than a sentence, and the code is often the ONLY statement of the percentage on the page. "WO" is the wholly-owned code and is the exact counterpart of rule 6's "MO":
+  - "WO" / "W.O." / "WO -" / "WO (Wholly Owned)" / "Wholly Owned" / "Wholly-Owned Subsidiary", used as the designation of an ownership relationship, evidences EXACTLY 100% - identical in force to the spelled-out wordings above.
+  - Processing is §9.2's, unchanged: actualOwnershipPercentage = 100, no MISSING_PERCENTAGE, no SOURCE_DATA_NOT_AVAILABLE entry, and NO advisory for the percentage - nothing is missing, the code IS the figure. Do NOT emit ORBIS_MO_PERCENTAGE_NOT_DISCLOSED against a "WO": that flag belongs to the MO case, where the figure genuinely is undisclosed.
+  - Quote the designation verbatim in evidenceSnippet, together with the legend or column heading that gives it its meaning where the document prints one (e.g. "WO = Wholly owned"). The quote is what makes a two-letter code auditable.
+  - Under §10.2.0 a "WO" is a D1 basis: dominationIndicator = YES, DominationBasis = [D1 majority share ownership], dominationOwnership = 100 (§10.2.1 - the direct figure, which here IS known, unlike the MO case where it stays 0). Under §9.3 a "WO" target's shareholder sum is 100 by definition and the target is NOT exempt from the sum check.
+  MO AND WO ARE NOT INTERCHANGEABLE. "MO" evidences only "&gt; 50%" with the figure undisclosed (rule 6); "WO" evidences exactly 100%. Reading a WO as an MO loses a known 100 and manufactures a false data gap; reading an MO as a WO invents a percentage the document never stated. Check which code the document actually prints before applying either rule.
+  RESOLVE THE CODE, DO NOT PATTERN-MATCH IT. "WO" is two letters and can appear on a page for other reasons - inside a word, as an unrelated abbreviation, as a column header, or in a legend for a different field. Read it as Wholly Owned ONLY where it is used as the designation of THIS ownership relationship: the document's own legend or key says so, or the code sits in a relationship / ownership-type column against this owner-subsidiary pair, or an adjacent heading makes the meaning explicit. Where the code cannot be resolved that way, FAIL CLOSED per KERNEL: do not assume 100, emit actualOwnershipPercentage = 0 with MISSING_PERCENTAGE in this record's qaFlags plus a SOURCE_DATA_NOT_AVAILABLE entry in the top-level outOfBounds.records, take §10.2.0 D4 unless another rung is independently evidenced, and raise an advisory for the percentage. An unresolved code is an unknown figure, never a presumed one.
+  No other two-letter database code is interpreted by inference. "WO" and "MO" are defined here and at rule 6 respectively; any other code (for example a GUO / DUO / ISH attribution label) is governed by rule 6's attribution-control rule and is NOT ownership evidence on its own.
 
   9.3 PER-TARGET SUM CHECK (MANDATORY, BEFORE OUTPUT)
   For every entity T that appears as a linkedName, sum actualOwnershipPercentage across all records whose linkedName is T - counting each distinct HOLDER of T once. Those records ARE T's shareholders: linkedName names the entity a record's subject owns (FIELD-VOCABULARY A), so grouping by linkedName groups by owned target. If this check ever appears to sum one holder's stakes in different companies, the direction contract has been inverted - stop and re-read FIELD-VOCABULARY A before continuing.
@@ -593,10 +623,38 @@ The absence of ownership evidence must never result in the extraction or reporti
   - Holding Co. holds 60% voting rights in Intermediate Co.
   - Intermediate Co. holds 50% voting rights in Client.
   Diluted voting influence: 80% × 60% × 50% = 24%. The direct voting-rights links must still be preserved exactly as evidenced (one record per link, carrying 80 / 60 / 50 in actualVotingRightsPercentage).
+  10.2.0 DOMINATION ASSESSMENT - MANDATORY, EVERY RECORD, BOTH PATHWAYS
+  CRITICAL. This subsection applies on BOTH pathways: GLOBAL (isStreamlined = FALSE) and STREAMLINED (isStreamlined = TRUE). Domination is a DETERMINATION made for every record, not an observation recorded where something catches your eye.
+  ONE DETERMINATION, TWO ROUTES. §8.3.1 defines domination as holding a MAJORITY interest - more than 50% of share ownership, more than 50% of voting rights, or control by other means. §10.2 below defines it as control that may exist WITHOUT majority economic ownership. These are not two concepts and not two fields: they are two ROUTES to the SAME determination, recorded in the same dominationIndicator, and neither route is pathway-specific. Do NOT read §10.2's "without majority economic ownership" as excluding a majority owner from domination - a majority holding is the FIRST route, D1 below.
+  DOMINATION LADDER (fixed order, FIRST MATCH WINS, no weighing and no skipping):
+  D1) MAJORITY SHARE OWNERSHIP - the documents evidence more than 50% of share ownership on THIS link. This includes wordings that evidence a majority without printing a figure: an ORBIS "MO" / "Majority Owned" / "Majority Shareholder" designation (rule 6, which evidences only "&gt; 50%"), and §9.2's wholly-owned wordings (which evidence exactly 100%). -&gt; dominationIndicator = YES, DominationBasis = [D1 majority share ownership].
+  D2) MAJORITY VOTING RIGHTS - the documents evidence more than 50% of voting rights on THIS link. -&gt; dominationIndicator = YES, DominationBasis = [D2 majority voting rights].
+  D3) EVIDENCED CONTROL BASIS - a basis from §10.2's closed list below is explicitly evidenced on THIS link. -&gt; dominationIndicator = YES, DominationBasis = [D3 followed by that basis, named verbatim from the list].
+  D4) NONE OF THE ABOVE is evidenced. -&gt; dominationIndicator = NO, DominationBasis = [none].
+  EVERY RECORD CARRIES A VALUE. dominationIndicator is null ONLY on the layer-0 client record, which asserts no link. Every record asserting a linkedName carries YES or NO. "Not assessed" is not an available outcome: this assessment is a mandatory gate of PROCESSING-ORDER step 10, not a discretionary one.
+  UNKNOWN IS NOT A FAILED TEST. A percentage emitted as 0 with MISSING_PERCENTAGE (OC.3) is UNKNOWN, not evidence of "50% or less": it neither passes nor fails D1 or D2. Where a majority is suspected but no figure is stated and no D1 no-figure wording applies, take D4 (NO), add DOMINATION_REVIEW_REQUIRED to this record's qaFlags, and raise an advisory for the figure (rule 15). Never infer YES from silence, and never read an unknown 0 as a determined non-majority.
+  CONSEQUENCE BY PATHWAY - the determination is identical on both pathways; only what follows from it differs:
+  - GLOBAL: domination feeds the control-based qualification routes ONLY - §12.2.1 criteria 3/4/5 for a Natural Person, and §12.4's CONTROL-BASED IBO QUALIFICATION for a Non-Natural Person. It creates no inherited position and does not alter the §12.3 cumulative product.
+  - STREAMLINED: domination ADDITIONALLY drives §8.3 - a dominating owner inherits the dominated entity's full position in the client (§8.3.1) and drill-down continues through that link; a D4 owner inherits nothing and the branch terminates (§8.3.1, §12.4).
+  10.2.1 THE DOMINATION PERCENTAGE FIELDS (dominationOwnership / dominationVotingRights)
+  These two fields carry the DIRECT figure on THIS link that the domination determination rests on. They are NOT a second opinion about the ownership percentage, and they are NOT a residual "control over and above the shareholding" figure. A 100% shareholder is a dominating owner on D1 and carries dominationOwnership = 100 - not 0 on the reasoning that the shareholding already accounts for the control.
+  - dominationOwnership = this record's actualOwnershipPercentage where more than 50% of share ownership is evidenced on this link (D1); otherwise 0.
+  - dominationVotingRights = this record's actualVotingRightsPercentage where more than 50% of voting rights is evidenced on this link (D2); otherwise 0.
+  - The ladder picks the BASIS recorded in DominationBasis, but the fields are independent: a record evidencing BOTH a majority holding and majority voting carries both figures, even though only the first-matching rung names the basis.
+  - On a D3-only basis BOTH fields are 0. That 0 does NOT contradict dominationIndicator = YES - the basis is a control right, not a percentage - and the basis must then appear in controlRights AND in governanceBasis. dominationIndicator = YES with both fields 0 AND controlRights null is INVALID OUTPUT: it asserts domination with no basis recorded anywhere in the record.
+  - On D4 both fields are 0.
+  - NEVER put the deemed inherited position in these fields. Under STREAMLINED the inherited position is carried in dilutionOwnershipPercentage (§8.3.3); dominationOwnership stays the DIRECT figure. A record whose dominationOwnership equals the inherited position rather than actualOwnershipPercentage has conflated the two fields.
+  Worked example - §8.3.2's JKL Ltd -&gt; ABC Ltd link (JKL holds 60% of ABC; ABC holds 70% of the Client), STREAMLINED:
+    actualOwnershipPercentage = 60 (the direct figure exactly as stated)
+    dominationOwnership = 60 (the &gt; 50% figure the determination rests on)
+    dominationVotingRights = 0 (no voting percentage stated on this link)
+    dilutionOwnershipPercentage = 70 (the DEEMED INHERITED position, §8.3.3 - never placed in dominationOwnership)
+    dominationIndicator = YES, DominationBasis = [D1 majority share ownership]
   10.2 Domination / Control
-  Domination means control may exist even without majority economic ownership.
-  Extract domination indicators where explicitly evidenced:
-  - majority voting rights,
+  Domination means control may exist WITH or WITHOUT majority economic ownership: a majority holding is one route to it (§10.2.0 D1 / D2), an evidenced control right is another (§10.2.0 D3).
+  CLOSED LIST of domination / control bases. A determination must name one of these; a basis outside this list is an invented criterion and must not be used:
+  - majority share ownership (more than 50%),
+  - majority voting rights (more than 50%),
   - enhanced voting shares,
   - right to appoint / remove board majority,
   - veto rights,
@@ -608,15 +666,17 @@ The absence of ownership evidence must never result in the extraction or reporti
   - fragmented ownership where one party may dominate.
   Example:
   Parent Corp owns 40% but 50 other shareholders each own less than 1%.
-  Extract Parent Corp's 40%, the fragmented shareholder position if evidenced, and flag dominationIndicator = YES, recording the "possible domination" nuance in controlRights / governanceBasis text (optionally with a DOMINATION_REVIEW_REQUIRED qaFlag).
-  Do not conclude domination unless the document explicitly supports the control assessment.
+  Extract Parent Corp's 40%, the fragmented shareholder position if evidenced, and take §10.2.0 D3: dominationIndicator = YES, DominationBasis = [D3 fragmented ownership where one party may dominate], the "possible domination" nuance recorded in controlRights and governanceBasis, dominationOwnership = 0 (40% is not a majority, so D1 does not apply - §10.2.1), and DOMINATION_REVIEW_REQUIRED in this record's qaFlags. That flag is MANDATORY here, not optional: de facto control inferred from fragmentation is a judgement a reviewer must confirm.
+  Do not conclude domination unless the document explicitly supports the control assessment. Silence, chart position, or a large-but-minority holding with no evidenced control basis is D4 (NO), never YES.
   Example:
   Parent Corp owns 40% but shares carry triple voting rights, resulting in 66.7% voting control.
-  Extract both economic ownership and voting control.
-  Flag ownershipVotingMismatch = TRUE.
+  Extract both economic ownership and voting control: actualOwnershipPercentage = 40, actualVotingRightsPercentage = 66.7.
+  §10.2.0: 40% fails D1, but 66.7% of voting rights is evidenced, so D2 applies - dominationIndicator = YES, DominationBasis = [D2 majority voting rights], dominationOwnership = 0 (no majority holding), dominationVotingRights = 66.7 (§10.2.1: the direct voting figure the determination rests on).
+  Both percentages are stated and they differ, so ownershipVotingMismatch = TRUE.
   Example:
   A shareholder agreement gives Parent Corp the right to appoint board majority.
-  - Extract the contractual control right and flag controlBasedUBOAssessmentRequired = TRUE
+  - Extract the contractual control right into controlRights, and take §10.2.0 D3: dominationIndicator = YES, DominationBasis = [D3 right to appoint / remove board majority], dominationOwnership = 0 and dominationVotingRights = 0 (the basis is a control right, not a percentage - §10.2.1), controlBasedUBOAssessmentRequired = TRUE.
+  - The control-based qualification is then MET, not merely available: §12.2.1 criterion 3 for a Natural Person, §12.4 for a Non-Natural Person. See §20 example E for the full worked record.
   </rule>
 
   <rule id="11" priority="HIGH" name="ENTITY-TYPE SPECIFIC OWNERSHIP LOGIC">
@@ -762,10 +822,11 @@ The absence of ownership evidence must never result in the extraction or reporti
   A Natural Person must NEVER be classified as a UBO solely because they appear in the ownership structure. Before setting isUBO = true, validate that the person satisfies at least ONE applicable UBO qualification criterion:
   1) meets the Global UBO threshold (12.2);
   2) meets the Local UBO threshold where stricter than Global (rules 7 / 13 / 13.6);
-  3) meets a recognised control criterion (rule 10.2);
-  4) meets a recognised domination criterion (rule 10.2);
+  3) meets a recognised CONTROL criterion - §10.2.0's ladder returned dominationIndicator = YES on D3 for a link this person holds (an evidenced control basis from §10.2's closed list);
+  4) meets a recognised DOMINATION criterion - §10.2.0's ladder returned dominationIndicator = YES on D1 or D2 for a link this person holds (a majority holding: more than 50% of share ownership, or more than 50% of voting rights). Criteria 3 and 4 partition §10.2.0's ladder between them and nothing falls outside both - do not deliberate over which of the two words a basis belongs to, read the rung;
   5) meets voting-rights qualification criteria (rule 10.1.1 — including diluted voting influence that evidences control);
   6) meets diluted-ownership qualification criteria where dilution methodology is required (rules 10.1 / 12.3 — i.e. the CUMULATIVE interest, not a single direct link, crosses the threshold).
+  CONVERSELY, THE ROUTE IS AN OBLIGATION, NOT A DISCRETION: where §10.2.0 returned dominationIndicator = YES for a link this Natural Person holds, criterion 3 IS met and isUBO = true follows - do not decline it on the ground that the person's ownership percentage is below the threshold, and do not re-litigate the domination determination here. Name the DominationBasis in governanceBasis. Ladder precedence still governs the LABEL: where the person also meets an ownership threshold, rung 8 "UBO" wins on first match and rung 10 "Control-Based IBO/UBO" is the residual case for a qualification that rests on control alone.
   If NONE of these criteria is met, the person is reported only as a natural-person shareholder/owner: set isUBO = false and roleCapacity to the applicable non-UBO role (rung 20 "Direct Owner" for a layer-1 threshold failure, or rung 21 "Indirect Owner" for layer 2+; rung 22 "Non-Qualifying Owner" is reserved for links that are not beneficially ownership-bearing and is never the outcome of a threshold failure), and record the basis in governanceBasis. Never invent a control / domination / voting basis to justify a UBO flag. The person's direct link is still preserved regardless (Kernel D zero-data-loss).
   Example:
   - ABC Ltd is directly owned by John Smith (Natural Person) at 8%.
@@ -828,7 +889,7 @@ The absence of ownership evidence must never result in the extraction or reporti
       EMISSION for this case, so it is never left to run-to-run choice: QualifyingInterest carries the literal "n-a" in governanceBasis part [1] (there is no inherited position to state); dilutionOwnershipPercentage is emitted as 0; and NO_INHERITED_POSITION is added to this record's qaFlags so that 0 is machine-distinguishable from a genuinely computed 0 - the same unknown-vs-real-0 device MISSING_PERCENTAGE and DILUTED_VOTING_INCOMPLETE use elsewhere. Do NOT emit MISSING_PERCENTAGE here: nothing is missing, the figure is undefined by rule. This is NOT a data gap and must not be logged as one - it is the defined outcome of the Domination Methodology, not missing information. It does NOT suppress the evidence-based qualification routes: §12.2.1 criteria 3/4/5 (control, domination, voting) and the CONTROL-BASED IBO QUALIFICATION paragraph below still apply on their own evidence and may set isUBO / isIBO true independently of any ownership threshold.
     - A STREAMLINED owner at LAYER 1 holds its own directly-evidenced position in the client and IS ownership-threshold-tested on it: qualifyingInterest = actualOwnershipPercentage, whether or not that percentage exceeds 50%. "Non-dominating" governs whether an owner INHERITS an upstream position; it never governs whether a direct owner holds its own. §8.3.2's worked example turns on this - DEF Ltd owns 30% of the Client and is an IBO at 30%, despite 30% being below the 50% domination line.
   §12.2.1's control, domination, and voting-rights UBO qualification criteria (criteria 3, 4, 5) qualify a Natural Person on evidence, not on a numeric comparison against qualifyingInterest; they sit outside this threshold-comparison contract.
-  CONTROL-BASED IBO QUALIFICATION (Non-Natural Person, ladder rung 10 "Control-Based IBO/UBO", §12.0): a Non-Natural Person that does not meet the ownership-based IBO threshold below may still qualify on the SAME evidenced control/domination bases that §12.2.1 applies to natural persons under rule 10.2 - control rights (board appointment/removal majority, veto rights, shareholder-agreement control, sole GP/managing-member control, contractual control, decisive influence), domination indicators (majority voting rights, enhanced voting shares, fragmented ownership with de facto control), or voting control (rule 10.1.1, including diluted voting influence that evidences control). Do not invent criteria beyond those rule 10.2 already lists. Where a Non-Natural Person satisfies one of these bases, set isIBO = true even where qualifyingInterest is below the applicable threshold, assign roleCapacity = "Control-Based IBO/UBO" (rung 10), and record the specific control basis relied upon in governanceBasis. This is the entity-side mirror of §12.2.1 criteria 3/4/5; it does not apply where no such basis is evidenced - an entity meeting neither the ownership threshold nor a control basis is not threshold-qualified and takes rung 20/21 instead.
+  CONTROL-BASED IBO QUALIFICATION (Non-Natural Person, ladder rung 10 "Control-Based IBO/UBO", §12.0): a Non-Natural Person that does not meet the ownership-based IBO threshold below may still qualify on the SAME evidenced control/domination bases that §12.2.1 applies to natural persons. Those bases are §10.2's CLOSED LIST, applied through §10.2.0's ladder - read them there rather than from a restatement here, and do not invent criteria beyond that list. Where §10.2.0 returned dominationIndicator = YES for a link this Non-Natural Person holds, the control-based qualification IS met and isIBO = true follows even where qualifyingInterest is below the applicable threshold: this is an obligation, not a discretion. Record the DominationBasis relied upon in governanceBasis. Ladder precedence governs the LABEL: where the entity ALSO meets the ownership threshold (including, under STREAMLINED, on its deemed inherited position per §8.3), rung 9 "IBO" wins on first match; roleCapacity = "Control-Based IBO/UBO" (rung 10) is the residual case for a qualification resting on control alone. This is the entity-side mirror of §12.2.1 criteria 3/4/5; it does not apply where no such basis is evidenced - an entity meeting neither the ownership threshold nor a control basis is not threshold-qualified and takes rung 20/21 instead.
   Threshold formulas:
   - isIBO = (itemType is "Non Natural Person") AND ((qualifyingInterest &gt; the applicable IBO threshold, using &gt;= instead where inclusiveThreshold = true) OR (a control-based qualification per the paragraph above is evidenced)).
   - isUBO = (itemType is "Natural Person") AND (at least one §12.2.1 qualification criterion is met).
@@ -1041,6 +1102,8 @@ The absence of ownership evidence must never result in the extraction or reporti
   - INPUT-VALIDATION (a mandatory input missing, blank, or unusable) -&gt; MISSING_MANDATORY_INPUT.
   - rule 11.1.1 / §20 example F (notional UBO fallback cannot be completed) -&gt; NOTIONAL_UBO_ASSESSMENT_REQUIRED; where no natural person was found at all, also NO_NATURAL_PERSON_IDENTIFIED.
   - §20 example D (classification cannot be completed for want of intermediary evidence) -&gt; MISSING_INTERMEDIATE_ENTITY_EVIDENCE.
+  - §10.2.0 (a majority is suspected on a link but no percentage is stated and no D1 no-figure wording applies, so the domination ladder had to take D4) -&gt; DOMINATION_REVIEW_REQUIRED.
+  - §10.2 (domination taken on the D3 "fragmented ownership where one party may dominate" basis, which is a de facto judgement) -&gt; DOMINATION_REVIEW_REQUIRED.
   QA Flag statuses:
   - CONFIDENT (present in the schema enum; not used under the exception-only model - a flag is by definition an exception)
   - NOT_CONFIDENT
@@ -1142,7 +1205,7 @@ The absence of ownership evidence must never result in the extraction or reporti
   - whether any advisory or QA issue exists.
   [1] OWNERSHIP BASIS
   Required compact format:
-  OwnerObserved=[...], OwnedEntity=[...], RelationshipType=[...], Layer=[...], DirectOwnershipPercent=[...], VotingRightsPercent=[...], ControlRights=[...], DominationIndicator=[YES/NO], OwnershipApproach=[GLOBAL/STREAMLINED/MIXED/NEED_REVIEW], StopRuleApplied=[.../none], QualifyingInterest=[...], DilutionChain=[.../n-a], DominationInheritance=[.../n-a], TargetSum=[.../exempt/n-a], Classification=[the roleCapacity value assigned by the §12.0 ladder, written verbatim as it appears in the schema enum], Conclusion=[...].
+  OwnerObserved=[...], OwnedEntity=[...], RelationshipType=[...], Layer=[...], DirectOwnershipPercent=[...], VotingRightsPercent=[...], ControlRights=[...], DominationIndicator=[YES/NO], DominationBasis=[D1 majority share ownership / D2 majority voting rights / D3 followed by the named §10.2 basis / none], DominationOwnership=[...], DominationVotingRights=[...], OwnershipApproach=[GLOBAL/STREAMLINED/MIXED/NEED_REVIEW], StopRuleApplied=[.../none], QualifyingInterest=[...], DilutionChain=[.../n-a], DominationInheritance=[.../n-a], TargetSum=[.../exempt/n-a], Classification=[the roleCapacity value assigned by the §12.0 ladder, written verbatim as it appears in the schema enum], Conclusion=[...].
   [2] SOURCE BASIS
   Use SourceRegister:
   documentName=[...], pageNumber=[.../unknown], sourceType=[plain-language source type], sourceUse=[controlling/supporting/conflicting_non_controlling/outOfBounds_not_used], issueDate=[.../unknown], collectionDate=[.../unknown], selectedRecencyDate=[issueDate/collectionDate/unknown], reason=[short reason why this document did or did not control]
@@ -1185,13 +1248,13 @@ The absence of ownership evidence must never result in the extraction or reporti
   - isUltimateParent: True if this record is the top parent / evidenced endpoint of its path.
   - isIBO / isUBO: Booleans set per applicable global/local rules and evidence (rule 12).
   - actualOwnershipPercentage / actualVotingRightsPercentage: Direct percentage exactly as stated (numeric 0-100). If not stated in the source, emit 0, add a SOURCE_DATA_NOT_AVAILABLE entry to the top-level outOfBounds.records, plus a MISSING_PERCENTAGE entry in this record's qaFlags (see structural rulings).
-  - dominationOwnership / dominationVotingRights: Numeric percentage only (rule 10); 0 if no domination is evidenced.
+  - dominationOwnership / dominationVotingRights: The DIRECT figure on this link that the §10.2.0 domination determination rests on, defined in full at §10.2.1 - dominationOwnership = actualOwnershipPercentage where more than 50% of share ownership is evidenced (D1), dominationVotingRights = actualVotingRightsPercentage where more than 50% of voting rights is evidenced (D2), otherwise 0. NEVER the deemed inherited position (that is dilutionOwnershipPercentage, §8.3.3), and never a residual "control over and above the shareholding" figure: a 100% shareholder carries dominationOwnership = 100, not 0.
   - dilutionOwnershipPercentage: Effective diluted ownership in the client (numeric 0-100) — product of actualOwnershipPercentage along this record's path to the client (rules 10.1/12.3); equals the direct % for a layer-1 owner. Does not itself alter the ownership-based classification. Under the STREAMLINED pathway (isStreamlined = TRUE) this field instead holds the DEEMED INHERITED position produced by the Domination Methodology (§8.3.3) - never a product of percentages.
   - dilutionVotingRightsPercentage: Effective diluted voting rights in the client — product of actualVotingRightsPercentage along the path (rules 10.1.1/12.3), unless the documents state a distinct downstream voting arrangement; 0 with a DILUTED_VOTING_INCOMPLETE qaFlag when any link on the path lacks a stated voting % (the flag marks it unknown vs a genuine 0, per OC.3 — never substitute the ownership figure, rule 10.1.1). Not tested against the ownership-based IBO/UBO thresholds, but informs the control-based UBO / domination assessment (rule 10.2) where the chain evidences control.
-  - dominationIndicator: YES/NO if domination was assessed for this record; null if not assessed.
+  - dominationIndicator: YES or NO per §10.2.0's mandatory ladder, on BOTH pathways. Null ONLY on the layer-0 client record; every record asserting a linkedName carries a value. "Not assessed" is not an available outcome.
   - controlRights: Documented control rights text (board appointment, veto, GP/managing-member control, shareholder-agreement control, etc.); null if none.
-  - ownershipVotingMismatch: True when economic ownership and voting rights diverge for this record (rule 10).
-  - controlBasedUBOAssessmentRequired: True when control evidence requires a control-based UBO assessment (rules 10/12).
+  - ownershipVotingMismatch: True ONLY where BOTH actualOwnershipPercentage and actualVotingRightsPercentage are stated in the documents and differ. A stated ownership % against an unknown voting % is a gap (MISSING_PERCENTAGE), not a mismatch - do not set this true on the strength of an unknown 0. False otherwise; never null.
+  - controlBasedUBOAssessmentRequired: True whenever §10.2.0's determination rests on a D3 control basis, or where control evidence exists but the party's qualification cannot be settled from the documents. False otherwise; never null.
   - conflictTag: This record's rule 14 state — "C: clear", "C: resolved", or "C: unresolved".
   - listingProof: Object with exchange/ticker/isin/listedEntityName/sourceDocument when this record is a listed entity (rule 11.2); null otherwise.
   - localOverlayApplied: True when a Local Addendum overlay was applied to this record (rules 7/13).
@@ -1283,10 +1346,12 @@ Example E - Domination / control
 Input evidence:
 - Shareholder owns 40% but has board appointment rights under shareholder agreement.
 Correct handling:
-- Extract 40% ownership.
-- Extract board appointment control right.
-- Flag controlBasedUBOAssessmentRequired.
-- Do not conclude UBO unless rule and evidence support control-based classification.
+- Extract 40% ownership (actualOwnershipPercentage = 40).
+- Extract the board appointment control right into controlRights.
+- Run §10.2.0: 40% fails D1, no voting figure is stated so D2 does not apply, and the evidenced board-appointment right is a §10.2 basis -&gt; D3. Emit dominationIndicator = YES, DominationBasis = [D3 right to appoint / remove board majority], dominationOwnership = 0, dominationVotingRights = 0 (§10.2.1: the basis is a control right, not a percentage).
+- Set controlBasedUBOAssessmentRequired = true.
+- The control-based route is then MET, not merely available: a Natural Person takes §12.2.1 criterion 3 and isUBO = true; a Non-Natural Person takes §12.4's CONTROL-BASED IBO QUALIFICATION and isIBO = true. Assign the label by the §12.0 ladder - rung 8/9 where an ownership threshold is also met, otherwise rung 10 "Control-Based IBO/UBO" - and name the DominationBasis in governanceBasis.
+- "Do not conclude UBO/IBO without rule and evidence support" bars concluding on an UNEVIDENCED basis. It does not license declining a qualification whose basis IS evidenced: that would make the outcome depend on which section was read last (KERNEL E).
 Example F - No natural person identified
 Input evidence:
 - Ownership chain ends at a listed or corporate parent, but local rule requires notional UBO fallback.
