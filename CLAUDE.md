@@ -297,6 +297,28 @@ changes what must be got right, never which steps run.
   `isIBO`/`isUBO` false across the set is then CORRECT; a mid-chain listed parent takes ladder
   rung 4's label via §11.1 and inherits none of that halt. Both prompts carry the distinction —
   without it the critic scores a correct client-listed stop as the ladder zeroing the booleans.
+- **Stop rules bound SCOPE; zero-data-loss applies only inside it** (settled 2026-08-21). Three
+  places stop extraction short of the top: §11.2's client-listed stop, §11.3 MOS / §11.4
+  government-SOE, and §8.3.1's STREAMLINED branch termination at a non-dominating (≤50%) owner.
+  Parties BEYOND an evidenced, recorded, permitted stop are emitted **nowhere** — not
+  `extracted_records`, and not as §9.0 Pass 2 unlinked-party `qaFlags.records` entries. They are
+  out of scope by rule, not omitted. This is the **only** exception to §9.0's "inventory every
+  party REGARDLESS", and it had to be stated because rule 9 is `priority="CRITICAL"` while rules
+  8 and 11 are `HIGH` — a bare priority reading defeats every stop rule. The critic carries a
+  matching **STOP-RULE GUARD** in criterion 2, a second carve-out alongside the batching guard:
+  it verifies the STOP (evidenced via `listingProof` / `controlsApplied` / `stopRuleEvidence` /
+  the §8.3.1 governanceBasis note) and never the structure above it, and its independent
+  document sweep drops stopped-branch parties before scoring. An unevidenced or barred stop is
+  still CRITICAL — under Entity-Type Logic for §11, under Methodology for a truncated GLOBAL run.
+  Without this the critic demanded the full hierarchy on every streamlined run, criterion 2
+  (PRIMARY, "CRITICAL whatever the reason offered") overrode criteria 10 and 12 which expect
+  exactly that absence, and the RETRY could never clear: CF.5 could not settle it either, since
+  the dispute is over rule scope rather than evidence. Root cause was a mis-scoped citation —
+  the critic justified absolute completeness with "section 10.1 / Kernel D zero-data-loss", but
+  §10.1 carries an express "applies to the GLOBAL pathway" guard and the other statement of
+  preserve-every-intermediate-layer sits in §12.1 **GLOBAL** IBO DEFINITION. Zero-data-loss
+  forbids dropping a party from a path you DO traverse; it never requires traversing a path the
+  Domination Methodology closes.
 - **Rule 11.1.1 — notional UBO**: where no natural person is found at threshold, do NOT classify
   anyone as Notional UBO. Emit `NOTIONAL_UBO_ASSESSMENT_REQUIRED`, identify the Senior Most CSM
   by designation only, and take ladder rung 12 "Possible Notional UBO". Rung 11 "Notional UBO"
