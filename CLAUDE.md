@@ -222,6 +222,25 @@ changes what must be got right, never which steps run.
   such as "Global Ultimate Owner (GUO)", "Ultimate Parent" or "Head of Group" is an
   ATTRIBUTION, not ownership evidence. Absent independent ownership documentation, record it as
   `roleCapacity = "Information Only"` and/or a data gap — never a threshold-bearing edge.
+- **The critic must not fabricate either — a rounding residual is not a missing party**
+  (settled 2026-08-22, second occurrence). The eight evidenced shareholders of an intermediate sum to
+  **99.99**; the critic raised a CRITICAL "missing 0.01% shareholder" and gave it the name of a
+  DOWNSTREAM subsidiary read off the same chart. It did to the extractor exactly what CF.2 forbids the
+  extractor from doing to it. The reconciliation guard existed — it was added after the SAME critic
+  invented a **0.81%** holder against the SAME 99.99 sum — and it failed because its operative reason
+  was *"the added percentage would push the target past 100%"*: true of 0.81 (100.80), false of 0.01
+  (exactly 100). The critic followed the justification rather than the rule. Two fixes. **The ±5% band
+  is now dispositive** — a sum inside it means the set is COMPLETE, full stop, regardless of whether the
+  arithmetic would accommodate one more holder — and a residual of a fraction of a percent is named as
+  SOURCE ROUNDING (published percentages are 2dp; 99.98 / 99.99 / 100.01 are complete sets).
+  **NAME IT AND QUOTE IT, OR IT DOES NOT EXIST** — the critic's own KERNEL C: every missing-entity
+  finding must carry the document, the page and the printed text showing THAT party as a holder of THAT
+  target, and the percentage must be the PRINTED figure, never the difference between a sum and 100.
+  A party derived from a shortfall, or borrowed from the nearest plausible label on the page, is a
+  fabricated party. CF.2 protected the extractor from the critic's assertions; nothing protected the
+  case from the critic's own inventions until this clause. The SCOPE GUARD is a second line but cannot
+  carry it alone: asserting the party is a shareholder of an in-scope entity makes it in-scope by the
+  guard's own logic.
 - **The critic's SCOPE GUARD — completeness is bounded by the client's upward structure**
   (settled 2026-08-22). Criterion 2 opened with *"every person, every organization, and every
   org-chart box/node appearing in the documents is present as a record"* — and `monolith_critic/user.txt`
