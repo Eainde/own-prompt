@@ -222,6 +222,29 @@ changes what must be got right, never which steps run.
   such as "Global Ultimate Owner (GUO)", "Ultimate Parent" or "Head of Group" is an
   ATTRIBUTION, not ownership evidence. Absent independent ownership documentation, record it as
   `roleCapacity = "Information Only"` and/or a data gap — never a threshold-bearing edge.
+- **The critic's SCOPE GUARD — completeness is bounded by the client's upward structure**
+  (settled 2026-08-22). Criterion 2 opened with *"every person, every organization, and every
+  org-chart box/node appearing in the documents is present as a record"* — and `monolith_critic/user.txt`
+  said the same. A group chart routinely draws the client's own subsidiaries, sisters, merger vehicles
+  and unrelated service entities; OC.2 sends exactly those to `outOfBounds.summary` and BARS them from
+  `outOfBounds.records` (no `id`) and from `qaFlags.records` (reserved for §9.0 parties *inside* the
+  upward structure). So the critic was demanding output the extractor is forbidden to emit, on every
+  case with a full chart. A third guard now runs **before** the batching and stop-rule guards:
+  **in scope** = the client plus every party the documents evidence as holding a directed ownership or
+  control path **to** the client — *including every co-shareholder of every in-scope entity at every
+  layer*, however small and whether or not it lies on the path to a UBO (without that clause, narrowing
+  would have made a live run's seven omitted 6.47–9.76% holders a non-finding); **out of scope** =
+  downstream subsidiaries, sisters, affiliates and parties with no evidenced ownership relation.
+  Two carve-outs keep the guard honest. **Unresolved is not out of scope** — only an *evidenced*
+  downstream position removes a party; one whose relation cannot be established is an unresolved
+  in-scope candidate and its silent disappearance is CRITICAL, or a strict path test would invert
+  fail-closed. And **criterion 2 owns the boundary in BOTH directions**: an out-of-scope party emitted
+  with `isOutOfBounds = false` is over-inclusion (IMPORTANT); one legitimately retained with
+  `isOutOfBounds = true` + reason + status is permitted by OC.1 and is not scored. Criterion 8(c) covers
+  DOCUMENT scope only and cross-references rather than scoring, per "score each defect ONCE".
+  Extractor side, §9.0 Pass 2 now routes an unlinked party by where rule 5 places it — inside →
+  `qaFlags.records`, outside → `outOfBounds.summary` and stop there — closing the same ambiguity that
+  let Pass 1's deliberately broad inventory oblige ten `qaFlags.records` entries against OC.2.
 - **Rule 9.2.2 — a share percentage is NOT a voting percentage** (settled 2026-08-22, from a run-to-run
   flip). The same chart label `"100% Shares"` came back as `actualVotingRightsPercentage = 100` on one
   run and `0` on the next — nothing in either prompt answered the question, so both readings survived.
