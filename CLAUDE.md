@@ -222,6 +222,28 @@ changes what must be got right, never which steps run.
   such as "Global Ultimate Owner (GUO)", "Ultimate Parent" or "Head of Group" is an
   ATTRIBUTION, not ownership evidence. Absent independent ownership documentation, record it as
   `roleCapacity = "Information Only"` and/or a data gap — never a threshold-bearing edge.
+- **The critic must WRITE the holder roster before asserting absence** (settled 2026-08-22). A run
+  raised a CRITICAL demanding `TCV Luxco Mollie S.à r.l.` be added "as a layer 3 shareholder of Mollie
+  Holding Ltd. with actualOwnershipPercentage of 8.90" — against a record set whose **id 11 was exactly
+  that record**: identical name, target, layer and figure. No transcription error and no near-match, so
+  [[the near-identical-name check]] does not reach it. The critic answered "is this party present?" from
+  recollection of a 13-record array whose bulk is `governanceBasis`, and recall failed; absence-from-memory
+  became a CRITICAL. Its own §9.3 guard would have caught it — the roster totals 99.99 with TCV Luxco and
+  91.09 without, and either figure exposes the error — but that guard sits as prose deep in a long
+  paragraph and was simply skipped. The fix makes it PRODUCE the list rather than remember it: before any
+  missing-entity finding, walk `extracted_records` id 1..N and write out, in the observation, one line per
+  record whose `linkedName` is the target — `id | nameAsSource | actualOwnershipPercentage` — scanning by
+  `nameAsSource` alone and explicitly NOT reading `governanceBasis`, where attention is lost. The roster is
+  the only thing a candidate may be checked against, a finding must reproduce it, and its total IS the §9.3
+  sum, so it is one action rather than two. General lesson: a procedural requirement buried as prose in a
+  long paragraph does not run — it has to be a written artefact the model must produce.
+- **Positive templates beat prohibitions.** `"reason": "In scope"` was forbidden in THREE places in the
+  deployed build — OC.1, OC.4 and the schema field description — and every record of a live run still
+  carried it. Negative instructions are weak. OC.1 now leads with two copyable templates and one question
+  to choose between them (in-scope: copy `{"isOutOfBounds": false, "reason": null, "status": null}`
+  literally; out-of-scope: the populated form), and both schema descriptions now open `DEFAULT VALUE: null.`
+  before saying anything about what is wrong. The ban text stays, but it is no longer what the model reads
+  first. Worth reaching for the same reframe on any rule that keeps being violated despite being stated.
 - **A near-identical name is not a missing entity — the critic's worst failure mode**
   (settled 2026-08-22). One critic response cited `"Molehill Holding B.V." (ID 5)` under Structural
   Validation while its point-1 CRITICAL declared *"the extraction omits the entity 'Mollie Holding

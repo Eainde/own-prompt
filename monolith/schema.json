@@ -282,13 +282,13 @@
               },
               "reason": {
                 "type": "string",
-                "description": "Canonical reason for the OOB flag, naming the rule 5 ground. MUST be null when isOutOfBounds is false - do not write 'In scope' or any other in-scope explanation."
+                "description": "DEFAULT VALUE: null. Emit null on every record that is in scope — which is nearly every record — and populate this field ONLY where isOutOfBounds is true, in which case it names the rule 5 ground. null is a complete and correct answer here and needs no explanation written into it; 'In scope' and any other in-scope note is wrong. The three keys move together: reason and status are non-null if and only if isOutOfBounds is true."
               },
               "status": {
                 "type": "string",
                 "enum": ["NEED_REVIEW", "DOC_INVALID", "COUNTRY_OUT_OF_SCOPE", "DOCUMENT_NOT_RELEVANT"],
                 "nullable": true,
-                "description": "OOB status CATEGORY. MUST be null when isOutOfBounds is false. Never emit NEED_REVIEW (or any other value) on a record whose isOutOfBounds is false - that asserts an in-scope record is out of scope. The three keys move together: reason and status are non-null if and only if isOutOfBounds is true."
+                "description": "DEFAULT VALUE: null. Emit null on every record that is in scope, and populate this field ONLY where isOutOfBounds is true, with the out-of-scope CATEGORY. It is not a review flag: NEED_REVIEW (or any other value) on a record whose isOutOfBounds is false asserts that an in-scope record is out of scope. The three keys move together: reason and status are non-null if and only if isOutOfBounds is true."
               }
             }
           }
