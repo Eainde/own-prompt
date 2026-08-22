@@ -110,9 +110,11 @@ Prompts follow the csm-prompts XML standard:
 `{{monolithOwnershipCriticFeedback}}`, `{{isStreamlined}}`.
 
 **Critic** (`monolith_critic/user.txt`): the same case inputs minus the feedback loop, plus
-`{{extractedRecords}}` (the extractor's output). Note the critic uses `{{gcsDocumentPath}}`
-**singular** while the monolith uses `{{gcsDocumentPaths}}` **plural** — this mismatch is
-asserted in the tests so it stays visible.
+`{{extractedRecords}}` (the extractor's output). Both agents take the **plural**
+`{{gcsDocumentPaths}}`. They disagreed until 2026-08-21 — the critic took a singular
+`{{gcsDocumentPath}}`, so a caller wiring both from one config handed the critic a single path
+while both of its PRIMARY criteria assume a full document sweep. `test_critic_user_variables`
+now pins them equal so they cannot drift apart again.
 
 ## Output shape (monolith/schema.json)
 
@@ -407,8 +409,6 @@ changes what must be got right, never which steps run.
 
 - **`countryProfileApplied` has no vocabulary.** Schema says `'CP-XX' code`; no rule defines the
   codes, so neither agent can populate or check it against anything.
-- **`{{gcsDocumentPath}}` is singular for the critic, plural for the extractor.** Both PRIMARY
-  criteria assume a full document sweep; if the caller passes one path they silently degrade.
 
 ## Batching (large outputs)
 

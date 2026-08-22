@@ -109,7 +109,7 @@
             "type": "string",
             "nullable": true,
             "enum": ["shareholder", "parent", "member", "partner", "general partner", "limited partner", "trustee", "settlor", "beneficiary", "protector", "foundation council", "nominee shareholder", "voting controller", "contractual controller", "listed parent", "regulated parent", "government owner", "other"],
-            "description": "Documented relationship of this record to its linkedName parent. Null for the client (layer 0)."
+            "description": "Documented relationship of this record to its linkedName parent. Null for the client (layer 0) — that record only, and no other. Null is carried by the nullable flag, NOT as an enum member: the enum lists string values only."
           },
           "roleCapacity": {
             "type": "string",
@@ -138,7 +138,7 @@
           },
           "isUltimateParent": {
             "type": "boolean",
-            "description": "True if this record is the top of its ownership path (no evidenced owner above it). An ultimate parent still carries a linkedName \u2014 the entity below it; only the layer-0 client has a null linkedName."
+            "description": "True if no document in the case evidences any owner above this party. The test is the ABSENCE of an evidenced owner above, not affirmative proof of ultimacy: a party the documents do not say is owned by anyone takes true, and that is not an inference or a hallucination. It is NOT a completeness claim \u2014 where the chain stopped short of a natural person, report that separately via NNP_CHAIN_INCOMPLETE / INCOMPLETE_OWNERSHIP_CHAIN plus an advisory, and leave this flag true. False on the layer-0 client (the bottom of every path). Several endpoints in one structure each take true independently. An ultimate parent still carries a linkedName \u2014 the entity below it; only the layer-0 client has a null linkedName."
           },
           "isIBO": {
             "type": "boolean",
@@ -188,7 +188,7 @@
             "type": "string",
             "nullable": true,
             "enum": ["YES", "NO"],
-            "description": "Whether domination/control is evidenced for this record, determined by §10.2.0's mandatory ladder (D1 majority share ownership / D2 majority voting rights / D3 evidenced control basis / D4 none) on BOTH the GLOBAL and STREAMLINED pathways. Null ONLY on the layer-0 client record, which asserts no link; every record carrying a linkedName carries YES or NO. 'Not assessed' is not an available outcome."
+            "description": "Whether domination/control is evidenced for this record, determined by §10.2.0's mandatory ladder (D1 majority share ownership / D2 majority voting rights / D3 evidenced control basis / D4 none) on BOTH the GLOBAL and STREAMLINED pathways. Null ONLY on the layer-0 client record, which asserts no link; every record carrying a linkedName carries YES or NO. 'Not assessed' is not an available outcome. Null is carried by the nullable flag, NOT as an enum member: the enum lists string values only."
           },
           "controlRights": {
             "type": "string",
@@ -232,11 +232,11 @@
           "thresholdApplied": {
             "type": "string",
             "nullable": true,
-            "description": "The ownership threshold applied for classification (e.g. '25% or more', '10%'); null if none."
+            "description": "The threshold this record was tested against. CLOSED GRAMMAR, exactly one of: 'greater than N%' (strict), 'N% or more' (inclusive, rule 13.1), or null where no threshold was tested (the layer-0 client, or a record halted by a stop rule). N is the bare number as the governing rule states it (25, 10, 5). Never '>25%', '25%', 'more than 25 percent' or 'greater than 25% (EDD)' — the due-diligence level and the overlay that selected the figure belong in governanceBasis part [4]."
           },
           "inclusiveThreshold": {
             "type": "boolean",
-            "description": "True when the applied threshold is inclusive ('equal to or more than', §13.1)."
+            "description": "True when the applied threshold is inclusive (rule 13.1). Bound to thresholdApplied: true if and only if that field uses the 'N% or more' form. False where thresholdApplied is null."
           },
           "drillDownRequired": {
             "type": "boolean",
@@ -278,16 +278,17 @@
             "properties": {
               "isOutOfBounds": {
                 "type": "boolean",
-                "description": "True if this individual or organization is determined to be out of bounds for ownership candidacy based on ownership results."
+                "description": "True ONLY if this individual or organization is out of scope under rule 5 (outside the client's upward ownership structure). This is a SCOPE assessment, not a health or review field: a record carrying qaFlags, a data gap, a conflict, or a NEED_REVIEW confidence state is still isOutOfBounds = false."
               },
               "reason": {
                 "type": "string",
-                "description": "Canonical reason for OOB flag. Null when isOutOfBounds is false."
+                "description": "Canonical reason for the OOB flag, naming the rule 5 ground. MUST be null when isOutOfBounds is false - do not write 'In scope' or any other in-scope explanation."
               },
               "status": {
                 "type": "string",
                 "enum": ["NEED_REVIEW", "DOC_INVALID", "COUNTRY_OUT_OF_SCOPE", "DOCUMENT_NOT_RELEVANT"],
-                "description": "OOB status category. Set to null when isOutOfBounds is false."
+                "nullable": true,
+                "description": "OOB status CATEGORY. MUST be null when isOutOfBounds is false. Never emit NEED_REVIEW (or any other value) on a record whose isOutOfBounds is false - that asserts an in-scope record is out of scope. The three keys move together: reason and status are non-null if and only if isOutOfBounds is true."
               }
             }
           }
@@ -322,12 +323,12 @@
         "records": {
           "type": "array",
           "nullable": true,
-          "description": "A list of items that were identified but fall outside the defined scope of an Ownership Structure.",
+          "description": "A list of items that were identified but fall outside the defined scope of an Ownership Structure, plus data-gap entries. Every entry MUST reference an existing extracted_records entry by its id; out-of-scope parties that were never emitted as records belong in outOfBounds.summary, not here.",
           "items": {
             "type": "object",
             "required": ["id", "reason", "status"],
             "properties": {
-              "id": { "type": "integer", "description": "A unique, auto-generated incremental ID for this record." },
+              "id": { "type": "integer", "description": "The id of the extracted_records entry this entry is ABOUT. A REFERENCE, not a counter: never number these entries 1..N, and never reuse an id (least of all the client's) as a placeholder to satisfy the required field. A party with no extracted_records entry - e.g. a downstream subsidiary or sister company outside the client's upward structure - cannot be listed here at all; name it in outOfBounds.summary instead." },
               "reason": { "type": "string", "description": "A clear explanation of why this record is considered out of bounds." },
               "status": { "type": "string", "enum": ["NEED_REVIEW", "COUNTRY_OUT_OF_SCOPE"], "description": "The status of the reason, indicating NEED_REVIEW or COUNTRY_OUT_OF_SCOPE." }
             }
