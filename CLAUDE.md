@@ -222,6 +222,33 @@ changes what must be got right, never which steps run.
   such as "Global Ultimate Owner (GUO)", "Ultimate Parent" or "Head of Group" is an
   ATTRIBUTION, not ownership evidence. Absent independent ownership documentation, record it as
   `roleCapacity = "Information Only"` and/or a data gap — never a threshold-bearing edge.
+- **A near-identical name is not a missing entity — the critic's worst failure mode**
+  (settled 2026-08-22). One critic response cited `"Molehill Holding B.V." (ID 5)` under Structural
+  Validation while its point-1 CRITICAL declared *"the extraction omits the entity 'Mollie Holding
+  B.V.'"*. The party was present, correctly spelled; the critic had mis-transcribed the chart label,
+  string-matched `extracted_records` — `monolith_critic/user.txt` said "matched by nameAsSource", which
+  licenses exactly that — found nothing, and raised CRITICAL. **This is what drove the oscillation
+  across four runs.** A CRITICAL is mandatory to resolve under CF.4, and the only way to add a party you
+  already hold under another name is to emit it twice plus an invented link between the two spellings:
+  the fabricated intermediate layer attempts 1 and 2 produced. The next round flags that link, the
+  extractor removes it, and the case ping-pongs between two wrong outputs with neither agent able to
+  stop. It also defeats §9.0's identity rule from the other side — the extractor is told not to conflate
+  the names, and the critic forces the conflation back in. The fix runs FIRST, ahead of the sum
+  reconciliation and the quote requirement: scan every `nameAsSource` / `linkedName` for a near-identical
+  name; where one exists it is NEVER a missing entity, and re-reading the PAGE decides between "same
+  party, my transcription was wrong, no finding" and "two distinct parties — a naming finding quoting
+  BOTH strings". Plus a self-consistency rule: a party named or cited by id anywhere in your own response
+  is present and cannot be reported absent elsewhere in it.
+- **`qaFlags.records[]` entries carry no `id`.** R8 reproduced `outOfBounds.records[].id` as REQUIRED and
+  said nothing about the sibling container, so the critic generalised across and scored a compliant entry
+  as "lacking the required `id` field" — complying would have emitted an undeclared key. The schema
+  defines exactly `reason` + `status` there, which is *why* §9.0 pins an unlinked inventoried party to
+  `qaFlags.records`: it has no record and so no id to give. R8 now reproduces both entry shapes.
+- **Ordering findings must show the comparison.** The canonical sort is reproduced correctly in the
+  critic, so an ordering finding fails on the COMPARISON — observed: a demand that "Molehill Holding B.V."
+  sort AFTER "Rucio Investment S.à r.l.", which its own key order contradicts (m < r). Same shape as the
+  `thresholdApplied` phantom: the finding must quote both strings, name the first differing key, and state
+  which sorts first — then re-read it, because a comparison supporting the existing order is not a finding.
 - **The critic must not fabricate either — a rounding residual is not a missing party**
   (settled 2026-08-22, second occurrence). The eight evidenced shareholders of an intermediate sum to
   **99.99**; the critic raised a CRITICAL "missing 0.01% shareholder" and gave it the name of a
