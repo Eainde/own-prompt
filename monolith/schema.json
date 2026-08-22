@@ -158,7 +158,7 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Voting rights percentage of the individual or organization in the entity."
+            "description": "Direct voting rights percentage on this link, exactly as STATED in a document (numeric 0-100). A SHARE PERCENTAGE IS NOT A VOTING PERCENTAGE (§9.2.2): '100% Shares', a share count, a §9.2 wholly-owned wording and a §9.2.1 'WO' code evidence ownership only — shares and votes diverge routinely (dual-class, preference and non-voting shares, and the depositary receipts a STAK / Stichting Administratiekantoor issues). Voting is evidenced only where a document states it: a voting percentage, a voting column, votes per share class, or a shareholders' agreement. Otherwise emit 0 with MISSING_VOTING_RIGHTS on EVERY affected record plus the SOURCE_DATA_NOT_AVAILABLE entry (OC.3) — never copy the ownership figure across (rule 10.1.1)."
           },
           "dominationOwnership": {
             "type": "number",
@@ -197,7 +197,7 @@
           },
           "ownershipVotingMismatch": {
             "type": "boolean",
-            "description": "True when economic ownership and voting rights diverge for this record (§10)."
+            "description": "True when economic ownership and voting rights diverge for this record (§10) — a comparison of two KNOWN figures. FALSE where the voting figure is unknown: an unknown 0 (MISSING_VOTING_RIGHTS, §9.2.2) beside an evidenced ownership percentage is a data gap, already reported by that flag, not a divergence."
           },
           "controlBasedUBOAssessmentRequired": {
             "type": "boolean",

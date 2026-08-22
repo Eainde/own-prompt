@@ -88,6 +88,16 @@ critic's findings. So:
 The critic knows about this: a `CRITIC_FINDING_DISPUTED` entry is judged **on the evidence**,
 not scored as an ignored finding, and a dispute with no matching advisory is IMPORTANT.
 
+- **CF.4a structural findings are applied at emission, not re-derived.** A finding about the SHAPE of
+  the output (a container as an array, `outOfBounds.reason` on an in-scope record, a `thresholdApplied`
+  string, a FIELD-VOCABULARY C key) asks nothing of the evidence, and CF.1's re-extraction cannot answer
+  it — re-running the gates regenerates the same default emission shape, so the defect returns untouched
+  and the identical RETRY is guaranteed. Observed: the `"In scope"` defect raised, ignored, re-raised
+  verbatim. Structural findings are collected into a pre-emission checklist and answered by conforming
+  to the OUTPUT-CONTRACT; CF.2 does not apply (no document can support or refute "this field must be
+  null"), and a structural finding that contradicts the contract is disputed per CF.5 with the OC clause
+  named, CF.7 governing.
+
 **Orchestration note (outside the prompts):** because every dispute carries an advisory, the
 caller can terminate the loop on `advisory.records` containing a dispute rather than on a retry
 counter. Nothing in either prompt caps the number of rounds.
@@ -212,6 +222,57 @@ changes what must be got right, never which steps run.
   such as "Global Ultimate Owner (GUO)", "Ultimate Parent" or "Head of Group" is an
   ATTRIBUTION, not ownership evidence. Absent independent ownership documentation, record it as
   `roleCapacity = "Information Only"` and/or a data gap — never a threshold-bearing edge.
+- **Rule 9.2.2 — a share percentage is NOT a voting percentage** (settled 2026-08-22, from a run-to-run
+  flip). The same chart label `"100% Shares"` came back as `actualVotingRightsPercentage = 100` on one
+  run and `0` on the next — nothing in either prompt answered the question, so both readings survived.
+  §9.2 settles what a wording evidences about OWNERSHIP; §9.2.2 settles what it does **not** say about
+  votes. `"X% Shares"`, a share count, §9.2's wholly-owned wordings and §9.2.1's `WO` all evidence
+  ownership ONLY — shares and votes diverge routinely (dual-class, preference, non-voting, and the
+  depositary receipts a Dutch **STAK / Stichting Administratiekantoor** issues, where the foundation
+  votes and the receipt-holders hold the economics). §10.1.1 already barred substituting the ownership
+  figure; §9.2.2 bars the antecedent step of reading a share label as a voting statement. No stated
+  voting → 0 + `MISSING_VOTING_RIGHTS` on **every** affected record (a set where 13 links carry an
+  unflagged 0 and one carries the flag asserts twelve evidenced zero-voting links), plus
+  `DILUTED_VOTING_INCOMPLETE`, plus **one** advisory for the case. `ownershipVotingMismatch` is FALSE on
+  an unknown — it compares two KNOWN figures. §10.2.0: share-only is a D1 candidate and never D2, so
+  §10.2.1 leaves `dominationVotingRights` at 0, which is correct and complete. Stated in the schema
+  descriptions of `actualVotingRightsPercentage` and `ownershipVotingMismatch` too — the schema is what
+  is bound at emission.
+- **`TargetSum` is computed from the emitted records, never asserted.** Attempt 1 of the Mollie run
+  wrote `TargetSum=[100]` across a set summing 52.27 and declared the case fully validated: §9.3 was
+  reported as run and passed on a set it would have failed, so the omission the gate exists to expose
+  was certified absent. §9.3 and rule 18's token definition now bind the figure to the records in the
+  same output, extend the rule to any narrative "sums to 100%" claim, and the critic **recomputes rather
+  than reads** — CRITICAL where the asserted figure sits inside 95–105% and the computed one does not.
+- **Critic: score each defect ONCE, and never ZERO times.** "Score it once" is about where a defect is
+  written up, not a licence to Pass a criterion whose own observation records a violation of its own
+  subject. Client Anchor Validation observed that `ownershipReviewStatus = COMPLETE` was wrong over a
+  set with seven missing parties, returned **Pass**, and deferred to Entity Completeness — which never
+  scored it. `ownershipReviewStatus` is a `clientAnchor` field (OC.2) and Client Anchor Validation owns
+  it. A deferral must name the criterion that will carry the defect.
+- **Party IDENTITY is checked separately from party PRESENCE** (settled 2026-08-22, from a live Mollie run).
+  A chart carrying both `Molehill Holding B.V.` and `Mollie Holding B.V.` came back with the 52.27%
+  link assigned to the wrong one and a fabricated `Molehill --100%--> Mollie Holding B.V.` edge
+  inserted so both labels could be kept — promoting a downstream subsidiary to IBO at 52.27%. Every
+  numeric gate passed: §9.3 sums from figures alone and is unchanged by a wrong NAME, and the critic's
+  reconcile-against-your-own-sum guard then closes the question. Three additions: **§9.0 pass 1**
+  requires character-exact labels and treats a STEM difference as two parties (rule 3's list is
+  formatting only), barring the invented reconciling edge outright; **§9.0 reconciliation** forbids one
+  party holding two positions — named in `outOfBounds.summary` as downstream AND emitted as an ancestor
+  — which is also the only place a cycle surfaces when the closing edge points DOWN and rule 5 puts it
+  out of scope, where §17's loop detection cannot reach; and the critic gets a matching per-record
+  identity check. New flag `PARTY_IDENTITY_UNRESOLVED` (rule 16 + R6, 44 names) — confirm with the KOS
+  text owner.
+- **A single 100% holder passes §9.3 by construction**, so passing certifies nothing: an invented
+  intermediate layer is normally invented in exactly that shape. Where a target has one holder at 100%,
+  the sum is not corroboration — the `evidenceSnippet` must state the 100% (or a §9.2/§9.2.1
+  wholly-owned wording) for that owner-and-target PAIR, to §9.2.1's "WO" standard.
+- **ORGCHART — how to quote a chart.** OC.1's "contiguous, copied exactly" is unsatisfiable on a
+  box-and-connector chart, so the model composed a sentence one run (`"X owns 100% of Y"`) and an edge
+  notation the next (`"X -> Y 100% Shares"`) — paraphrase both times, and the critic's verbatim
+  spot-check passed both, leaving the control inert. The snippet is now ONE contiguous printed run:
+  connector label, else shareholder-table row, else legend. The parties are already in `nameAsSource` /
+  `linkedName`; the snippet carries the FIGURE.
 - **Rule 9.0 — inventory before links**: extraction is two-pass. Enumerate every party in every
   document first, then build links only between inventoried parties. A party absent from the
   inventory must not appear in `extracted_records`; an inventoried party with no link is recorded
