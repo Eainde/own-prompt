@@ -2,7 +2,8 @@
 
 **Source:** `ownership_new_requierement.txt` (business team, 2026-08-27)
 **Applies to:** `monolith/` (extractor) and `monolith_critic/` (critic)
-**Status:** implemented; `243 passed, 1 xfailed`; `insert_prompt.sql` regenerated for both agents
+**Business response:** received 2026-08-28 (screenshot `IMG_4740.HEIC`) — see [§8](#8-round-2--business-response-of-2026-08-28)
+**Status:** implemented, including the round-2 changes; `254 passed, 1 xfailed`; `insert_prompt.sql` regenerated for both agents
 
 This document is a clause-by-clause trace. Every requirement in the business file appears
 below exactly once, marked:
@@ -135,8 +136,8 @@ Two additions the business text did not cover, both flagged as **IN+**:
 | # | Business requirement | | Where it landed |
 |---|---|---|---|
 | ADV.1 | Applies wherever percentages are sourced from SEC Form ADV ownership disclosures | **IN** | `§9.2.3` APPLICABILITY, extended to name Schedule A / Schedule B |
-| ADV.2 | Base table: NA 4.99 / A 6.00 / B 11.00 / C 25.01 / D 50.01 / E 75.01 | **IN** | `§9.2.3` BASE TABLE — reproduced verbatim, and again in critic **R9** |
-| ADV.3 | All eight special allocation rules | **IN** | `§9.2.3` — reproduced verbatim, and again in critic **R9** |
+| ADV.2 | Base table: NA 4.99 / A 6.00 / B 11.00 / C 25.01 / D 50.01 / E 75.01 | **SUPERSEDED → IN** | Replaced 2026-08-28 by the RANGED table (code + disclosure range + percentage). Reproduced in `§9.2.3` and critic **R9** |
+| ADV.3 | All eight special allocation rules | **WITHDRAWN** | Removed by the business team 2026-08-28. Absence is now pinned by `test_form_adv_special_allocations_are_gone` |
 | ADV.4 | ADV percentages are deemed ownership evidence for extraction, qualification, IBO, UBO, domination, inheritance | **IN** | `§9.2.3` *"THE BANDED FIGURE IS THE QUANTITY EVERY DOWNSTREAM RULE USES"* |
 | ADV.5 | Do not raise `MISSING_PERCENTAGE` / `SOURCE_DATA_NOT_AVAILABLE` / percentage advisory solely because the exact figure is undisclosed | **IN\*** | `§9.2.3` *"DO NOT LOG A GAP THAT DOES NOT EXIST"* — **scoped to the ownership figure only**. See [4.7](#47-adv-suppression-is-scoped-to-the-ownership-figure) |
 | ADV.6 | A more precise percentage in another admissible document prevails | **IN** | `§9.2.3` *"AN EXACT PERCENTAGE PREVAILS OVER A CODE"* |
@@ -346,6 +347,18 @@ binds the flag names. If the business wants them as an explicit checklist, they 
 **Not implemented** as a rule block; folded into rules 7 and 8 (see [§0](#0-where-the-three-rules-landed)).
 `9.2.3` and `9.0A` kept their business numbers. *Confirmed with you before implementation.*
 
+### 4.12 The `OwnershipCodeApplied` token keeps rule 18's brackets
+
+The business specified the values `OwnershipCodeApplied=Code:E` / `Code:D` / `N/A`. Implemented as
+`OwnershipCodeApplied=[Code:E]` … `OwnershipCodeApplied=[N/A]` — their vocabulary exactly, inside the
+brackets every other token on that line uses.
+
+**Why.** Rule 18's part [1] is a closed grammar in which all nineteen tokens are written `Token=[value]`,
+and rule 18 says *"spell each label exactly as specified"*. One token without brackets on that line is
+the kind of inconsistency a model silently "corrects" — in either direction, differently between runs.
+The value vocabulary is untouched. `N/A` is also deliberately **not** normalised to the `n-a` its four
+neighbouring trace tokens use, because the business named that form explicitly.
+
 ---
 
 ## 5. Changes made that the business did not ask for
@@ -369,228 +382,45 @@ the business asked for; each closes a hole the new rules would otherwise open.
 
 ---
 
-## 6. Open questions back to the business team
-
-Every item below cites the **line number in `ownership_new_requierement.txt`** and quotes the
-supplied text, so each question can be checked against the source without re-reading it. Grouped
-by rule; nothing here blocks the build — all are implemented as supplied, or under a stated
-ruling — but each is a place where the instruction is silent, self-contradictory, or produces a
-consequence that may not have been intended.
-
-### Rule 7X
-
-#### 6.1 STEP 1 and STEP 2 give different answers when a Local Addendum mandates drill-down
-
-> **lines 20–26:** *"Local Addenda must always be applied before: ownership qualification, IBO
-> determination, UBO determination, stop-rule application, drill-down decisions, ownership
-> classification."*
-> **line 29:** *"Where a Local Addendum imposes a stricter ownership requirement than Global KOS,
-> the Local Addendum prevails."*
-> **lines 33–34:** *"Where DBCLM KYC Level = Streamline → ownershipApproach = STREAMLINED"*
-
-STEP 1 says the Addendum prevails and is applied *before* stop-rule and drill-down decisions.
-STEP 2 maps Streamline → STREAMLINED unconditionally. For an adoption location on `§13.3`'s
-mandatory-drill-down list (Austria, Indonesia, Malaysia, Luxembourg, Netherlands, Poland,
-Portugal, Spain, Italy, Sri Lanka, Taiwan, Vietnam, Hungary) with KYC Level = Streamline, the two
-steps disagree.
-
-**Implemented:** STEP 2 maps the **input**; rule 7 plus `§8.2` decide the pathway emitted, so the
-Addendum wins. This also preserves `STREAMLINED_NOT_SUPPORTED`, which has no other trigger.
-**Question:** confirm the Addendum wins, or tell us STEP 2 is absolute and we will retire that flag.
-
-#### 6.2 STEP 2's mapping is total over three inputs but reaches only two of four enum values
-
-> **lines 31–37:** the three mapping rows (Global → GLOBAL, Streamline → STREAMLINED, Missing →
-> GLOBAL)
-
-`ownershipApproach` has four values. After 7X, nothing states what still triggers **`MIXED`**
-("different branches use different approaches") or **`NEED_REVIEW`** ("methodology cannot be
-determined") — a blank input is now *determined*, so it is no longer a `NEED_REVIEW` case.
-
-**Implemented:** both enum values kept (removing them is a DB-visible schema change), with
-narrowed triggers — `NEED_REVIEW` = input present and explicit but irreconcilable with a Local
-Addendum; `MIXED` = documents evidencing per-branch divergence.
-**Question:** are those the intended survivors, or should either value be retired?
-
-### Rule 9.2.3
-
-#### 6.3 A sole holder receives a HIGHER figure than the band — this is not rounding
-
-> **line 120:** *"- D = 50.01%"* — but **line 126:** *"- Single D holder = 74.99%"*
-> **line 119:** *"- C = 25.01%"* — but **line 129:** *"- Single C holder = 49.99%"*
-
-A single D holder is allocated **74.99%**, roughly 25 points above its own band floor; a single C
-holder **49.99%**, roughly 25 points above its. These are not roundings of the base table — they
-look like a second allocation model (perhaps "the band's ceiling, being everything not disclosed
-under a lower code"), and the instruction does not say which model governs or when the base table
-applies at all.
-
-**Implemented:** exactly as supplied — the special allocation overrides, the base table is the
-residual.
-**Question:** what is the derivation? It matters because it decides every uncovered combination
-(see 6.5), and because a wrong reading moves a holder across the IBO threshold.
-
-#### 6.4 "Two D holders = 50.00% each" silently switches domination OFF for both
-
-> **line 128:** *"- Two D holders = 50.00% each"*
-
-50.00 is **not more than 50%**, so under `§10.2.0` both holders fail rung D1 and take D4:
-`dominationIndicator` = NO, `dominationOwnership` = 0. Compare the base table's D = 50.01, which
-*does* take D1. So the same code on the same form flips domination — and through `§12.4`,
-potentially `isIBO` — according to how many other D holders exist.
-
-**Implemented:** as supplied, with the boundary spelled out in both prompts so neither agent
-"corrects" it.
-**Question:** is 50.00 intended, or a typo for 50.01? If intended, is the loss of domination for
-both holders the desired outcome?
-
-#### 6.5 The special allocation list does not cover most real combinations
-
-> **lines 123–131:** the eight cases (single E; E+C; single D; D+C; two D; single C; four C; C with
-> B/A/NA)
-
-Not covered: two E holders, three E holders, three C holders, two C holders, five or more C
-holders, C+D, E+D, D+D+C, B+B, and any set mixing three or more distinct codes.
-
-**Implemented:** each holder takes its **base table** value where no special case matches exactly;
-no interpolation or reasoning by analogy; a set over 100% emits `OWNERSHIP_PERCENTAGE_CONFLICT` +
-advisory rather than being rescaled. *(You chose this option before implementation.)* Worked
-example of why it matters: `{D, D, C}` = 50.00 + 50.00 + 25.01 = **125.01%**.
-**Question:** is the base-table fallback right, or is there a fuller matrix we should be using?
-
-#### 6.6 Does the suppression reach the VOTING gap as well as the ownership gap?
-
-> **lines 141–145:** *"Do not raise: MISSING_PERCENTAGE, SOURCE_DATA_NOT_AVAILABLE, ownership
-> percentage advisory requests, solely because an exact ownership percentage is not disclosed."*
-
-`MISSING_PERCENTAGE` and `SOURCE_DATA_NOT_AVAILABLE` are used for the **voting** figure too
-(`OC.3`, `§9.2.2`), and an ADV *ownership* code says nothing about votes. Read unscoped, this
-clause would delete the voting gap on every ADV case.
-
-**Implemented:** scoped to the **ownership figure only**. `MISSING_VOTING_RIGHTS`, its
-`SOURCE_DATA_NOT_AVAILABLE` entry, and `DILUTED_VOTING_INCOMPLETE` all still fire.
-**Question:** confirm — the third bullet says "ownership percentage advisory requests", which
-suggests the whole clause was meant to be ownership-scoped.
-
-#### 6.7 Where in `governanceBasis` does the code go?
-
-> **line 149:** *"Where ADV codes are used, governanceBasis must identify the ownership code relied
-> upon."*
-
-`governanceBasis` is not free text — rule 18 fixes eight labelled parts and states *"emit no text
-outside the eight labelled parts"*. So "identify the code" needs a defined home or it varies every
-run.
-
-**Implemented:** a new part-[1] token **`OwnershipCodeApplied=[the code, and the special allocation
-case applied / n-a]`**, placed before `Classification`.
-**Question:** confirm a structured token is wanted, rather than prose inside part [2].
-
-### Rule 9.0A
-
-#### 6.8 Three different QA flags are named for one condition
-
-> **line 216:** *"- raise QA Flag: PARTY_IDENTITY_UNRESOLVED."*
-> **line 283:** *"…retain 'Passive Investors' as Information Only and raise PARTY_IDENTITY_UNRESOLVED."*
-> **lines 318–320:** *"QAFlag = COLLECTIVE_OWNER_UNRESOLVED or QAFlag = LEGEND_INTERPRETATION_MISSING"*
-
-The same condition — a collective label that cannot be resolved — is given `PARTY_IDENTITY_UNRESOLVED`
-in two places and `COLLECTIVE_OWNER_UNRESOLVED` in a third.
-
-**Implemented:** the two new flags only. `PARTY_IDENTITY_UNRESOLVED` already has a binding trigger
-for a **different** condition (`§9.0` pass 1's two near-identical labels) and carries ladder rung 2,
-which 9.0A contradicts by requiring rung 3.
-**Question:** confirm `PARTY_IDENTITY_UNRESOLVED` was carried over in error.
-
-#### 6.9 The worked example carries an inverted edge and a shareholder sum that fails `§9.3`
-
-> **line 257:** *"ABC Holdings -> 100% Passive Investors \*"*
-> **lines 264–268:** *"Fund A 10% / Fund B 8% / Fund C 6% / Fund D 4% / Fund E 2%"*
-
-Two problems. First, `ABC Holdings -> 100% Passive Investors` reads under `FIELD-VOCABULARY A`'s
-positional direction contract as *"ABC Holdings owns Passive Investors"* — the reverse of the
-intent; every example in the prompt is written `nameAsSource → linkedName`. Second, the five funds
-total **30%** against a block printed at **100%**, which puts the target's `§9.3` sum at 30 → below
-95% → a false `INCOMPLETE_SHAREHOLDER_SET` **on the canonical example of the new rule**.
-
-**Implemented:** rewritten in direction-contract form with a 30% block the five funds reconcile to,
-plus two examples the supplied text does not cover (partially resolved, unresolved).
-**Question:** confirm the rewrite matches intent — in particular whether the block was meant to be
-30% or the funds were meant to total 100%.
-
-#### 6.10 Are the resolved percentages absolute or relative?
-
-> **lines 262–268:** *"Passive Investors represent: Fund A 10% …"*
-
-Because of 6.9's mismatch it is not determinable from the example whether "Fund A 10%" means 10% of
-the **target** or 10% **of the collective block**.
-
-**Implemented:** **absolute, as printed** — `KERNEL C` bars computing a percentage no document
-states. Where the resolved parties do not reconcile to the block, both facts stand and the case is
-flagged rather than rescaled. *(You chose this option before implementation.)*
-**Question:** confirm. If they are relative, the agent must multiply, which currently no rule permits.
-
-#### 6.11 Does "replace" mean the collective label is removed from the output entirely?
-
-> **line 209:** *"- replace the collective label with the resolved ownership parties,"*
-
-`§9.0` pass 1 must inventory every party *named as an owner*, and the chart does name the label;
-pass 2 then routes every inventoried party into one of exactly two containers. "Replace" is a third
-outcome that routing has no exit for. There is also a `KERNEL D` zero-data-loss reading under which
-the label should be *retained* alongside the resolved parties.
-
-**Implemented:** removed entirely — the resolved label is **not a party**, is not inventoried, and
-is emitted in no container, written as an express exception to pass 1 (the only other one is the
-evidenced stop rule).
-**Question:** confirm removal is intended rather than retention-as-context.
-
-#### 6.12 Partial resolution is not addressed
-
-> **lines 207–216:** the instruction is binary — *"If clarification identifies the underlying owners…"*
-> / *"If clarification cannot be obtained…"*
-
-The common real case is neither: an email names three of five funds.
-
-**Implemented:** emit the named parties at their stated figures **and** retain the label for the
-remainder at `actualOwnershipPercentage = 0` with `MISSING_PERCENTAGE` — writing the difference
-between the block and the named parties would be the computation the rule forbids.
-**Question:** confirm, or tell us a partial list should be treated as wholly unresolved.
-
-#### 6.13 Are maker / checker comments admissible ownership evidence?
-
-> **lines 203–204:** *"- maker comments, - checker comments,"* (listed among the resolution sources)
-
-These are not case documents in the usual sense, they have no `fileName` and no page, and rule 6's
-H1/H2/H3 lists did not carry them — but `sourceClass` is a required enum and the critic scores a
-wrong class as IMPORTANT.
-
-**Implemented:** added to rule 6 as **H3** (supplementary / corroborative), and usable only where
-supplied as a case document (`KERNEL A`). Unpaginated sources take `pageNumber = 1` with the real
-locator in `governanceBasis` part [2].
-**Question:** confirm H3 is right, or tell us they are pointer-only — i.e. they may direct a
-re-read but may not themselves ground a record.
-
-#### 6.14 The nine QA-failure examples were not reproduced
-
-> **lines 302–312:** *"Examples include: - Passive Investors identified but underlying investors
-> cannot be determined. - Other Shareholders identified but…"* (nine bullets)
-
-All nine are the same condition restated against nine different labels, and that condition is
-already the operative rule. The 17 labels themselves **are** reproduced (lines 165–182).
-
-**Implemented:** the rule, not the nine restatements.
-**Question:** confirm, or ask for them back as an explicit checklist — they are cheap to add.
-
-#### 6.15 Does 9.0A fire above an evidenced stop rule?
-
-> Not addressed anywhere in lines 152–352.
-
-9.0A is `priority="CRITICAL"` while rule 11's stop rules are `HIGH`, so a bare priority reading
-would make it override every stop rule — a trap this repo has hit before.
-
-**Implemented:** two rulings. 9.0A does **not** reach a party beyond an evidenced, recorded,
-permitted stop (there is no label there to resolve). Where it fires on an **in-scope** node of a
-client-listed case, its `NEED_REVIEW` **outranks** `§11.2`'s mandatory `COMPLETE` — fail closed.
-**Question:** confirm both.
+## 6. The 15 questions, and how the business answered them
+
+All 15 were answered on 2026-08-28. Line references are into `ownership_new_requierement.txt`.
+
+| # | Question (business line ref) | Answer | Effect on the build |
+|---|---|---|---|
+| 6.1 | STEP 1 vs STEP 2 when an Addendum mandates drill-down (20–26, 29 vs 33–34) | **Proceed — "local addendum always overlap global"**, plus two sentences to add | Our ruling confirmed. The supplied text is now in `§8.0`, including *"must be reflected in the final `ownershipApproach`"* |
+| 6.2 | What triggers `MIXED` / `NEED_REVIEW` (31–37) | **Proceed — for blank KYC, GLOBAL is added; NEED_REVIEW not required** | Confirms the narrowing already implemented. No change |
+| 6.3 | Why single D = 74.99 against a base of 50.01 (119/120 vs 126/129) | **Replaced the table** with code + RANGE + percentage | `§9.2.3` and critic R9 rebuilt on the ranged table |
+| 6.4 | "Two D holders = 50.00% each" switches domination off (128) | **Remove — Special Allocation Rules** | Moot. D is now always 50.01 → always D1 |
+| 6.5 | Combinations not covered by the eight cases (123–131) | **Remove — Special Allocation Rules** | Moot. One code, one percentage, no combination cases |
+| 6.6 | Does the suppression reach the VOTING gap? (141–145) | **left blank** | See [§6a](#6a-the-one-question-that-came-back-unanswered) |
+| 6.7 | Where the code goes in `governanceBasis` (149) | **`OwnershipCodeApplied=Code:E` / `Code:D` / `N/A`** | Token adopted in their vocabulary; see [4.12](#412-the-ownershipcodeapplied-token-keeps-rule-18s-brackets) |
+| 6.8 | Three flags for one condition (216, 283 vs 318–320) | **"Remove `PARTY_IDENTITY_UNRESOLVED` from the new collective-owner rule"** | Confirms what was implemented. No change |
+| 6.9 | Worked example: inverted edge, funds ≠ block (257, 264–268) | **Corrected example supplied**: `ABC Holdings is owned 100% by Passive Investors`, funds 10/20/30/20/20 | `§9.0A`'s examples rebuilt on their figures, which total 100 and reconcile |
+| 6.10 | Resolved percentages absolute or relative? (262–268) | **"Multiply only if Owners are same, if owners are different, do not multiply"** | The *do not multiply* limb implemented. The other limb is not — see [§6a](#6a-the-one-question-that-came-back-unanswered) |
+| 6.11 | Does "replace" mean removed entirely? (209) | **"removal is intended"** | Confirms what was implemented. No change |
+| 6.12 | Partial resolution (207–216) | **"confirm"** | Confirms what was implemented, with one correction we made ourselves — see [§8](#8-round-2--business-response-of-2026-08-28) |
+| 6.13 | Maker / checker comments admissible? (203–204) | **"remove maker checker comment section"** | Withdrawn from rule 6's H3 list and from `§9.0A`'s sweep, critic R11, and the unpaginated-source rule |
+| 6.14 | The nine QA-failure examples (302–312) | **"confirmed"** | They stay out |
+| 6.15 | Does 9.0A fire above a stop rule? (not in the file) | **"confirm"** | Both rulings stand |
+
+### 6a. The one question that came back unanswered, and one that came back half-answered
+
+**6.6 — the voting gap.** The line reads `6.6 -` with nothing after it. The clause at business lines
+141–145 says do not raise `MISSING_PERCENTAGE` / `SOURCE_DATA_NOT_AVAILABLE` / advisory for an
+undisclosed exact figure; both of those artefacts are ALSO used for the **voting** figure, and an ADV
+*ownership* code says nothing about votes. Implemented scoped to the **ownership figure only**, so
+`MISSING_VOTING_RIGHTS`, its gap entry and `DILUTED_VOTING_INCOMPLETE` all still fire. The third bullet
+of the business clause says "ownership percentage advisory requests", which supports that reading.
+**Still worth a yes/no.**
+
+**6.10 — "Multiply only if Owners are same."** The second limb is implemented: where the resolved
+parties are different parties — which is what makes a label collective — each takes the figure its
+source states, unmultiplied. The **same-owner** limb has no worked example and no reading I can turn
+into a deterministic rule, so it was deliberately NOT written into the prompt: a rule that cannot be
+applied identically twice is worse than no rule, and it would reintroduce exactly the run-to-run
+variance this prompt keeps having to remove. It costs nothing today, because a collective label
+resolves to multiple parties by definition. **Needs one worked example before it can be added.**
 
 ## 7. Files changed
 
@@ -600,10 +430,103 @@ client-listed case, its `NEED_REVIEW` **outranks** `§11.2`'s mandatory `COMPLET
 | `monolith/schema.json` | 9 field descriptions; **no new or removed fields** |
 | `monolith_critic/system.txt` | R2 / R6 amended; R9 / R10 / R11 added; 9 criteria amended; `verdict_rules` amended |
 | `monolith_critic/user.txt` | 5 instruction blocks mirrored |
-| `tests/test_monolith_prompts.py` | 2 count pins, 4 list pins, ~16 new tests **(note: `tests/` is gitignored — `git add -f`)** |
+| `tests/test_monolith_prompts.py` | 2 count pins, 4 list pins, ~27 new tests including the round-2 regressions **(note: `tests/` is gitignored — `git add -f`)** |
 | `CLAUDE.md` | Design history + open questions |
 | `monolith/insert_prompt.sql`, `monolith_critic/insert_prompt.sql` | Regenerated via `python3 tools/gen_insert_sql.py` — never hand-edit |
 
-**Verification:** `venv/bin/pytest tests/ -v` → `243 passed, 1 xfailed` (the xfail is the
+**Verification:** `venv/bin/pytest tests/ -v` → `254 passed, 1 xfailed` (the xfail is the
 pre-existing stale `monolith/example.json`). Both SQL files: one `INSERT INTO`, no semicolons,
 no comments, no `& ; : ?` surviving.
+
+---
+
+## 8. Round 2 — business response of 2026-08-28
+
+Received as a screenshot (`IMG_4740.HEIC`). Six answers changed the build; the rest confirmed what was
+already there. Everything below is implemented and covered by tests.
+
+### 8.1 The Form ADV table was replaced, and the special allocations withdrawn
+
+The base table is now a **ranged** table, and the eight special allocation rules are **gone**:
+
+| Code | Range | Percentage emitted |
+|---|---|---|
+| NA | Less Than 5% | 4.99 |
+| A | 5% But Less Than 10% | 6.00 |
+| B | 10% But Less Than 25% | 11.00 |
+| C | 25% But Less Than 50% | 25.01 |
+| D | 50% But Less Than 75% | 50.01 |
+| E | 75% or More | 75.01 |
+
+This is a **simplification with real consequences**, all of them good. The allocations were the reason
+a code's value depended on who else held one (the same `C` was 25.01, 25.00 or 49.99), which forced
+three pieces of machinery that are now deleted:
+
+- the **per-target SET operation** clause (allocation had to wait until the holder set was closed, and
+  was otherwise reading-order dependent);
+- the **fallback** for combinations the eight cases did not cover;
+- the critic's **double-scoring exception** in `verdict_rules` (one missed holder used to change every
+  other holder's percentage, so a single omission was simultaneously a missing entity and N wrong
+  percentages).
+
+It also removes the domination flip: a `D` is now 50.01 on every run, so §10.2.0 D1 always fires.
+
+Two things had to be **added** to make the ranged table safe:
+
+- **The range is not the figure.** D's range starts *at* 50%, so a model reading the range instead of
+  the percentage could argue a D holder might hold exactly 50% and therefore not dominate. Both prompts
+  now state that the percentage column is the only value produced, and that 50.01 is what the ladder tests.
+- **A banded set does not total 100.** Two D holders make 100.02, four C holders 100.04, a single E
+  holder 75.01. That is an artefact of deemed values standing for ranges, not double-counting — the
+  target is exempt from §9.3 under `explicitly-partial-source`, `TargetSum` reads "exempt", and
+  `OWNERSHIP_PERCENTAGE_CONFLICT` is never raised for it. Without this the new table would fire a false
+  conflict flag on the commonest ADV shape, and the critic would demand one.
+
+`test_form_adv_special_allocations_are_gone` pins all eight cases, plus `74.99` and `49.99`, as
+**absent** from all three prompt files — so they cannot be reintroduced from the superseded instruction.
+
+### 8.2 Maker / checker comments withdrawn
+
+Removed from rule 6's H3 list, from §9.0A's resolution sweep, from critic R11, from the
+COLLECTIVE-LABEL GUARD, and from the unpaginated-source example in OC.1.
+
+One deliberate non-removal: `KERNEL F` says the output must be *"suitable for audit, maker, checker and
+QA review"*. That is a sentence about **who reviews the output**, not about evidence, and it predates
+this change — it stays, and a test pins it so a future sweep does not delete it by keyword match.
+
+### 8.3 The §9.0A example now uses the business's figures
+
+`ABC Holdings Ltd. is owned 100% by Passive Investors †`, resolving to Fund A 10%, Fund B 20%,
+Fund C 30%, Fund D 20%, Fund E 20% — which total 100 and reconcile to the block. Both defects in the
+original example are gone, and the direction reads correctly under the `nameAsSource → linkedName`
+contract.
+
+### 8.4 Resolved percentages are not multiplied
+
+Per *"if owners are different, do not multiply"*: each resolved party takes the figure its source states
+as its percentage **in the target**, unmultiplied by the block's percentage.
+
+### 8.5 One correction we made ourselves while implementing 8.3/8.4
+
+The non-reconciling case originally flagged `OWNERSHIP_PERCENTAGE_CONFLICT` in **both** directions. That
+is wrong for a **shortfall**: where the resolved parties total *less* than the block (the partial
+resolution case), parties are missing rather than contradictory, and §9.3 already owns that condition
+with `INCOMPLETE_SHAREHOLDER_SET`. Using the conflict flag there would report double-counting where the
+real defect is an incomplete set, and would put §9.0A at odds with §9.3 on the same target.
+
+The flag now follows the **direction** of the discrepancy — resolved total above the block →
+`OWNERSHIP_PERCENTAGE_CONFLICT`; below → `INCOMPLETE_SHAREHOLDER_SET` — with
+`COLLECTIVE_OWNER_UNRESOLVED` and an advisory either way. Mirrored in critic R11.
+
+### 8.6 What is still open
+
+Two items, neither blocking — both in [§6a](#6a-the-one-question-that-came-back-unanswered):
+
+1. **6.6** came back blank: does the ADV gap-suppression reach the **voting** gap? Implemented
+   ownership-only, which is the safe reading and matches the clause's own third bullet.
+2. **6.10's "multiply only if Owners are same"** limb has no worked example and was not written into
+   the prompt. The operative limb ("if owners are different, do not multiply") is implemented.
+
+One consequence worth a confirmation rather than a question: **a `D` code now always evidences
+domination**, because 50.01 is always more than 50%, even though the code's own range admits a holding
+of exactly 50%. That follows from withdrawing the allocations rather than from a stated decision.
