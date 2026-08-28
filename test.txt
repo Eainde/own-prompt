@@ -1,0 +1,11 @@
+one last consequence to confirm on the Form ADV table and we're fully closed.
+▎
+▎ Since the special allocation rules came out, a "D" is always 50.01%. That's above 50%, so every D holder now comes out as a dominating owner (dominationIndicator = YES) — and that can make them an IBO on control grounds even where they don't meet the ownership threshold.
+▎
+▎ What I want to check: D's range is "50% But Less Than 75%", which includes a holding of exactly 50% — and exactly 50% is not a majority.
+▎
+▎ We've gone with the percentage (50.01), not the range — so a D always dominates.
+▎
+▎ Is that right? If yes, just reply "yes" and we're done.
+▎
+▎ If not, the alternative is that a D on its own doesn't establish majority control, and we'd only flag domination where something else in the documents evidences it — which would be a change on our side.
