@@ -89,7 +89,7 @@
           "itemType": {
             "type": "string",
             "enum": ["Natural Person", "Non Natural Person"],
-            "description": "Natural Person for a natural person; Non Natural Person for any legal entity or arrangement (company, fund, trust, foundation, partnership, government body)."
+            "description": "Natural Person for a natural person; Non Natural Person for any legal entity or arrangement (company, fund, trust, foundation, partnership, government body). This is a two-valued CONTAINER TYPE and carries no assertion of legal personality: an unresolved COLLECTIVE ownership label retained under §9.0A (Passive Investors, Other Shareholders, Limited Partners) takes Non Natural Person because there is no third value, and the finding that the label may not BE a legal entity is carried by roleCapacity = Information Only plus COLLECTIVE_OWNER_UNRESOLVED, never by this field."
           },
           "nameAsSource": {
             "type": "string",
@@ -115,7 +115,7 @@
             "type": "string",
             "nullable": true,
             "enum": ["Client", "Direct Owner", "Indirect Owner", "IBO", "UBO", "Control-Based IBO/UBO", "Notional UBO", "Possible Notional UBO", "General Partner", "Limited Partner", "Trustee", "Settlor", "Beneficiary", "Protector", "Foundation Controller", "Listed Parent", "Regulated Parent", "Government Owner", "Exempt Entity", "Non-Qualifying Owner", "Information Only", "Unknown / Needs Review"],
-            "description": "Classification outcome under applicable global/local rules and evidence."
+            "description": "Classification outcome under applicable global/local rules and evidence, assigned by walking the §12.0 precedence ladder from rung 1 downward, first match wins. Note the rung 2 / rung 3 split, since both otherwise read on unresolved identity: rung 2 'Unknown / Needs Review' is for an unresolved question BETWEEN CANDIDATES (a §9.1 direction that cannot be established, or §9.0 pass 1's two near-identical labels), while an unresolved COLLECTIVE ownership label under §9.0A takes rung 3 'Information Only'."
           },
           "pageNumber": {
             "type": "integer",
@@ -152,19 +152,19 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Actual ownership percentage of the individual or organization in the entity."
+            "description": "Direct ownership percentage on this link, as STATED by the source (numeric 0-100). A percentage can be STATED without being printed as a number, and three clauses each supply the figure: §9.2's wholly-owned wordings and §9.2.1's resolved 'WO' code each evidence exactly 100, and §9.2.3's resolved SEC Form ADV ownership codes evidence the banded figure (NA 4.99 / A 6.00 / B 11.00 / C 25.01 / D 50.01 / E 75.01 - one row per code, no combination cases, and the deemed PERCENTAGE rather than the code's disclosure range). A figure derived that way IS the stated percentage - neither an approximation nor an invented value - so do NOT emit 0 with MISSING_PERCENTAGE against it. An UNRESOLVED code is the opposite case and fails closed to 0 + MISSING_PERCENTAGE + the SOURCE_DATA_NOT_AVAILABLE gap."
           },
           "actualVotingRightsPercentage": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Direct voting rights percentage on this link, exactly as STATED in a document (numeric 0-100). A SHARE PERCENTAGE IS NOT A VOTING PERCENTAGE (§9.2.2): '100% Shares', a share count, a §9.2 wholly-owned wording and a §9.2.1 'WO' code evidence ownership only — shares and votes diverge routinely (dual-class, preference and non-voting shares, and the depositary receipts a STAK / Stichting Administratiekantoor issues). Voting is evidenced only where a document states it: a voting percentage, a voting column, votes per share class, or a shareholders' agreement. Otherwise emit 0 with MISSING_VOTING_RIGHTS on EVERY affected record plus the SOURCE_DATA_NOT_AVAILABLE entry (OC.3) — never copy the ownership figure across (rule 10.1.1)."
+            "description": "Direct voting rights percentage on this link, exactly as STATED in a document (numeric 0-100). A SHARE PERCENTAGE IS NOT A VOTING PERCENTAGE (§9.2.2): '100% Shares', a share count, a §9.2 wholly-owned wording and a §9.2.1 'WO' code evidence ownership only — shares and votes diverge routinely (dual-class, preference and non-voting shares, and the depositary receipts a STAK / Stichting Administratiekantoor issues). Voting is evidenced only where a document states it: a voting percentage, a voting column, votes per share class, or a shareholders' agreement. Otherwise emit 0 with MISSING_VOTING_RIGHTS on EVERY affected record plus the SOURCE_DATA_NOT_AVAILABLE entry (OC.3) — never copy the ownership figure across (rule 10.1.1). An SEC Form ADV ownership code (§9.2.3) is an OWNERSHIP code and is likewise silent on votes: never derive this field, or a D2 domination basis, from one."
           },
           "dominationOwnership": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "The DIRECT ownership figure on this link that the domination determination rests on (§10.2.0/§10.2.1): equals actualOwnershipPercentage where the documents evidence more than 50% of share ownership on this link (ladder rung D1), otherwise 0. NOT a residual 'control over and above the shareholding' figure - a 100% shareholder carries 100 here, not 0. NEVER the deemed inherited position, which belongs in dilutionOwnershipPercentage (§8.3.3). 0 alongside dominationIndicator = YES is valid ONLY where the determination rests on a control basis (D3), and controlRights must then name that basis."
+            "description": "The DIRECT ownership figure on this link that the domination determination rests on (§10.2.0/§10.2.1): equals actualOwnershipPercentage where the documents evidence more than 50% of share ownership on this link (ladder rung D1), otherwise 0. Where the figure came from a §9.2.3 Form ADV ownership code the ladder is run on the ALLOCATED figure, never on the letter or the code's range: D is 50.01 and E is 75.01, so both are more than 50% and take D1, carrying that figure here. NOT a residual 'control over and above the shareholding' figure - a 100% shareholder carries 100 here, not 0. NEVER the deemed inherited position, which belongs in dilutionOwnershipPercentage (§8.3.3). 0 alongside dominationIndicator = YES is valid ONLY where the determination rests on a control basis (D3), and controlRights must then name that basis."
           },
           "dominationVotingRights": {
             "type": "number",
@@ -176,13 +176,13 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Effective (diluted) indirect ownership in the client, computed as the product of actualOwnershipPercentage across every link along this record's ownership path down to the client (layer 0), expressed 0-100 (§10.1/§12.3). Equals actualOwnershipPercentage for a layer-1 direct owner. Recording only — isIBO/isUBO already use this cumulative figure; this field does not itself change classification. STREAMLINED OVERRIDE (isStreamlined = TRUE, §8.3/§8.3.3): on the streamlined pathway this field instead carries the DEEMED INHERITED position produced by the Domination Methodology and is NEVER a product of percentages — a dominating owner inherits the dominated entity's full position in the client (55% of an entity holding 70% of the client gives 70, not 38.5), and a non-dominating owner at layer 2 or deeper carries 0 with NO_INHERITED_POSITION."
+            "description": "Effective (diluted) indirect ownership in the client, computed as the product of actualOwnershipPercentage across every link along this record's ownership path down to the client (layer 0), expressed 0-100 (§10.1/§12.3). Equals actualOwnershipPercentage for a layer-1 direct owner. Recording only — isIBO/isUBO already use this cumulative figure; this field does not itself change classification. STREAMLINED OVERRIDE (isStreamlined = TRUE, §8.3/§8.3.3): on the streamlined pathway this field instead carries the DEEMED INHERITED position produced by the Domination Methodology and is NEVER a product of percentages — a dominating owner inherits the dominated entity's full position in the client (55% of an entity holding 70% of the client gives 70, not 38.5), and a non-dominating owner at LAYER 2 OR DEEPER carries 0 with NO_INHERITED_POSITION. A STREAMLINED owner at LAYER 1 has nothing upstream to inherit and no intermediate layer to multiply through, so it carries its own direct position in the client (§8.3.0) - not 0, and NO_INHERITED_POSITION does not apply there. Which pathway applies is fixed by §8.0: a blank, missing or unrecognised isStreamlined reads as FALSE, so the GLOBAL reading above governs."
           },
           "dilutionVotingRightsPercentage": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Effective (diluted) indirect voting rights in the client, computed as the product of actualVotingRightsPercentage across every link along this record's path down to the client (§10.1.1/§12.3), unless the documents state a distinct downstream voting arrangement. Emit 0 when any link on the path has no stated voting percentage (its actualVotingRightsPercentage is unknown / flagged MISSING_PERCENTAGE) AND add DILUTED_VOTING_INCOMPLETE to qaFlags — the flag distinguishes this unknown 0 from a genuinely-computed 0, mirroring MISSING_PERCENTAGE on the direct fields (OC.3). Never substitute the ownership figure (§10.1.1). Not tested against the ownership-based IBO/UBO thresholds, but informs the control-based UBO / domination assessment (§10.2). STREAMLINED OVERRIDE (isStreamlined = TRUE, §8.3/§8.3.3): the Domination Methodology governs voting as well as ownership, so on the streamlined pathway this field carries the deemed inherited voting position and is never a product."
+            "description": "Effective (diluted) indirect voting rights in the client, computed as the product of actualVotingRightsPercentage across every link along this record's path down to the client (§10.1.1/§12.3), unless the documents state a distinct downstream voting arrangement. Emit 0 when any link on the path has no stated voting percentage (its actualVotingRightsPercentage is unknown / flagged MISSING_PERCENTAGE) AND add DILUTED_VOTING_INCOMPLETE to qaFlags — the flag distinguishes this unknown 0 from a genuinely-computed 0, mirroring MISSING_PERCENTAGE on the direct fields (OC.3). Never substitute the ownership figure (§10.1.1). Not tested against the ownership-based IBO/UBO thresholds, but informs the control-based UBO / domination assessment (§10.2). STREAMLINED OVERRIDE (isStreamlined = TRUE, §8.3/§8.3.3): the Domination Methodology governs voting as well as ownership, so on the streamlined pathway this field carries the deemed inherited voting position and is never a product. Which pathway applies is fixed by §8.0: a blank, missing or unrecognised isStreamlined reads as FALSE, so the GLOBAL reading above governs."
           },
           "dominationIndicator": {
             "type": "string",
@@ -232,7 +232,7 @@
           "thresholdApplied": {
             "type": "string",
             "nullable": true,
-            "description": "The threshold this record was tested against. CLOSED GRAMMAR, exactly one of: 'greater than N%' (strict), 'N% or more' (inclusive, rule 13.1), or null where no threshold was tested (the layer-0 client, or a record halted by a stop rule). N is the bare number as the governing rule states it (25, 10, 5). Never '>25%', '25%', 'more than 25 percent' or 'greater than 25% (EDD)' — the due-diligence level and the overlay that selected the figure belong in governanceBasis part [4]."
+            "description": "The threshold this record was tested against. CLOSED GRAMMAR, exactly one of: 'greater than N%' (strict), 'N% or more' (inclusive, rule 13.1), or null where no threshold was tested (the layer-0 client; a record halted by a stop rule; or a record classified at §12.0 ladder rung 2 'Unknown / Needs Review' or rung 3 'Information Only', which is not threshold-tested at all). N is the bare number as the governing rule states it (25, 10, 5). Never '>25%', '25%', 'more than 25 percent' or 'greater than 25% (EDD)' — the due-diligence level and the overlay that selected the figure belong in governanceBasis part [4]."
           },
           "inclusiveThreshold": {
             "type": "boolean",
@@ -365,7 +365,7 @@
     "ownershipApproach": {
       "type": "string",
       "enum": ["GLOBAL", "STREAMLINED", "MIXED", "NEED_REVIEW"],
-      "description": "Case-level methodology applied (prompt §8)."
+      "description": "Case-level methodology ACTUALLY APPLIED, after the KYC-level gate at §8.0 and the conditions at §8.2 - never the isStreamlined input restated. §8.0 maps the input: TRUE / Streamline selects a STREAMLINED candidate; FALSE / Global selects GLOBAL; and anything else - INCLUDING a blank, empty, null or unrecognised value, or an unsubstituted placeholder - selects GLOBAL. Never STREAMLINED on a non-explicit input. MIXED requires documents evidencing different branches genuinely running under different approaches. NEED_REVIEW is narrow: the input is PRESENT and explicit but irreconcilable with an applicable Local Addendum; a MISSING input is NOT that case and takes GLOBAL plus the §8.0 input gap. (prompt §8)."
     },
     "advisory": {
       "type": "object",

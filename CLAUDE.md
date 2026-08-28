@@ -204,6 +204,106 @@ changes what must be got right, never which steps run.
 
 ## Key accuracy rules (non-obvious)
 
+- **A blank `isStreamlined` was defaulting to STREAMLINED — the worst-shaped bug this repo has had**
+  (settled 2026-08-27, business rule 7X). `isStreamlined` is tested as a BOOLEAN at a dozen
+  load-bearing sites (§8.1, §8.2, §8.3, §10.1's applicability guard, §10.2.0, §12.3, §12.4, rule 16's
+  `STREAMLINED_NOT_SUPPORTED` mapping, OC.1's two dilution fields, and two schema descriptions). A blank
+  value is neither TRUE nor FALSE, so **every one of those guards was undefined** — including §10.1's
+  "where `isStreamlined = TRUE`, do not dilute". §8.1 reached FALSE and §8.2 reached TRUE; nothing
+  reached blank, `INPUT-VALIDATION` logged it as a gap but named no pathway, and the model resolved the
+  hole by guessing STREAMLINED. That guess terminates every branch at the first owner holding 50% or
+  less (§8.3.1) and deletes the entire structure above it. New **§8.0** is a positive mapping — explicit
+  Streamline → candidate, FALSE/Global → GLOBAL, **anything else → GLOBAL** — plus one normalization
+  clause ("a blank, missing or unrecognised value READS AS FALSE for every other `isStreamlined` test
+  in this prompt"), which is what fixes twelve sites at once rather than twelve edits. The default
+  settles the *methodology* only: the gap, `MISSING_MANDATORY_INPUT` and the advisory are still
+  recorded. `ownershipApproach` is now expressly the pathway **actually applied** after §8.2's
+  conditions, and OC.2's `NEED_REVIEW` was narrowed (input present but irreconcilable with a Local
+  Addendum) so that a blank input no longer has two defensible answers.
+- **…and the critic was blessing the truncation.** Entity Completeness's STOP-RULE GUARD limb (iii)
+  says every party above a 50%-or-less owner is *correctly absent* under STREAMLINED — it verified the
+  **stop**, never the **declaration**, so a wrongly-declared STREAMLINED made the reviewer certify the
+  deletion as correct by rule. Limb (iii) is now gated on validating the declaration against
+  `is_streamlined` (critic **R10** reproduces §8.0's mapping, since the critic never sees the extractor
+  prompt), and a STREAMLINED declared on a non-explicit input is **CRITICAL**, not IMPORTANT. The
+  converse is deliberately asymmetric: GLOBAL on a Streamline input is IMPORTANT, because it
+  over-extracts rather than dropping evidence. General lesson: when a guard excuses an absence, check
+  what authorises the guard — an unverified precondition turns a safety check into a laundering step.
+- **Rule 9.2.3 — SEC Form ADV ownership codes are percentage evidence** (added 2026-08-27; table
+  replaced 2026-08-28). Form ADV states ownership as a lettered code. The business team's final table
+  gives each code a disclosure RANGE and a deemed PERCENTAGE — NA `Less Than 5%` → 4.99, A
+  `5% But Less Than 10%` → 6.00, B `10% But Less Than 25%` → 11.00, C `25% But Less Than 50%` → 25.01,
+  D `50% But Less Than 75%` → 50.01, E `75% or More` → 75.01 — and **the eight "special allocation
+  rules" of the first draft were withdrawn outright**. That withdrawal removed three interlocks the
+  first implementation needed: a code's value no longer depends on the holder set (the same `C` was
+  25.01, 25.00 or 49.99), allocation is no longer order-dependent, and D no longer flips between
+  domination and none (a "two D holders" case allocated 50.00 each, which is not a majority). One code,
+  one percentage, always. `tests/test_monolith_prompts.py` now pins the allocations as **absent**, so
+  they cannot be reintroduced from the superseded instruction.
+  Three things still had to be built around the table. (1) **The RANGE is not the figure.** D's range
+  starts *at* 50%, so reading the range instead of the percentage would make a D holder's domination
+  arguable; both prompts say the percentage column is the only value produced, and 50.01 is what
+  §10.2.0 tests. (2) **§9.2.1's closing clause said the opposite** — "no other two-letter database code
+  is interpreted by inference… any other code is NOT ownership evidence on its own" — so the two
+  clauses gave contrary answers to the same character on the same page; it now names three defined
+  sets. (3) Single letters collide with everything on a page, so §9.2.3 carries §9.2.1's
+  **RESOLVE-DON'T-PATTERN-MATCH** discipline and fails closed to 0 + `MISSING_PERCENTAGE` on an
+  unresolved code. **A banded set does not total 100** — two D holders make 100.02, four C holders
+  100.04, a single E holder 75.01 — and that is an artefact of banding, not double-counting: the target
+  is exempt from §9.3 under `explicitly-partial-source`, `TargetSum` reads "exempt", and
+  `OWNERSHIP_PERCENTAGE_CONFLICT` is never raised for it. Critic **R9** carries the whole table, or it
+  would score a correct band as invented.
+- **A Form ADV table is exempt from §9.3's sum check under the EXISTING `explicitly-partial-source`
+  token.** Schedule A/B disclose holders down to a threshold band and not below it, so such a table is
+  partial by its nature and satisfies that category **by rule** — no printed statement of partiality
+  need be found. A single E holder totals 75.01, which would otherwise raise a false
+  `INCOMPLETE_SHAREHOLDER_SET` on every ADV case. Deliberately NOT a third token: adding one would have
+  forced edits to §12.4's "either", the critic's "which of the **two** … categories", and
+  `test_target_sum_names_both_exemption_categories`.
+- **Rule 9.0A — a label is not always a party** (added 2026-08-27). A collective ownership label
+  (Passive Investors, Other Shareholders, Limited Partners, Investor Consortium…) is a DESCRIPTOR
+  standing for underlying parties. Resolved from any supplied source — legend, footnote, note, client
+  email, maker/checker comment — the underlying parties are emitted and **the label is not a party at
+  all**, emitted in no container. That required an express **third exception to §9.0 pass 1's
+  inventory**, alongside the EVIDENCED STOP RULE: pass 2's routing is a closed two-container rule that
+  says in terms "the two routes are NOT interchangeable", so a removed label had nowhere to go.
+  Percentages are read as printed, never computed — a non-reconciling or partial resolution keeps both
+  facts and flags rather than deriving a residual holder. Unresolved, the label is RETAINED with the
+  printed percentage, ladder rung 3 "Information Only", and `COLLECTIVE_OWNER_UNRESOLVED`.
+- **Keeping the unresolved label's percentage is load-bearing in two directions.** Rule 6's
+  attribution-control text bars deriving a percentage *from* a label — a different thing from a figure
+  printed on the chart for that link — and dropping it would both break §9.3's sum for the target and
+  collapse §15.1's headroom for the branch to zero, which makes the branch IMMATERIAL and suppresses the
+  very advisory §9.0A exists to force. §15.1 now carries a "MATERIAL BY RULE, whatever the headroom"
+  carve-out, mirrored in the critic, which is otherwise positively forbidden from demanding an advisory
+  §15.1 excuses.
+- **The collective label's ladder rung had to be pinned, because two rungs read on the same words.**
+  Rung 2 "Unknown / Needs Review" fires on "party identity is unresolved" and PRECEDES rung 3, so
+  first-match-wins would have decided every collective label by which sentence was read first. Ruling:
+  rung 2 is for an unresolved question **between candidates** (a §9.1 direction, or §9.0 pass 1's two
+  near-identical labels); an unresolved collective label takes **rung 3**. Stated in both rungs, in
+  critic R2, and in the schema's `roleCapacity` description.
+- **The critic's sweep would have demanded a resolved collective label back — and every existing guard
+  said yes.** Its independent document sweep finds "Passive Investors" printed on the chart as an
+  owner; the holder roster has no line for it; the near-identical-name check does not reach it
+  ("Passive Investors" and "Fund A" share no stem); and NAME-IT-AND-QUOTE-IT is *satisfied*, because
+  the chart really does print it as a holder of that target. A fully-evidenced, completely wrong
+  CRITICAL, answerable only by re-emitting the label §9.0A required removing — the documented
+  unclearable-RETRY shape. A **COLLECTIVE-LABEL GUARD** now runs second, right after the SCOPE GUARD.
+  Criterion 6 needed a matching carve-out too: it scored "not as an `Information Only` record standing
+  in for an owner" as CRITICAL **by name**, which is exactly the required output for an unresolved label.
+- **`itemType` and `relationshipType` are required non-nullable enums, so a collective record asserts
+  something whatever you do.** Pinned: `itemType = "Non Natural Person"` is a two-valued CONTAINER TYPE
+  carrying no assertion of legal personality (the non-entity finding rides on rung 3 + the flag), and
+  `relationshipType = "other"`. Left unpinned this is a coin flip on every collective record. Same shape
+  as the `thresholdApplied` hole §9.0A exposed: its closed grammar allowed null only for the client and
+  for a stop-rule halt, so it forced a threshold string onto rung-2/rung-3 records that were never
+  threshold-tested — now permitted null, in prompt, schema and critic.
+- **`pageNumber` is a required integer with no null and no "unknown" form**, and §9.0A makes legend-,
+  email- and comment-sourced evidence routine. Ruling: an unpaginated source takes `pageNumber = 1`,
+  with the real locator (the email's date and subject, the legend's position, the comment's author) in
+  `governanceBasis` part [2]. Do not drop the record for want of a page, and do not invent a plausible one.
+
 - **Rule 9.1 check 2 — "Total Ownership" is indirect**: any percentage reported under a
   "Total Ownership" heading is an AGGREGATE interest held through one or more intermediate
   entities. Report it as Indirect Ownership only; never record it as a direct link percentage
@@ -352,7 +452,7 @@ changes what must be got right, never which steps run.
   party holding two positions — named in `outOfBounds.summary` as downstream AND emitted as an ancestor
   — which is also the only place a cycle surfaces when the closing edge points DOWN and rule 5 puts it
   out of scope, where §17's loop detection cannot reach; and the critic gets a matching per-record
-  identity check. New flag `PARTY_IDENTITY_UNRESOLVED` (rule 16 + R6, 44 names) — confirm with the KOS
+  identity check. New flag `PARTY_IDENTITY_UNRESOLVED` (rule 16 + R6, now 46 names) — confirm with the KOS
   text owner.
 - **A single 100% holder passes §9.3 by construction**, so passing certifies nothing: an invented
   intermediate layer is normally invented in exactly that shape. Where a target has one holder at 100%,
@@ -559,6 +659,55 @@ changes what must be got right, never which steps run.
 
 ## Known open questions (not decided in-repo)
 
+Entries marked CLOSED are a DECISIONS REGISTER, kept so the same question is not put to the business a
+second time. As at 2026-08-28 the only genuinely OPEN item in this section is `countryProfileApplied`,
+which predates the 7X / 9.2.3 / 9.0A workstream.
+
+- **The 2026-08-27 business questions are CLOSED** (answered 2026-08-28). Recorded here because the
+  answers changed the build: the **special allocation rules were withdrawn** and replaced by a ranged
+  base table, so the 74.99 / 49.99 / 50.00 figures and every combination case are gone;
+  **`PARTY_IDENTITY_UNRESOLVED` was confirmed removed** from §9.0A; **maker / checker comments were
+  withdrawn** as an evidence source (rule 6 H3 and §9.0A's sweep) — note KERNEL F's unrelated "audit,
+  maker, checker and QA review" is a reviewer-role sentence and stays; **§8.2's gate wins** over a
+  Streamline input where a Local Addendum requires drill-down; **removal of a resolved collective label
+  is intended**; and the §9.0A example now uses the business's own figures (block 100%, funds
+  10/20/30/20/20). Resolved collective percentages are **not multiplied** by the block's percentage.
+- **"Multiply only if Owners are same" was overtaken and is CLOSED** (2026-08-28 12:54). The first
+  answer read *"Multiply only if Owners are same, if owners are different, do not multiply"*; a second
+  reframed the operation as CLUBBING; the third settled it — *"Even everything is same it should not
+  clubbed / As they are two different funds."* So neither multiplication nor merging is performed, the
+  same-owner limb never had to be built, and the narrower same-holder rule written earlier that day was
+  removed. See the NEVER-CLUBBED entry above; nothing here is outstanding.
+- **A `D` code always evidences domination - CLOSED by implication** (2026-08-28). With the special
+  allocations withdrawn, D is 50.01 on every run, which is more than 50%, so §10.2.0 D1 fires and every
+  D holder carries `dominationIndicator = YES` - which can set `isIBO` on the control-based route. The
+  tension: D's own range, "50% But Less Than 75%", admits exactly 50%, which is not a majority. Put to
+  the KOS text owner and answered obliquely - *"We have removed the allocation rule n should add the
+  table in word doc"* - so it is settled by IMPLICATION, not by a literal yes, and that is recorded
+  rather than dressed up as a confirmation. The implication is sound: if the table is the whole rule the
+  PERCENTAGE column is the operative figure, and reading the RANGE back in would restore the exact
+  ambiguity the withdrawal removed, leaving every D holder's domination arguable. Both prompts pin the
+  percentage and bar reasoning from the range. If it is ever reversed the change is contained - §9.2.3's
+  domination bullet, critic R9 consequence (iii), one test.
+- **Resolved collective-owner parties are NEVER clubbed** (settled 2026-08-28). §9.0A resolves a
+  collective label into the parties behind it; those parties are emitted one record each and are never
+  merged - not for a shared label, similar names, a shared manager / sponsor / GP / fund family /
+  address, and **not even where two names appear identical**, which the KOS text owner ruled is two
+  different funds rather than one party listed twice. Clubbing is the direction that can invent a
+  classification (two 15% funds merged become a 30% IBO neither is alone), so it is barred outright
+  rather than conditioned on identity; refusing to club loses nothing, since both holdings survive and
+  both reach §9.3's sum. Unresolved identity keeps the entries separate with `PARTY_IDENTITY_UNRESOLVED`,
+  never merges them. One collision had to be closed in terms: §9.3's "each distinct HOLDER once" exists
+  for rule 14's conflict versions - two SOURCES describing ONE link - and is NOT a licence to merge two
+  named parties within one source.
+- **`ownershipApproach = MIXED` is retained deliberately and must NOT be removed** (settled
+  2026-08-28). No rule produces it: §8.0 maps the KYC level to a GLOBAL or STREAMLINED candidate and
+  §8.2 decides, both case-level, so there is no stated route to MIXED and it may never be emitted. It
+  stays in the schema enum anyway because the downstream code carries a matching enum, and dropping the
+  value there would force a code change on the consuming side. This is a deliberate orphan, confirmed by
+  the KOS text owner - do NOT "clean it up", and do NOT invent a trigger rule for it either. OC.2 and the
+  schema description already set an evidence bar high enough that a model will not reach for it, and the
+  critic's R10 check would flag a MIXED emitted against an explicit is_streamlined input.
 - **`countryProfileApplied` has no vocabulary.** Schema says `'CP-XX' code`; no rule defines the
   codes, so neither agent can populate or check it against anything.
 

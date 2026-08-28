@@ -3,7 +3,7 @@
 **Source:** `ownership_new_requierement.txt` (business team, 2026-08-27)
 **Applies to:** `monolith/` (extractor) and `monolith_critic/` (critic)
 **Business response:** received 2026-08-28 (screenshot `IMG_4740.HEIC`) — see [§8](#8-round-2--business-response-of-2026-08-28)
-**Status:** implemented, including the round-2 changes; `254 passed, 1 xfailed`; `insert_prompt.sql` regenerated for both agents
+**Status:** implemented, including the round-2 and round-3 changes; `256 passed, 1 xfailed`; `insert_prompt.sql` regenerated for both agents
 
 This document is a clause-by-clause trace. Every requirement in the business file appears
 below exactly once, marked:
@@ -329,7 +329,7 @@ The supplied example was not pasted in. Two defects would have propagated:
 
 Rewritten in direction-contract form with a 30% block that the five funds reconcile to, plus two
 further examples (partially resolved, unresolved) that the supplied text did not cover.
-**Needs business confirmation** ([6.9](#69-the-worked-example-carries-an-inverted-edge-and-a-shareholder-sum-that-fails-93)).
+**Confirmed 2026-08-28** ([6.9](#69-the-worked-example-carries-an-inverted-edge-and-a-shareholder-sum-that-fails-93)): the business supplied a corrected example - block 100%, funds 10/20/30/20/20, which reconcile - and §9.0A now carries their figures.
 
 ### 4.10 The nine example QA-failure conditions were not reproduced
 
@@ -518,15 +518,149 @@ The flag now follows the **direction** of the discrepancy — resolved total abo
 `OWNERSHIP_PERCENTAGE_CONFLICT`; below → `INCOMPLETE_SHAREHOLDER_SET` — with
 `COLLECTIVE_OWNER_UNRESOLVED` and an advisory either way. Mirrored in critic R11.
 
-### 8.6 What is still open
+### 8.6 What was still open at the end of round 2 — ALL SINCE CLOSED
 
-Two items, neither blocking — both in [§6a](#6a-the-one-question-that-came-back-unanswered):
+Recorded for the audit trail; none of these survived.
 
-1. **6.6** came back blank: does the ADV gap-suppression reach the **voting** gap? Implemented
-   ownership-only, which is the safe reading and matches the clause's own third bullet.
-2. **6.10's "multiply only if Owners are same"** limb has no worked example and was not written into
-   the prompt. The operative limb ("if owners are different, do not multiply") is implemented.
+1. **6.6** came back blank: does the ADV gap-suppression reach the **voting** gap? → **CLOSED**
+   in round 3 (§9.1): *"Voting rights not needed, the existing prompt understands ownership and voting
+   right logic."* The ownership-only scoping already implemented was correct; no change.
+2. **6.10's "multiply only if Owners are same"** → **CLOSED** in round 4 (§10). The answer overtook the
+   question: clubbing is barred outright, so neither multiplication nor merging is performed and the
+   same-owner limb never had to be built.
+3. **A `D` code now always evidences domination** → **CLOSED by implication** in round 4 (§10.1).
 
-One consequence worth a confirmation rather than a question: **a `D` code now always evidences
-domination**, because 50.01 is always more than 50%, even though the code's own range admits a holding
-of exactly 50%. That follows from withdrawing the allocations rather than from a stated decision.
+---
+
+## 9. Round 3 — business response of 2026-08-28 (12:03), closing §6a
+
+Both items that came back open or half-answered are now settled.
+
+### 9.1 A1 — the ADV gap-suppression is ownership-only. CONFIRMED, no change
+
+> *"Voting rights not needed, the existing prompt understands ownership and voting right logic so not
+> adding any additional value for voting rights."*
+
+This confirms the reading already implemented: `§9.2.3`'s suppression covers the OWNERSHIP figure only,
+and the existing voting machinery is untouched and sufficient — `§9.2.2` (a share percentage is not a
+voting percentage), `MISSING_VOTING_RIGHTS` with its `SOURCE_DATA_NOT_AVAILABLE` entry, and `§10.1.1`'s
+`DILUTED_VOTING_INCOMPLETE` all continue to fire on an ADV case where voting is unstated. **No prompt
+change was required.**
+
+### 9.2 A2 — the operation is CLUBBING, not multiplying
+
+> *"The we can add as addition that whenever different finds [funds] are there so not club them but if
+> same are related than only club them."*
+
+This reframes the question. The first response (RESP:36) spoke of *multiplying*; this one speaks of
+*clubbing* — combining two entries into one holding. They are different operations, and both are now
+governed:
+
+| Operation | Rule | Where |
+|---|---|---|
+| **Multiply** the resolved figure by the block's percentage | **Never**, for different parties | `§9.0A` *"PERCENTAGES ARE READ AS PRINTED, NEVER COMPUTED, AND ARE NOT MULTIPLIED"* |
+| **Club** two entries into one holding | Only where the documents evidence the **same holder** | `§9.0A` *"DO NOT CLUB DIFFERENT PARTIES; CLUB ONLY WHERE THE DOCUMENTS EVIDENCE THE SAME HOLDER"* |
+
+**What was implemented.** Three bullets in `§9.0A`, mirrored in critic **R11**:
+
+- resolved parties are emitted as **separate** records, one per party, never merged because they arrived
+  under one label — being grouped under a collective label describes the parties, it does not relate them;
+- **the same holder named twice** for one target is ONE holder: one record carrying the combined figure,
+  with the operands written into `governanceBasis`. This is the principle `§9.3` already applies when it
+  counts each distinct HOLDER once;
+- **different holders are never clubbed.** Identity is decided by `§9.0` pass 1's character-exact test
+  (rule 3 formatting differences allowed); a shared manager, sponsor, GP, fund family, naming series or
+  address is **not** evidence of one holder. Where identity genuinely cannot be established, the parties
+  stay separate with `PARTY_IDENTITY_UNRESOLVED` and an advisory — never clubbed to resolve the doubt.
+
+**The one limb still not implemented, and why.** The answer says club where parties are *"same **are
+related**"*. "Same" is implemented. "**Related**" is not, because clubbing related-but-DISTINCT parties
+sums two holdings into a single position and can push a party across an IBO or UBO threshold that
+neither crosses alone — a classification produced by aggregation no document evidences, which `KERNEL C`
+bars, and which `§9.0` pass 1 expressly forbids for two parties whose names differ in the stem. It also
+cannot be applied the same way twice without a definition of "related" and an evidence standard for
+establishing it.
+
+This is a **narrowing, not a refusal**: everything the business asked for that can be applied
+deterministically is in. See `BUSINESS-INPUT-REQUIRED-2026-08-28.md` §A2a for the one question that
+would let the remaining limb be built.
+
+### 9.3 Critic side
+
+`R11` gains a CLUBBING paragraph scoring in **both** directions: it must NOT demand that separately
+recorded resolved parties be combined, and it MUST catch distinct parties that were merged — the latter
+scored CRITICAL as a fabricated party, because a combined holding is indistinguishable from an evidenced
+one once emitted.
+
+### 9.4 `ownershipApproach = MIXED` retained by request (2026-08-28)
+
+Confirmed: **keep the enum value**, so the downstream code's matching enum needs no change. It is
+accepted that no rule produces `MIXED` and that it may never be emitted, and **no trigger rule was
+written** — explicitly not wanted.
+
+Nothing in the prompts or schema changed. `CLAUDE.md` now records the orphan as deliberate, because an
+enum value with no rule behind it is exactly what a later tidy-up removes, and removing it would break
+the consuming side.
+
+---
+
+## 10. Round 4 — business response of 2026-08-28 (12:54): clubbing is barred outright
+
+The A2a follow-up asked whether "related" meant (a) the same party under a different spelling, already
+built, or (b) genuinely different funds sharing a manager / GP / owner, which would be a new rule.
+
+The answer took a **third** position, narrower than either:
+
+> *"In this case agent should not add it because These are two different funds."*
+> *"Even everything is same it should not clubbed."* / *"As they are two different funds."*
+
+So clubbing is **barred outright**, not conditioned on identity — and two entries whose names appear
+**identical** are to be treated as two different funds, not as one party listed twice. This is a
+deliberate domain call: fund structures routinely run near-identical vehicles side by side.
+
+**This supersedes §9.2's same-holder bullet**, written earlier the same day, which combined two entries
+where they were identical under the character-exact test. That bullet is removed; nothing now merges.
+
+**Final rule (§9.0A, mirrored in critic R11):**
+
+- one record per party the resolving source names, at its own stated figure;
+- never merged — not for a shared label, similar names, a shared manager / sponsor / GP / fund family /
+  address, and **not even where the two names appear identical**;
+- unresolved identity keeps the entries SEPARATE with `PARTY_IDENTITY_UNRESOLVED` and an advisory, never
+  merges them to settle the doubt;
+- the critic must not demand a merge (including of two identically-named records, which is the required
+  output) and must catch one that happened — CRITICAL, as a fabricated party.
+
+**Why this is the safe direction anyway.** Clubbing is the operation that can invent a classification:
+two 15% funds merged become a 30% IBO that neither is alone. Refusing to club loses nothing — both
+holdings are preserved, both are visible to §9.3's per-target sum, and a reviewer can still see that two
+entries exist.
+
+**One collision had to be closed explicitly.** §9.3 counts "each distinct HOLDER once", which exists for
+rule 14's conflict versions — two SOURCES describing ONE link at different percentages. Read loosely,
+that could be taken as licence to merge two named parties. §9.0A now states the distinction: two sources
+describing one link are conflicting versions of a single holding (counted once); two entries within one
+source naming two parties are two holdings (both counted).
+
+### 10.1 B1 closed by implication (2026-08-28 13:06)
+
+The last outstanding item — does a `D` code always evidence domination, given its range admits exactly
+50% — was put directly and answered obliquely: *"We have removed the allocation rule n should add the
+table in word doc."*
+
+Recorded as settled **by implication rather than by confirmation**, with the reasoning written down so a
+later reader can see it was reasoned and not assumed: the reply confirms the table is now the entire
+rule, and if the table is all there is then the PERCENTAGE column is the operative figure. Reading the
+RANGE back in would restore the ambiguity the withdrawal removed and leave every D holder's domination
+arguable on every case. Both prompts already pin the percentage and bar reasoning from the range.
+
+Should it ever be reversed, the change is contained: §9.2.3's domination bullet, critic R9's consequence
+(iii), and one test.
+
+**That closes every business item in this workstream.** The only open question left in `CLAUDE.md` is
+`countryProfileApplied`, which predates this work.
+
+**One item on the business side, not ours:** the reply says the table *"should [be] add[ed] in [the]
+word doc"*. If the source requirements document still carries the withdrawn special allocation rules,
+the next person working from it will reintroduce them and the spec will disagree with the deployed
+prompt. Worth confirming that edit was made.
