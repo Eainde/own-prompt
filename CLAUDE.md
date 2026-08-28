@@ -479,6 +479,37 @@ changes what must be got right, never which steps run.
   unknown percentages, or sources that positively state they are partial/extracted/illustrative
   (silence is not an exemption). A sum materially below 100% is positive evidence of an
   omission — the check that catches what re-reading alone does not.
+- **§9.2.4 / §9.3's overshoot limb — a target totalling 100.1% is prevented, not rescaled**
+  (settled 2026-08-28, from a live run whose per-target totals came in over 100 by 0.1 and 0.001).
+  The ±5% band absorbed it in silence: nothing anywhere said what a FRACTIONAL overshoot meant, so
+  it was neither explained nor caught, and the only "fix" available to a model — trimming a holder
+  or scaling the set to 100 — is the fabrication the whole prompt exists to prevent. Two halves.
+  **§9.2.4 stops the extractor's own arithmetic reaching a direct figure**: every
+  `actualOwnershipPercentage` / `actualVotingRightsPercentage` has one of three provenances and no
+  fourth — PRINTED (transcribed digit for digit), ASSIGNED by §9.2 / §9.2.1 / §9.2.3, or ABSENT
+  (0 + `MISSING_PERCENTAGE` + the gap) — so a residual, an apportionment, a rescale and a share
+  count divided by a total are all barred, calculation being confined to the two `dilution*` fields.
+  Two live holes drove this. §12.4's *"report rounded half-up to 2 decimal places"* was stated with
+  no scope, so it read as authority to re-round a printed 33.333 — harmless on one record, and
+  across a shareholder set it moves the target's total off the figure the document supports; it is
+  now expressly confined to the dilution fields **in §12.4 itself and in both schema descriptions**,
+  since that is where a model reads it at emission. And §9.2.2 lists "a share COUNT" among ownership
+  evidence while nothing said whether a percentage may be divided out of one — an undecided question
+  is a coin flip (KERNEL E), and the worst available answer is dividing by the total of the holdings
+  found, which forces the set to exactly 100 and conceals whatever is missing. Ruled: a share count
+  with no printed percentage is `MISSING_PERCENTAGE` + advisory — **confirm with the KOS text owner**.
+  **§9.3's new limb says what an overshoot MEANS**, in three steps rather than as prose: (1) name the
+  cause from a closed list of four — a "Total Ownership" aggregate recorded as direct, one holder
+  counted twice under two spellings, two rule 14 conflict versions added together, a resolved
+  collective label emitted beside the parties it resolved to — each of which produces an overshoot of
+  *any* size, so none may be skipped because the excess is small; (2) no cause, and the excess within
+  half a unit of the printed precision per holder (never more than 1 point) → SOURCE ROUNDING, the
+  set is complete, no flag, `TargetSum` carries the real figure; (3) beyond that bound with no cause →
+  `OWNERSHIP_PERCENTAGE_CONFLICT` + gap + advisory **without waiting for 105%** — 95–105% is where the
+  set is the right SIZE, not a licence to absorb an unexplained overshoot sitting inside it. The critic
+  carries both halves (a rescale demand is now a named false finding, precision-in-the-figure is scored
+  both ways, and a sub-105% conflict flag is CORRECT rather than over-flagging), or a correctly
+  transcribed 100.1 comes back as a CRITICAL demanding the one fix §9.2.4 forbids.
 - **Rules 10.2.0 / 10.2.1 — domination is a determination, not an observation** (settled 2026-08-21,
   from a run-to-run flip on a live case). The same record — a 100% direct shareholder — came back
   with `dominationOwnership` = 100 on one run and 0 on the next, `dominationIndicator` = YES on both,
@@ -782,3 +813,11 @@ per piece. The `.sql` files are GENERATED: edit prompts, then run
 
 `docs/superpowers/specs/` and `docs/superpowers/plans/` retain the monolith design history
 (single-prompt design, single-parent-schema, critic design, prompt-backs-schema, v39 update).
+
+`CHANGES-2026-08-27-business-rules.md` is the clause-by-clause trace of business rules **7X**
+(methodology governance / the blank-`isStreamlined` bug), **9.2.3** (SEC Form ADV ownership codes) and
+**9.0A** (collective owners and legends): what was implemented and where, what was NOT and why, every
+question put to the business team with the line number in their own file, and their answers across four
+rounds. Read it before revisiting any of those three rules — several clauses in it were deliberately
+NOT implemented as supplied (an off-list `DominationBasis` token, a flag with a conflicting trigger, a
+worked example carrying an inverted edge), and the reasons are recorded there rather than in the prompt.
