@@ -1,0 +1,351 @@
+<rule id="7X" priority="CRITICAL" name="DBCLM KYC LEVEL, LOCAL ADDENDA AND OWNERSHIP METHODOLOGY GOVERNANCE">
+Ownership methodology must be determined using BOTH:
+1. DBCLM KYC Level
+2. Adoption Location and applicable Local Addenda requirements
+Ownership methodology cannot be selected until both evaluations are completed.
+
+
+
+STEP 1 - IDENTIFY ADOPTION LOCATION
+Before ownership extraction, identify all Adoption Locations and review all applicable Local Addenda requirements.
+Where multiple Adoption Locations exist, apply the strictest ownership requirement unless the Local Addendum explicitly states otherwise.
+Applicable Local Addenda requirements include, but are not limited to:
+- ownership thresholds,
+- inclusive thresholds,
+- mandatory drill-down,
+- exemption restrictions,
+- notional UBO requirements,
+- ownership reporting requirements,
+- special entity-type requirements.
+Local Addenda must always be applied before:
+- ownership qualification,
+- IBO determination,
+- UBO determination,
+- stop-rule application,
+- drill-down decisions,
+- ownership classification.
+
+
+Where a Local Addendum imposes a stricter ownership requirement than Global KOS, the Local Addendum prevails.
+STEP 2 - DETERMINE OWNERSHIP APPROACH
+Where DBCLM KYC Level = Global
+→ ownershipApproach = GLOBAL
+Where DBCLM KYC Level = Streamline
+→ ownershipApproach = STREAMLINED
+
+Where DBCLM KYC Level Missing, Blank, Null or Unavailable
+→ ownershipApproach = GLOBAL
+
+Never assume STREAMLINED methodology unless DBCLM explicitly identifies KYC Level as Streamline.
+
+GLOBAL OWNERSHIP METHODOLOGY
+Where DBCLM KYC Level = Global:
+Apply:
+- Global Ownership Methodology,
+- Applicable Local Addenda requirements,
+- Dilution Methodology,
+- Domination Assessment,
+- Voting Rights Assessment,
+- Control Assessment.
+
+Global methodology is NOT dilution-only.
+Ownership qualification must consider:
+- dilution ownership assessment,
+- domination ownership assessment,
+- voting-rights assessment,
+- control assessment,
+- Local ownership overlays.
+
+Where ownership exceeds 50%: Domination Assessment under Rule 10.2 remains mandatory for every ownership relationship.
+→ dominationIndicator = YES
+→ DominationBasis = D1 Majority Share Ownership
+Where voting rights exceed 50%:
+→ dominationIndicator = YES
+→ DominationBasis = D2 Majority Voting Rights
+Where control by other means exists:
+→ dominationIndicator = YES
+→ DominationBasis = D3 Control Basis
+
+A party may be a dominating owner even where its final diluted ownership interest falls below an IBO or UBO threshold.
+
+
+STREAMLINED OWNERSHIP METHODOLOGY
+Where DBCLM KYC Level = Streamline:
+
+Layer 1 Owners
+
+
+- retain their directly evidenced ownership position,
+- QualifyingInterest = actualOwnershipPercentage,
+- apply Global or Local ownership thresholds against the direct ownership position,
+- do not apply domination inheritance.
+
+Layer 2 And Above
+
+
+- apply Domination Inheritance Methodology only,
+- do not apply dilution methodology,
+- do not multiply ownership percentages across ownership layers,
+- do not calculate cumulative indirect ownership percentages.
+
+Where an owner dominates an immediately subordinate entity through:
+- ownership greater than 50%,
+- voting rights greater than 50%,
+- control by other means,
+Example:
+the dominating owner inherits the full ownership position of the immediately subordinate entity.
+
+ABC Ltd owns 30% of Client.
+JKL Ltd owns 60% of ABC Ltd.
+Result:
+
+ABC Ltd QualifyingInterest = 30%.
+JKL Ltd inherits ABC Ltd's full 30% ownership position.
+JKL Ltd QualifyingInterest = 30%.
+The result must never be diluted to 18%.
+
+
+
+
+
+<rule id="9.2.3" name="FORM ADV OWNERSHIP CODE CONVERSION RULE">
+
+
+This rule applies whenever ownership percentages are sourced from SEC Form ADV ownership disclosures.
+Where Form ADV ownership codes are provided instead of exact ownership percentages, apply:
+- NA = 4.99%
+- A = 6.00%
+- B = 11.00%
+- C = 25.01%
+- D = 50.01%
+- E = 75.01%
+
+Special Allocation Rules
+- Single E holder = 75.01%
+- E + C holders = E 75.00%, C 25.00%
+- Single D holder = 74.99%
+- D + C holders = D 74.99%, C 25.00%
+- Two D holders = 50.00% each
+- Single C holder = 49.99%
+- Four C holders = 25.00% each
+- C with B/A/NA holder(s) = C remains 25.01%; Lower-code holders retain their standard values.
+
+ADV ownership-code percentages are deemed ownership evidence and must be used for:
+- ownership extraction,
+- ownership qualification,
+- IBO determination,
+- UBO determination,
+- domination assessment,
+- ownership inheritance.
+
+Do not raise:
+- MISSING_PERCENTAGE,
+- SOURCE_DATA_NOT_AVAILABLE,
+- ownership percentage advisory requests,
+solely because an exact ownership percentage is not disclosed.
+
+Where a more precise ownership percentage is available in another admissible ownership document, the exact percentage prevails.
+
+Where ADV codes are used, governanceBasis must identify the ownership code relied upon.
+
+
+<rule id="9.0A" priority="CRITICAL" name="COLLECTIVE OWNER, PASSIVE INVESTOR AND LEGEND RESOLUTION RULE">
+
+
+Before creating any ownership relationship, the agent must determine whether an ownership node represents:
+A. A legal entity or natural person
+OR
+B. A collective ownership label representing multiple parties.
+
+
+
+COLLECTIVE LABEL IDENTIFICATION
+
+
+The following examples must not automatically be treated as legal entities:
+- Passive Investors
+- Other Shareholders
+- Other Owners
+- Investor Group
+- Group Of Investors
+- Institutional Investors
+- External Investors
+- Co-Investors
+- Various Funds
+- Group Of Funds
+- Other Funds
+- Limited Partners
+- Other LPs
+- Remaining Shareholders
+- Minority Investors
+- Passive Investor Group
+- Investor Consortium
+
+
+
+These labels are ownership descriptors and may represent multiple entities, funds, partnerships, investors or ownership interests.
+The agent must not automatically classify these labels as a single ownership-bearing legal entity.
+
+
+MANDATORY RESOLUTION REQUIREMENT
+
+
+
+Where a collective ownership label is identified, the agent must review all available sources for clarification, including:
+- organisation charts,
+- chart footnotes,
+- chart legends,
+- symbols,
+- ownership notes,
+- ownership tables,
+- explanatory text,
+- client-provided emails,
+- maker comments,
+- checker comments,
+- supporting ownership documents.
+
+If clarification identifies the underlying owners, funds, partnerships or entities:
+- extract the underlying ownership parties,
+- replace the collective label with the resolved ownership parties,
+- preserve all supporting evidence.
+
+If clarification cannot be obtained:
+- preserve the collective ownership label,
+- classify roleCapacity = Information Only,
+- do not infer underlying ownership parties,
+- raise QA Flag: PARTY_IDENTITY_UNRESOLVED.
+
+
+
+LEGEND RESOLUTION RULE
+
+
+
+Where any legend, symbol, notation, abbreviation or ownership marker appears, including but not limited to: *, **,#, ^, †, ‡, [1], (A),
+the agent must determine whether a legend explanation exists.
+
+The agent must review:
+- chart legends,
+- footnotes,
+- ownership notes,
+- document explanations,
+- client-provided emails,
+- supporting ownership documents.
+
+Where a legend explanation exists:
+- apply the explanation to all affected ownership relationships,
+- record the interpretation in governanceBasis,
+- use the interpreted relationship in ownership extraction.
+
+
+The agent must never ignore a legend merely because the explanation appears outside the organisation chart.
+
+
+LEGEND PRECEDENCE
+
+Legend explanations obtained from:
+- chart legends,
+- chart footnotes,
+- ownership notes,
+- client-provided clarification emails,
+are ownership evidence and must be used when interpreting ownership relationships.
+
+
+EXAMPLE
+
+Ownership Chart:
+ABC Holdings -> 100% Passive Investors *
+
+Legend:
+* Passive Investors = Collective ownership consisting of five underlying LP funds.
+
+Client Email:
+Passive Investors represent:
+Fund A 10%
+Fund B 8%
+Fund C 6%
+Fund D 4%
+Fund E 2%
+
+Required Outcome:
+
+Extract:
+Fund A
+Fund B
+Fund C
+Fund D
+Fund E
+
+
+Do not extract a single owner called "Passive Investors".
+
+
+If underlying parties cannot be evidenced, retain "Passive Investors" as Information Only and raise PARTY_IDENTITY_UNRESOLVED.
+
+PROHIBITION
+
+
+The agent must never:
+
+- assume that a collective ownership label is a single legal entity,
+- create ownership links based solely on collective labels,
+- ignore ownership legends,
+- ignore clarification contained in client emails,
+- infer underlying parties where documentary support is not available.
+
+
+MANDATORY QA FAILURE CONDITIONS
+
+
+The agent must raise a QA Failure whenever a collective ownership label, passive investor group, shareholder grouping, legend, symbol, notation, or ownership reference cannot be fully resolved using the available documentation.
+
+Examples include:
+
+- Passive Investors identified but underlying investors cannot be determined.
+- Other Shareholders identified but underlying shareholders cannot be determined.
+- Group of Funds identified but underlying funds cannot be determined.
+- Limited Partners identified but underlying LPs cannot be determined.
+- Investor Consortium identified but underlying members cannot be determined.
+- Ownership legend exists but interpretation cannot be located.
+- Symbol, notation or relationship marker exists but no explanation is available.
+- Client documentation references a group owner but supporting ownership details are not provided.
+- Organisation chart references a collective ownership block but underlying ownership composition is unavailable.
+
+Where any of the above conditions occur:
+
+ownershipReviewStatus = NEED_REVIEW
+
+QAFlag = COLLECTIVE_OWNER_UNRESOLVED
+or
+QAFlag = LEGEND_INTERPRETATION_MISSING
+
+as applicable.
+
+
+
+
+
+OWNERSHIP COMPLETENESS REQUIREMENT
+
+The agent must not assume:
+
+- the identity of underlying investors,
+- the identity of underlying funds,
+- the identity of underlying partnerships,
+- ownership percentages,
+- ownership distribution,
+
+where documentary evidence is unavailable.
+
+
+Any unresolved collective ownership representation must be treated as an Ownership Completeness Failure and explicitly disclosed within:
+- governanceBasis,
+- QA Flags,
+- ownershipReviewStatus,
+- final ownership summary.
+
+
+The agent must never silently ignore unresolved collective ownership groups, legends, symbols, or ownership references.
+
+
+
