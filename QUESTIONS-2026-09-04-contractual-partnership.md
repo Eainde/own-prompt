@@ -87,7 +87,7 @@ the 9.0A list. We cannot implement until we know which one wins.
 - **Option C.** **All** partnerships, named or not, including LPs, LLPs and KGs. This effectively
   withdraws rule 11.7.
 
-**Answer (A, B or C):**
+**Answer (A, B or C):** A
 
 ---
 
@@ -111,7 +111,7 @@ Note: on 2026-08-28 the answer for collective owners was *"do not multiply"* —
 figures already stated against the target. This case is different, so please answer it
 separately.
 
-**Answer (A, B or C):**
+**Answer (A, B or C):** A
 
 ---
 
@@ -124,7 +124,7 @@ separately.
   below, exactly as "Passive Investors" is deleted today. Consequence: no GP look-through, no IBO
   recorded for the partnership itself, and the ownership chain gets one layer shorter.
 
-**Answer (A or B):**
+**Answer (A or B):** A
 
 ---
 
@@ -138,7 +138,7 @@ deleted (Q3 option B), the GP's control right has nothing to attach to.
 - **Option B.** Only economic holders are recorded; GP control is noted in the reasoning text
   only.
 
-**Answer (A or B):**
+**Answer (A or B):** A
 
 ---
 
@@ -152,7 +152,7 @@ with a flag and a case-level `NEED_REVIEW`.
 - **Option B.** No — a named contractual partnership over the threshold should still be recorded
   as an **IBO**, with the flag and advisory alongside it.
 
-**Answer (A or B):**
+**Answer (A or B):** A
 
 ---
 
@@ -166,7 +166,7 @@ this one.
 - **Option A.** Owner-side only for now. Client-side raised separately if needed.
 - **Option B.** Client-side is also in scope — please describe the expected output.
 
-**Answer (A or B):**
+**Answer (A or B):** A
 
 ---
 

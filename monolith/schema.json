@@ -89,7 +89,7 @@
           "itemType": {
             "type": "string",
             "enum": ["Natural Person", "Non Natural Person"],
-            "description": "Natural Person for a natural person; Non Natural Person for any legal entity or arrangement (company, fund, trust, foundation, partnership, government body). This is a two-valued CONTAINER TYPE and carries no assertion of legal personality: an unresolved COLLECTIVE ownership label retained under §9.0A (Passive Investors, Other Shareholders, Limited Partners) takes Non Natural Person because there is no third value, and the finding that the label may not BE a legal entity is carried by roleCapacity = Information Only plus COLLECTIVE_OWNER_UNRESOLVED, never by this field."
+            "description": "Natural Person for a natural person; Non Natural Person for any legal entity or arrangement (company, fund, trust, foundation, partnership, government body). This is a two-valued CONTAINER TYPE and carries no assertion of legal personality: an unresolved COLLECTIVE ownership label retained under §9.0A (Passive Investors, Other Shareholders, Limited Partners, an unresolved Contractual partnership block) takes Non Natural Person because there is no third value, and the finding that the label may not BE a legal entity is carried by roleCapacity = Information Only plus COLLECTIVE_OWNER_UNRESOLVED, never by this field."
           },
           "nameAsSource": {
             "type": "string",

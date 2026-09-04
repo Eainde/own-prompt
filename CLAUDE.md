@@ -261,7 +261,8 @@ changes what must be got right, never which steps run.
   forced edits to §12.4's "either", the critic's "which of the **two** … categories", and
   `test_target_sum_names_both_exemption_categories`.
 - **Rule 9.0A — a label is not always a party** (added 2026-08-27). A collective ownership label
-  (Passive Investors, Other Shareholders, Limited Partners, Investor Consortium…) is a DESCRIPTOR
+  (Passive Investors, Other Shareholders, Contractual partnership, Limited Partners, Investor Consortium…)
+  is a DESCRIPTOR
   standing for underlying parties. Resolved from any supplied source — legend, footnote, note, client
   email, maker/checker comment — the underlying parties are emitted and **the label is not a party at
   all**, emitted in no container. That required an express **third exception to §9.0 pass 1's
@@ -303,6 +304,35 @@ changes what must be got right, never which steps run.
   email- and comment-sourced evidence routine. Ruling: an unpaginated source takes `pageNumber = 1`,
   with the real locator (the email's date and subject, the legend's position, the comment's author) in
   `governanceBasis` part [2]. Do not drop the record for want of a page, and do not invent a plausible one.
+
+- **Rule 9.0A — a contractual partnership is resolved IN PLACE, not deleted** (added 2026-09-04, business
+  answers Q1–Q6 in `QUESTIONS-2026-09-04-contractual-partnership.md`). The business asked for one word —
+  `Contractual partnership` added to §9.0A's example list — and that word alone would have deleted the
+  partnership from every chart it appears on, because §9.0A's RESOLVED limb emits the label in NO container
+  and re-points its parties at the entity below. Four rules answered the same box differently: §11.7 wants
+  GP / LPs / partnership percentages / GP look-through, §12.1 makes a partnership an IBO, ladder rungs 13/14
+  label the partners, and the critic scores the look-through. The business settled it as **A across the
+  board**, which is the narrowest reading and repeals nothing:
+  - **Scope is the GENERIC descriptor only** — a box labelled "Contractual partnership", "Partnership",
+    "JV Partners", "Consortium". A NAMED vehicle (`ABC Fund L.P.`, `X GmbH & Co. KG`, `Y LLP`) stays a party
+    under §11.7 and is never resolved away. Without this sentence the list is "illustrative, not a closed
+    list" and generalises to every LP on the chart.
+  - **The node is RETAINED** and the partners are emitted as owners OF IT (`linkedName` = the block) — the
+    one carve-out to "the label is then NOT A PARTY". A forward pointer sits in the RESOLVED bullets so the
+    delete rule is never applied before the carve-out is read.
+  - **Partner figures are the INTERNAL split, transcribed**; §9.3 sums them against the BLOCK, not the client.
+  - **The share of the client comes from the chain** — `dilutionOwnershipPercentage` (§12.3) or §8.3's deemed
+    position — and is NEVER written into `actualOwnershipPercentage`. This is what keeps the business's
+    "multiply through" answer (Q2) compatible with §9.2.4's PRINTED/ASSIGNED/ABSENT provenance and with
+    §9.0A's own settled "NEVER COMPUTED, AND ARE NOT MULTIPLIED": the multiplication was always there, in the
+    dilution field, so no new arithmetic was added to a direct figure.
+  - **A controlling GP survives a zero economic share** — §10.2.0 D3, rung 10 (Q4).
+  - **Unresolved is unchanged**: Information Only, `isIBO` false, `COLLECTIVE_OWNER_UNRESOLVED`, NEED_REVIEW,
+    advisory — and §11.7's look-through then has nothing to look through, which is not a defect (Q5).
+  - Owner-side only; the client's own `entityType` is untouched and would need a separate §11.9 (Q6).
+  Critic side mirrors all of it (R11 carve-out, COLLECTIVE-LABEL GUARD, criterion 12), or the reviewer demands
+  the removal of the node the extractor is required to keep — the documented unclearable-RETRY shape.
+
 
 - **Rule 9.1 check 2 — "Total Ownership" is indirect**: any percentage reported under a
   "Total Ownership" heading is an AGGREGATE interest held through one or more intermediate
