@@ -413,22 +413,44 @@ changes what must be got right, never which steps run.
   Extractor side, §9.0 Pass 2 now routes an unlinked party by where rule 5 places it — inside →
   `qaFlags.records`, outside → `outOfBounds.summary` and stop there — closing the same ambiguity that
   let Pass 1's deliberately broad inventory oblige ten `qaFlags.records` entries against OC.2.
-- **Rule 9.2.2 — a share percentage is NOT a voting percentage** (settled 2026-08-22, from a run-to-run
-  flip). The same chart label `"100% Shares"` came back as `actualVotingRightsPercentage = 100` on one
-  run and `0` on the next — nothing in either prompt answered the question, so both readings survived.
-  §9.2 settles what a wording evidences about OWNERSHIP; §9.2.2 settles what it does **not** say about
-  votes. `"X% Shares"`, a share count, §9.2's wholly-owned wordings and §9.2.1's `WO` all evidence
-  ownership ONLY — shares and votes diverge routinely (dual-class, preference, non-voting, and the
-  depositary receipts a Dutch **STAK / Stichting Administratiekantoor** issues, where the foundation
-  votes and the receipt-holders hold the economics). §10.1.1 already barred substituting the ownership
-  figure; §9.2.2 bars the antecedent step of reading a share label as a voting statement. No stated
-  voting → 0 + `MISSING_VOTING_RIGHTS` on **every** affected record (a set where 13 links carry an
-  unflagged 0 and one carries the flag asserts twelve evidenced zero-voting links), plus
-  `DILUTED_VOTING_INCOMPLETE`, plus **one** advisory for the case. `ownershipVotingMismatch` is FALSE on
-  an unknown — it compares two KNOWN figures. §10.2.0: share-only is a D1 candidate and never D2, so
-  §10.2.1 leaves `dominationVotingRights` at 0, which is correct and complete. Stated in the schema
-  descriptions of `actualVotingRightsPercentage` and `ownershipVotingMismatch` too — the schema is what
-  is bound at emission.
+- **Rule 9.2.2 — the voting % DEFAULTS to the ownership % (REVERSED 2026-09-04, business rule)**. The
+  earlier rule (settled 2026-08-22, from a run-to-run flip on `"100% Shares"`) said a share percentage
+  evidences ownership ONLY and voting must be separately stated. Charts state shares, so **every live
+  run came back with `actualVotingRightsPercentage = 0` on every record** — the rule was working and the
+  output was useless. The KOS text owner reversed it: shares and votes are presumed to move together,
+  and the presumption is defeated only by a document that says otherwise. The replacement is a **ladder**,
+  not a sentence — a sentence is what produced the whole-set 0:
+  **V1 stated** (a voting %, a voting column, votes per share class, a shareholders' agreement, a voting
+  cap) → that figure. **V2 expressly non-voting** ("non-voting shares", a STAK depositary receipt whose
+  votes sit with the foundation) → `0`, **evidenced**, no flag / no gap / no advisory. **V3 deemed** (no
+  document says either way) → this record's own `actualOwnershipPercentage`, unchanged, whatever supplied
+  it — a printed figure, §9.2's wholly-owned wordings, §9.2.1's `WO`, §9.2.3's ADV band (a `D` holder
+  carries 50.01 in **both** fields). **V4 unknown** (no stated voting AND no ownership figure to deem
+  from) → `0` + `MISSING_VOTING_RIGHTS`.
+  Four things had to move with it or the change is inert or harmful. **A structure is not a statement** —
+  dual-class, preference, golden shares, a STAK, a shareholders' agreement are reasons to *look* for V1/V2
+  evidence, but standing alone with no voting position stated they do **not** defeat the default; only a
+  document that states the figure, or states there are no votes, does. **The rule governs EVERY voting
+  field, not just the direct one** (the business's own follow-up): `dominationVotingRights` takes the
+  ladder's figure where it clears 50 — so a majority owner with no stated voting carries both percentage
+  fields at the same figure, `DominationBasis` still naming D1, and *the determination never moves*,
+  because D1 matched first on the identical number — and `dilutionVotingRightsPercentage` multiplies the
+  ladder's figures, so a path deemed end-to-end yields exactly `dilutionOwnershipPercentage`. That
+  equality is **arithmetic, not substitution**; it is named as correct in both prompts and in the schema,
+  because it is precisely what §10.1.1 used to forbid and is now the most likely false CRITICAL.
+  **Both flags are re-scoped to V4 alone** — `MISSING_VOTING_RIGHTS` on a deemed record asserts a gap
+  beside the figure that fills it — and `ownershipVotingMismatch` is FALSE on V3 by construction.
+  **A deemed figure needs a marker or the default is unauditable**: rule 18's `VotingRightsPercent` token
+  carries the rung (`52.27 (deemed)` / `(stated)` / `(non-voting)` / `(unknown)`), and OC.1 says expressly
+  that a deemed non-zero figure is grounded by the **ownership** record's `evidenceSnippet` — no separate
+  voting quote exists to demand. §9.2.4 gains a **P4 DEEMED** provenance available to the voting field and
+  to no other; ownership still has three and no fourth.
+  The critic never sees `monolith/system.txt`, so **R12 reproduces the whole ladder**: without it a
+  deemed figure is, in its own words, an invented percentage — CRITICAL on every record, and unanswerable,
+  since CF.5a bars the extractor from withdrawing a value a rule requires. R12 scores it in both
+  directions: a stated figure or an express non-voting statement overridden by the default is CRITICAL,
+  and a voting field left at `0` beside an ownership figure is a **missed V3**.
+  Decision trail: `QUESTIONS-2026-09-01-voting-rights-default.md` (Q0–Q6 with the business's answers).
 - **`TargetSum` is computed from the emitted records, never asserted.** Attempt 1 of the Mollie run
   wrote `TargetSum=[100]` across a set summing 52.27 and declared the case fully validated: §9.3 was
   reported as run and passed on a set it would have failed, so the omission the gate exists to expose
@@ -627,9 +649,11 @@ changes what must be got right, never which steps run.
   `actualOwnershipPercentage`, and additionally record the computed product along the path in
   `dilutionOwnershipPercentage`. IBO/UBO thresholds are tested against CUMULATIVE (diluted)
   ownership, not a single direct link.
-- **Rule 10.1.1 — voting dilutes separately**: never substitute ownership % for voting %. When
-  any link on the path lacks a stated voting %, emit `dilutionVotingRightsPercentage = 0` with a
-  `DILUTED_VOTING_INCOMPLETE` qaFlag — the flag is what distinguishes unknown from a genuine 0.
+- **Rule 10.1.1 — voting dilutes over the ladder's figures**: every link has a voting operand, because
+  §9.2.2 gives every record one, so the ordinary case is a genuinely-computed product — and where every
+  link was deemed, the result equals `dilutionOwnershipPercentage` and is CORRECT. Emit
+  `dilutionVotingRightsPercentage = 0` with `DILUTED_VOTING_INCOMPLETE` **only** where some link took
+  §9.2.2 V4 and has no operand at all; a V2 evidenced zero is a real operand and takes no flag.
 - **Missing percentages**: percentage fields are numeric. Missing → emit `0`, add
   `MISSING_PERCENTAGE` to that record's `qaFlags`, plus a `SOURCE_DATA_NOT_AVAILABLE` entry in
   the top-level `outOfBounds.records` — see "Gap tokens are reasons, never statuses" above for
