@@ -65,3 +65,32 @@ Read these when the summary above is not enough:
 - The `.sql` files are GENERATED — edit prompts, then regenerate; never hand-edit the SQL.
 - Nullable schema fields use `"type": "string"` (not `["string","null"]`).
 - Template variables use `{{camelCase}}` double-brace syntax.
+
+
+
+## Prompt to paste into Copilot Chat
+
+Copilot gives guidance; the generator script does the work. This prompt steers Copilot to use
+the script and verify, rather than free-hand a 100 KB statement (where dropped characters hide).
+Run Copilot Chat from the **repo root** and paste:
+
+```
+Generate the Oracle deployment INSERT for the <PROMPT_DIR> prompt (prompt code: <CW_PROMPT_CODE>).
+
+Follow .github/copilot-instructions.md and skills/oracle-prompt-sql/SKILL.md. Do NOT hand-write the SQL — the generator is the source of truth. Specifically:
+
+1. Give me the exact command to run:
+   python3 skills/oracle-prompt-sql/scripts/oracle_prompt_sql.py gen <PROMPT_DIR> --code <CW_PROMPT_CODE>
+2. Tell me to run the verifier afterward and show that command too.
+3. Remind me of the checks it must pass: one statement / no PL/SQL / no trailing semicolon, 4000-byte literal cap via TO_CLOB() pieces, & ; : ? encoded (not escaped)
+via sentinel + TRANSLATE, and a new PROMPT_VERSION via INSERT...SELECT (never an UPDATE).
+4. Flag the silent no-op: if no row exists for the prompt code, the insert affects 0 rows with no error.
+
+If I explicitly ask you to hand-write or patch the SQL instead, you MUST end by telling me to run:
+   python3 skills/oracle-prompt-sql/scripts/oracle_prompt_sql.py verify <SQL_FILE> <PROMPT_DIR>
+because decoding every literal back to source is the only check that catches a dropped character.
+```
+
+Replace `<PROMPT_DIR>` → `monolith` or `monolith_critic`, `<CW_PROMPT_CODE>` → your code,
+`<SQL_FILE>` → e.g. `monolith/insert_prompt.sql`.
+
