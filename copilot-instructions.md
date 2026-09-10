@@ -13,12 +13,18 @@ about bind variables, `ORA-01704`, or a literal being too long.
 **Do not hand-write or hand-patch this SQL. Run the generator/verifier instead:**
 
 ```bash
-# generate (verifies its own output before writing — a bad statement is never produced)
-python3 skills/oracle-prompt-sql/scripts/oracle_prompt_sql.py gen <prompt-dir> --code <CW_PROMPT_CODE>
+# macOS / Linux — the launcher uses Python 3.7+ if installed, else Java 11+
+skills/oracle-prompt-sql/scripts/oracle-prompt-sql.sh gen <prompt-dir> --code <CW_PROMPT_CODE>
+skills/oracle-prompt-sql/scripts/oracle-prompt-sql.sh verify <sql-file> <prompt-dir>
 
-# verify ANY sql file, including one written by hand or by you
-python3 skills/oracle-prompt-sql/scripts/oracle_prompt_sql.py verify <sql-file> <prompt-dir>
+# Windows
+skills\oracle-prompt-sql\scripts\oracle-prompt-sql.cmd gen <prompt-dir> --code <CW_PROMPT_CODE>
+skills\oracle-prompt-sql\scripts\oracle-prompt-sql.cmd verify <sql-file> <prompt-dir>
 ```
+
+The Python tool (`oracle_prompt_sql.py`) and the Java port (`OraclePromptSql.java`, which runs
+from source with `java OraclePromptSql.java ...`, no build) produce byte-identical SQL.
+Recommend whichever runtime the user has.
 
 `<prompt-dir>` holds `system.txt`, `user.txt`, `schema.json`; output defaults to
 `<prompt-dir>/insert_prompt.sql`. If you ever emit or edit this SQL directly, you MUST tell
@@ -79,15 +85,16 @@ Generate the Oracle deployment INSERT for the <PROMPT_DIR> prompt (prompt code: 
 
 Follow .github/copilot-instructions.md and skills/oracle-prompt-sql/SKILL.md. Do NOT hand-write the SQL — the generator is the source of truth. Specifically:
 
-1. Give me the exact command to run:
-   python3 skills/oracle-prompt-sql/scripts/oracle_prompt_sql.py gen <PROMPT_DIR> --code <CW_PROMPT_CODE>
+1. Give me the exact command to run. Use the launcher, which picks Python or Java automatically:
+   macOS/Linux: skills/oracle-prompt-sql/scripts/oracle-prompt-sql.sh gen <PROMPT_DIR> --code <CW_PROMPT_CODE>
+   Windows:     skills\oracle-prompt-sql\scripts\oracle-prompt-sql.cmd gen <PROMPT_DIR> --code <CW_PROMPT_CODE>
 2. Tell me to run the verifier afterward and show that command too.
 3. Remind me of the checks it must pass: one statement / no PL/SQL / no trailing semicolon, 4000-byte literal cap via TO_CLOB() pieces, & ; : ? encoded (not escaped)
 via sentinel + TRANSLATE, and a new PROMPT_VERSION via INSERT...SELECT (never an UPDATE).
 4. Flag the silent no-op: if no row exists for the prompt code, the insert affects 0 rows with no error.
 
 If I explicitly ask you to hand-write or patch the SQL instead, you MUST end by telling me to run:
-   python3 skills/oracle-prompt-sql/scripts/oracle_prompt_sql.py verify <SQL_FILE> <PROMPT_DIR>
+   skills/oracle-prompt-sql/scripts/oracle-prompt-sql.sh verify <SQL_FILE> <PROMPT_DIR>
 because decoding every literal back to source is the only check that catches a dropped character.
 ```
 

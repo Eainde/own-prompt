@@ -20,6 +20,14 @@ python3 scripts/oracle_prompt_sql.py verify <sql-file> <prompt-dir>
 `<prompt-dir>` holds `system.txt`, `user.txt` and `schema.json`. Output defaults to
 `<prompt-dir>/insert_prompt.sql`.
 
+**No Python? Use Java.** `scripts/OraclePromptSql.java` is a port with the same CLI and the
+same checks, and it produces byte-identical SQL. It runs straight from source on JDK 11+, with
+no build step: `java scripts/OraclePromptSql.java gen|verify ...`. The launchers
+`scripts/oracle-prompt-sql.sh` (macOS/Linux) and `scripts/oracle-prompt-sql.cmd` (Windows) use
+Python if it is installed and fall back to Java. Set `ORACLE_SQL_RUNTIME=python|java` to force
+one. **Any change to `oracle_prompt_sql.py` must be mirrored in the Java file**, then confirm
+parity by running `gen` with both and comparing the outputs with `cmp`.
+
 **Prefer the script over writing SQL yourself.** Not because hand-writing is forbidden, but
 because the output is a 100 KB+ statement in which a single dropped character is invisible,
 and the script's verifier decodes every literal back and compares it to the source. If you

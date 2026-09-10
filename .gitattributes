@@ -1,0 +1,3 @@
+# Windows cmd.exe mis-parses goto labels in LF-only batch files; sh breaks on CRLF.
+*.cmd text eol=crlf
+*.sh  text eol=lf
