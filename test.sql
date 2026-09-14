@@ -76,3 +76,18 @@ AND    e.completed_at >= SYSDATE - 90
 GROUP  BY TRUNC(e.completed_at, 'MI')
 ORDER  BY total_tokens DESC
 FETCH FIRST 100 ROWS ONLY;
+
+
+--------
+
+SELECT TO_CHAR(TRUNC(started_at), 'YYYY-MM-DD')                 AS run_date,
+       COUNT(*)                                                 AS executions,
+       SUM(CASE WHEN completed_at IS NULL THEN 1 ELSE 0 END)    AS no_completed_at,
+       SUM(CASE WHEN status = 'RUNNING' THEN 1 ELSE 0 END)      AS still_running,
+       SUM(NVL(total_tokens, 0))                                AS total_tokens,
+       SUM(NVL(llm_call_count, 0))                              AS llm_calls,
+       COUNT(DISTINCT TRUNC(started_at, 'MI'))                  AS active_minutes
+FROM   kyc_data_owner.nexus_ai_agent_executions
+WHERE  started_at >= SYSDATE - 90
+GROUP  BY TRUNC(started_at)
+ORDER  BY run_date;
