@@ -1,41 +1,78 @@
-SELECT TRUNC(e.started_at, 'MI')          AS minute_bucket,
-       SUM(NVL(e.total_tokens, 0))        AS total_tokens,
-       SUM(NVL(e.input_tokens, 0))        AS input_tokens,
-       SUM(NVL(e.output_tokens, 0))       AS output_tokens,
-       SUM(NVL(e.llm_call_count, 0))      AS llm_calls,
-       COUNT(*)                           AS executions,
-       COUNT(DISTINCT e.run_id)           AS runs
-FROM   kyc_data_owner.nexus_ai_agent_executions e
-WHERE  e.started_at >= SYSDATE - 90
-GROUP  BY TRUNC(e.started_at, 'MI')
-ORDER  BY total_tokens DESC
-FETCH FIRST 100 ROWS ONLY;
+1. Headline: peak minute for tokens and for LLM calls
 
-2. Top 100 minutes by LLM calls (last 90 days)
-
-SELECT TRUNC(e.started_at, 'MI')          AS minute_bucket,
-       SUM(NVL(e.llm_call_count, 0))      AS llm_calls,
-       SUM(NVL(e.total_tokens, 0))        AS total_tokens,
-       COUNT(*)                           AS executions,
-       COUNT(DISTINCT e.run_id)           AS runs
-FROM   kyc_data_owner.nexus_ai_agent_executions e
-WHERE  e.started_at >= SYSDATE - 90
-GROUP  BY TRUNC(e.started_at, 'MI')
-ORDER  BY llm_calls DESC
-FETCH FIRST 100 ROWS ONLY;
-
-3. Optional: rolling 60-second window
-Queries 1 and 2 use fixed clock minutes, so a burst from 10:00:40 to 10:01:20 gets split across two rows. Provider rate limits usually count over a rolling window, and this query catches that peak:
-
-SELECT started_at AS window_end, tokens_last_60s, calls_last_60s
-FROM (
-  SELECT e.started_at,
-         SUM(NVL(e.total_tokens, 0))   OVER (ORDER BY e.started_at
-              RANGE BETWEEN INTERVAL '59.999999' SECOND PRECEDING AND CURRENT ROW) AS tokens_last_60s,
-         SUM(NVL(e.llm_call_count, 0)) OVER (ORDER BY e.started_at
-              RANGE BETWEEN INTERVAL '59.999999' SECOND PRECEDING AND CURRENT ROW) AS calls_last_60s
+WITH per_minute AS (
+  SELECT TRUNC(e.completed_at, 'MI')       AS minute_start,
+         SUM(NVL(e.total_tokens, 0))       AS total_tokens,
+         SUM(NVL(e.input_tokens, 0))       AS input_tokens,
+         SUM(NVL(e.output_tokens, 0))      AS output_tokens,
+         SUM(NVL(e.llm_call_count, 0))     AS llm_calls,
+         COUNT(*)                          AS executions
   FROM   kyc_data_owner.nexus_ai_agent_executions e
-  WHERE  e.started_at >= SYSDATE - 90
+  WHERE  e.started_at   >= SYSDATE - 91
+  AND    e.completed_at >= SYSDATE - 90
+  GROUP  BY TRUNC(e.completed_at, 'MI')
+),
+ranked AS (
+  SELECT p.*,
+         ROW_NUMBER() OVER (ORDER BY total_tokens DESC, minute_start) AS rn_tokens,
+         ROW_NUMBER() OVER (ORDER BY llm_calls    DESC, minute_start) AS rn_calls
+  FROM   per_minute p
 )
-ORDER BY tokens_last_60s DESC     -- swap to calls_last_60s for the call peak
+SELECT 'Max tokens in one minute'    AS metric,
+       total_tokens                  AS peak_value,
+       TO_CHAR(minute_start, 'YYYY-MM-DD HH24:MI:SS')                       AS window_start,
+       TO_CHAR(minute_start + INTERVAL '59' SECOND, 'YYYY-MM-DD HH24:MI:SS') AS window_end,
+       total_tokens, input_tokens, output_tokens, llm_calls, executions
+FROM   ranked WHERE rn_tokens = 1
+UNION ALL
+SELECT 'Max LLM calls in one minute',
+       llm_calls,
+       TO_CHAR(minute_start, 'YYYY-MM-DD HH24:MI:SS'),
+       TO_CHAR(minute_start + INTERVAL '59' SECOND, 'YYYY-MM-DD HH24:MI:SS'),
+       total_tokens, input_tokens, output_tokens, llm_calls, executions
+FROM   ranked WHERE rn_calls = 1;
+
+2. Distribution: what normal load looks like
+
+WITH per_minute AS (
+  SELECT TRUNC(e.completed_at, 'MI')   AS minute_start,
+         SUM(NVL(e.total_tokens, 0))   AS total_tokens,
+         SUM(NVL(e.llm_call_count, 0)) AS llm_calls,
+         SUM(CASE WHEN e.llm_call_count IS NULL THEN 1 ELSE 0 END) AS rows_missing_call_count
+  FROM   kyc_data_owner.nexus_ai_agent_executions e
+  WHERE  e.started_at   >= SYSDATE - 91
+  AND    e.completed_at >= SYSDATE - 90
+  GROUP  BY TRUNC(e.completed_at, 'MI')
+)
+SELECT TO_CHAR(MIN(minute_start), 'YYYY-MM-DD HH24:MI') AS first_minute,
+       TO_CHAR(MAX(minute_start), 'YYYY-MM-DD HH24:MI') AS last_minute,
+       COUNT(*)                                                             AS active_minutes,
+       ROUND(AVG(total_tokens))                                             AS avg_tokens_per_min,
+       ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_tokens))    AS p95_tokens_per_min,
+       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY total_tokens))    AS p99_tokens_per_min,
+       MAX(total_tokens)                                                    AS max_tokens_per_min,
+       ROUND(AVG(llm_calls))                                                AS avg_calls_per_min,
+       ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY llm_calls))       AS p95_calls_per_min,
+       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY llm_calls))       AS p99_calls_per_min,
+       MAX(llm_calls)                                                       AS max_calls_per_min,
+       SUM(rows_missing_call_count)                                         AS rows_missing_call_count
+FROM   per_minute;
+
+If rows_missing_call_count is above 0, some rows have no call count, so the call numbers are too low. Check that before sending the report.
+
+3. Top 100 detail (tokens)
+
+SELECT TO_CHAR(TRUNC(e.completed_at, 'MI'), 'YYYY-MM-DD HH24:MI:SS')                        AS window_start,
+       TO_CHAR(TRUNC(e.completed_at, 'MI') + INTERVAL '59' SECOND, 'YYYY-MM-DD HH24:MI:SS') AS window_end,
+       SUM(NVL(e.total_tokens, 0))    AS total_tokens,
+       SUM(NVL(e.input_tokens, 0))    AS input_tokens,
+       SUM(NVL(e.output_tokens, 0))   AS output_tokens,
+       SUM(NVL(e.llm_call_count, 0))  AS llm_calls,
+       COUNT(*)                       AS executions,
+       COUNT(DISTINCT e.run_id)       AS runs
+FROM   kyc_data_owner.nexus_ai_agent_executions e
+WHERE  e.started_at   >= SYSDATE - 91
+AND    e.completed_at >= SYSDATE - 90
+GROUP  BY TRUNC(e.completed_at, 'MI')
+ORDER  BY total_tokens DESC
 FETCH FIRST 100 ROWS ONLY;
