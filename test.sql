@@ -104,7 +104,8 @@ FROM   pm
 GROUP  BY TRUNC(m,'IW')
 ORDER  BY week;
 
-6. WITH pm AS (
+6. Daily peak per minutes
+WITH pm AS (
   SELECT TRUNC(completed_at,'MI')    m,
          SUM(NVL(total_tokens,0))    tok,
          SUM(NVL(llm_call_count,0))  calls
