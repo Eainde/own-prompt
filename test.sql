@@ -103,16 +103,44 @@ SELECT TRUNC(m,'IW')                                                      week,
 FROM   pm
 GROUP  BY TRUNC(m,'IW')
 ORDER  BY week;
---------
 
-SELECT TO_CHAR(TRUNC(started_at), 'YYYY-MM-DD')                 AS run_date,
-       COUNT(*)                                                 AS executions,
-       SUM(CASE WHEN completed_at IS NULL THEN 1 ELSE 0 END)    AS no_completed_at,
-       SUM(CASE WHEN status = 'RUNNING' THEN 1 ELSE 0 END)      AS still_running,
-       SUM(NVL(total_tokens, 0))                                AS total_tokens,
-       SUM(NVL(llm_call_count, 0))                              AS llm_calls,
-       COUNT(DISTINCT TRUNC(started_at, 'MI'))                  AS active_minutes
-FROM   kyc_data_owner.nexus_ai_agent_executions
-WHERE  started_at >= SYSDATE - 90
-GROUP  BY TRUNC(started_at)
-ORDER  BY run_date;
+6. WITH pm AS (
+  SELECT TRUNC(completed_at,'MI')    m,
+         SUM(NVL(total_tokens,0))    tok,
+         SUM(NVL(llm_call_count,0))  calls
+  FROM   kyc_data_owner.nexus_ai_agent_executions
+  WHERE  completed_at >= SYSDATE - 90
+  GROUP  BY TRUNC(completed_at,'MI'))
+SELECT TO_CHAR(TRUNC(m),'YYYY-MM-DD DY')                                  day,
+       COUNT(*)                                                           active_minutes,
+       MAX(tok)                                                           max_tok,
+       TO_CHAR(MIN(m) KEEP (DENSE_RANK LAST ORDER BY tok),  'HH24:MI')    max_tok_minute,
+       ROUND(PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY tok))           p90_tok,
+       ROUND(AVG(tok))                                                    avg_tok,
+       MAX(calls)                                                         max_calls,
+       TO_CHAR(MIN(m) KEEP (DENSE_RANK LAST ORDER BY calls),'HH24:MI')    max_calls_minute,
+       ROUND(PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY calls))         p90_calls,
+       ROUND(AVG(calls))                                                  avg_calls
+FROM   pm
+GROUP  BY TRUNC(m)
+ORDER  BY TRUNC(m);
+
+7.
+WITH pm AS (
+  SELECT TRUNC(completed_at,'MI')    m,
+         SUM(NVL(total_tokens,0))    tok,
+         SUM(NVL(llm_call_count,0))  calls
+  FROM   kyc_data_owner.nexus_ai_agent_executions
+  WHERE  completed_at >= SYSDATE - 90
+  GROUP  BY TRUNC(completed_at,'MI'))
+SELECT TO_CHAR(TRUNC(m),'YYYY-MM-DD DY')                                day,
+       COUNT(*)                                                         active_minutes,
+       SUM(CASE WHEN calls > 200                    THEN 1 ELSE 0 END)  mins_over_200_calls,
+       SUM(CASE WHEN tok   > 3000000                THEN 1 ELSE 0 END)  mins_over_3m_tok,
+       SUM(CASE WHEN calls > 200 AND tok > 3000000  THEN 1 ELSE 0 END)  mins_over_both,
+       SUM(CASE WHEN calls > 200 OR  tok > 3000000  THEN 1 ELSE 0 END)  mins_over_either,
+       MAX(calls)                                                       max_calls,
+       MAX(tok)                                                         max_tok
+FROM   pm
+GROUP  BY TRUNC(m)
+ORDER  BY TRUNC(m);
