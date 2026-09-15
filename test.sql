@@ -77,7 +77,24 @@ GROUP  BY TRUNC(e.completed_at, 'MI')
 ORDER  BY total_tokens DESC
 FETCH FIRST 100 ROWS ONLY;
 
+4. Rolling 60-second peak. This matters most, because if it comes out above 20M the 1.5x isn't enough:
+WITH r AS (
+  SELECT SUM(NVL(total_tokens,0))   OVER (ORDER BY completed_at RANGE BETWEEN INTERVAL '59' SECOND PRECEDING AND CURRENT ROW) tok_60s,
+         SUM(NVL(llm_call_count,0)) OVER (ORDER BY completed_at RANGE BETWEEN INTERVAL '59' SECOND PRECEDING AND CURRENT ROW) calls_60s
+  FROM kyc_data_owner.nexus_ai_agent_executions
+  WHERE completed_at >= SYSDATE - 90)
+SELECT MAX(tok_60s), MAX(calls_60s) FROM r;
+Final ask = rolling max × 1.5.
 
+5. Growth trend: peak minute per week. This shows whether load is rising, flat or falling:
+WITH pm AS (
+  SELECT TRUNC(completed_at,'MI') m, SUM(NVL(total_tokens,0)) tok, SUM(NVL(llm_call_count,0)) calls
+  FROM kyc_data_owner.nexus_ai_agent_executions
+  WHERE completed_at >= SYSDATE - 90
+  GROUP BY TRUNC(completed_at,'MI'))
+SELECT TRUNC(m,'IW') week, MAX(tok) max_tok, MAX(calls) max_calls,
+       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY tok)) p99_tok
+FROM pm GROUP BY TRUNC(m,'IW') ORDER BY week;
 --------
 
 SELECT TO_CHAR(TRUNC(started_at), 'YYYY-MM-DD')                 AS run_date,
