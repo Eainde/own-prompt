@@ -145,3 +145,53 @@ SELECT TO_CHAR(TRUNC(m),'YYYY-MM-DD DY')                                day,
 FROM   pm
 GROUP  BY TRUNC(m)
 ORDER  BY TRUNC(m);
+
+8.
+
+WITH pm AS (
+  SELECT TRUNC(completed_at,'MI')    m,
+         SUM(NVL(input_tokens,0))    in_tok,
+         SUM(NVL(output_tokens,0))   out_tok,
+         SUM(NVL(total_tokens,0))    tok,
+         SUM(NVL(llm_call_count,0))  calls
+  FROM   kyc_data_owner.nexus_ai_agent_executions
+  WHERE  completed_at >= SYSDATE - 90
+  GROUP  BY TRUNC(completed_at,'MI'))
+SELECT 'input' metric,
+       ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY in_tok)) p50,
+       ROUND(PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY in_tok)) p90,
+       ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY in_tok)) p95,
+       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY in_tok)) p99,
+       MAX(in_tok) max_val FROM pm
+UNION ALL
+SELECT 'output',
+       ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY out_tok)),
+       ROUND(PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY out_tok)),
+       ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY out_tok)),
+       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY out_tok)),
+       MAX(out_tok) FROM pm
+UNION ALL
+SELECT 'total',
+       ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY tok)),
+       ROUND(PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY tok)),
+       ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY tok)),
+       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY tok)),
+       MAX(tok) FROM pm
+UNION ALL
+SELECT 'calls',
+       ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY calls)),
+       ROUND(PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY calls)),
+       ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY calls)),
+       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY calls)),
+       MAX(calls) FROM pm;
+
+2. Per-minute export for the delay simulation. Save it as CSV in Downloads (about 47K rows):
+SELECT TO_CHAR(TRUNC(completed_at,'MI'),'YYYY-MM-DD HH24:MI') minute,
+       SUM(NVL(input_tokens,0))   in_tok,
+       SUM(NVL(output_tokens,0))  out_tok,
+       SUM(NVL(total_tokens,0))   tok,
+       SUM(NVL(llm_call_count,0)) calls
+FROM   kyc_data_owner.nexus_ai_agent_executions
+WHERE  completed_at >= SYSDATE - 90
+GROUP  BY TRUNC(completed_at,'MI')
+ORDER  BY 1;
