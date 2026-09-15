@@ -88,13 +88,21 @@ Final ask = rolling max × 1.5.
 
 5. Growth trend: peak minute per week. This shows whether load is rising, flat or falling:
 WITH pm AS (
-  SELECT TRUNC(completed_at,'MI') m, SUM(NVL(total_tokens,0)) tok, SUM(NVL(llm_call_count,0)) calls
-  FROM kyc_data_owner.nexus_ai_agent_executions
-  WHERE completed_at >= SYSDATE - 90
-  GROUP BY TRUNC(completed_at,'MI'))
-SELECT TRUNC(m,'IW') week, MAX(tok) max_tok, MAX(calls) max_calls,
-       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY tok)) p99_tok
-FROM pm GROUP BY TRUNC(m,'IW') ORDER BY week;
+  SELECT TRUNC(completed_at,'MI')    m,
+         SUM(NVL(total_tokens,0))    tok,
+         SUM(NVL(llm_call_count,0))  calls
+  FROM   kyc_data_owner.nexus_ai_agent_executions
+  WHERE  completed_at >= SYSDATE - 90
+  GROUP  BY TRUNC(completed_at,'MI'))
+SELECT TRUNC(m,'IW')                                                      week,
+       MAX(tok)                                                           max_tok,
+       TO_CHAR(MIN(m) KEEP (DENSE_RANK LAST ORDER BY tok),  'YYYY-MM-DD HH24:MI') max_tok_minute,
+       MAX(calls)                                                         max_calls,
+       TO_CHAR(MIN(m) KEEP (DENSE_RANK LAST ORDER BY calls),'YYYY-MM-DD HH24:MI') max_calls_minute,
+       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY tok))           p99_tok
+FROM   pm
+GROUP  BY TRUNC(m,'IW')
+ORDER  BY week;
 --------
 
 SELECT TO_CHAR(TRUNC(started_at), 'YYYY-MM-DD')                 AS run_date,
