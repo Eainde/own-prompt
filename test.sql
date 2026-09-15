@@ -258,3 +258,23 @@ SELECT a.cap,
        TO_CHAR(e.longest_episode_start,'YYYY-MM-DD HH24:MI') longest_episode_start
 FROM   agg a LEFT JOIN ep e ON e.cap = a.cap
 ORDER  BY a.cap;
+
+1.1 % for output tokens
+WITH per_minute AS (
+  SELECT TRUNC(e.completed_at, 'MI')    AS minute_start,
+         SUM(NVL(e.output_tokens, 0))   AS output_tokens,
+         SUM(CASE WHEN e.output_tokens IS NULL THEN 1 ELSE 0 END) AS rows_missing_output_tokens
+  FROM   kyc_data_owner.nexus_ai_agent_executions e
+  WHERE  e.started_at   >= SYSDATE - 91
+  AND    e.completed_at >= SYSDATE - 90
+  GROUP  BY TRUNC(e.completed_at, 'MI')
+)
+SELECT TO_CHAR(MIN(minute_start), 'YYYY-MM-DD HH24:MI')                     AS first_minute,
+       TO_CHAR(MAX(minute_start), 'YYYY-MM-DD HH24:MI')                     AS last_minute,
+       COUNT(*)                                                             AS active_minutes,
+       ROUND(AVG(output_tokens))                                            AS avg_output_tokens_per_min,
+       ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY output_tokens))   AS p95_output_tokens_per_min,
+       ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY output_tokens))   AS p99_output_tokens_per_min,
+       MAX(output_tokens)                                                   AS max_output_tokens_per_min,
+       SUM(rows_missing_output_tokens)                                      AS rows_missing_output_tokens
+FROM   per_minute;
