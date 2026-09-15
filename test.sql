@@ -195,3 +195,66 @@ FROM   kyc_data_owner.nexus_ai_agent_executions
 WHERE  completed_at >= SYSDATE - 90
 GROUP  BY TRUNC(completed_at,'MI')
 ORDER  BY 1;
+
+--------------
+WITH params AS (SELECT 1 AS out_w FROM dual),      -- output token weight; set to model's PT rate (e.g. 4)
+caps AS (
+  SELECT 3000000 cap FROM dual UNION ALL
+  SELECT 4000000     FROM dual UNION ALL
+  SELECT 5000000     FROM dual UNION ALL
+  SELECT 6000000     FROM dual UNION ALL
+  SELECT 8000000     FROM dual),
+bounds AS (SELECT TRUNC(SYSDATE-90,'MI') start_m, TRUNC(SYSDATE,'MI') end_m FROM dual),
+minutes AS (
+  SELECT start_m + (LEVEL-1)/1440 m
+  FROM   bounds
+  CONNECT BY LEVEL <= (end_m - start_m)*1440 + 1),
+pm AS (
+  SELECT TRUNC(e.completed_at,'MI') m,
+         SUM(NVL(e.total_tokens,0) + (p.out_w-1)*NVL(e.output_tokens,0)) tok
+  FROM   kyc_data_owner.nexus_ai_agent_executions e CROSS JOIN params p
+  WHERE  e.completed_at >= TRUNC(SYSDATE-90,'MI')
+  GROUP  BY TRUNC(e.completed_at,'MI')),
+dense AS (
+  SELECT mi.m, NVL(pm.tok,0) tok
+  FROM   minutes mi LEFT JOIN pm ON pm.m = mi.m),
+sim AS (
+  SELECT c.cap, d.m,
+         SUM(d.tok - c.cap) OVER (PARTITION BY c.cap ORDER BY d.m ROWS UNBOUNDED PRECEDING) s
+  FROM   dense d CROSS JOIN caps c),
+bl AS (
+  SELECT cap, m,
+         s - LEAST(0, MIN(s) OVER (PARTITION BY cap ORDER BY m ROWS UNBOUNDED PRECEDING)) backlog
+  FROM   sim),
+islands AS (
+  SELECT cap, m, backlog,
+         ROW_NUMBER() OVER (PARTITION BY cap ORDER BY m)
+       - ROW_NUMBER() OVER (PARTITION BY cap, SIGN(backlog) ORDER BY m) grp
+  FROM   bl),
+episodes AS (
+  SELECT cap, grp, COUNT(*) mins, MIN(m) st
+  FROM   islands WHERE backlog > 0
+  GROUP  BY cap, grp),
+agg AS (
+  SELECT cap,
+         SUM(CASE WHEN backlog > 0 THEN 1 ELSE 0 END)          mins_behind,
+         COUNT(DISTINCT CASE WHEN backlog > 0 THEN TRUNC(m) END) days_affected,
+         MAX(backlog)                                           max_backlog_tok,
+         ROUND(MAX(backlog)/cap,1)                              max_wait_min,
+         MIN(m) KEEP (DENSE_RANK LAST ORDER BY backlog)         worst_at
+  FROM   bl GROUP BY cap),
+ep AS (
+  SELECT cap, COUNT(*) episodes, MAX(mins) longest_episode_min,
+         MIN(st) KEEP (DENSE_RANK LAST ORDER BY mins) longest_episode_start
+  FROM   episodes GROUP BY cap)
+SELECT a.cap,
+       a.mins_behind,
+       e.episodes,
+       a.days_affected,
+       a.max_backlog_tok,
+       a.max_wait_min,
+       TO_CHAR(a.worst_at,'YYYY-MM-DD HH24:MI')              worst_at,
+       e.longest_episode_min,
+       TO_CHAR(e.longest_episode_start,'YYYY-MM-DD HH24:MI') longest_episode_start
+FROM   agg a LEFT JOIN ep e ON e.cap = a.cap
+ORDER  BY a.cap;
